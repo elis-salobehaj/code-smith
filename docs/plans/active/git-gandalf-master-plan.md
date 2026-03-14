@@ -22,7 +22,11 @@ related_files:
   - src/gitlab-client/types.ts
   - src/gitlab-client/client.ts
   - src/context/repo-manager.ts
-  - src/context/tools.ts
+  - src/context/tools/index.ts
+  - src/context/tools/shared.ts
+  - src/context/tools/read-file.ts
+  - src/context/tools/search-codebase.ts
+  - src/context/tools/get-directory-structure.ts
   - src/agents/state.ts
   - src/agents/llm-client.ts
   - src/agents/context-agent.ts
