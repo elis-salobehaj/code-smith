@@ -1,3 +1,64 @@
+---
+title: "Git-Gandalf: Repository Setup & Agentic Development Plan"
+status: implemented
+priority: high
+estimated_hours: 10
+dependencies: []
+created: 2026-03-14
+date_updated: 2026-03-14
+related_files:
+  - AGENTS.md
+  - LICENSE
+  - README.md
+  - .agents/skills/bun-project-conventions/SKILL.md
+  - src/agents/prompts/system-prompt.md
+  - docs/README.md
+  - docs/agents/README.md
+  - docs/agents/context/ARCHITECTURE.md
+  - docs/agents/context/CONFIGURATION.md
+  - docs/agents/context/WORKFLOWS.md
+  - docs/agents/designs/tech-stack-evaluation.md
+  - docs/humans/README.md
+  - docs/humans/context/ARCHITECTURE.md
+  - docs/humans/designs/tech-stack-evaluation.md
+  - docs/plans/active/git-gandalf-master-plan.md
+  - docs/guides/GETTING_STARTED.md
+  - docs/guides/DEVELOPMENT.md
+tags:
+  - project-setup
+  - documentation
+  - ai-agents
+  - bun
+completion:
+  - "# 1. GitHub Repository Setup"
+  - [x] 1.1 `gh repo create git-gandalf --public --license apache-2.0 --clone=false`
+  - [x] 1.2 Initialize local git in `/home/elis/projects/git-gandalf`
+  - [x] 1.3 Add GitHub remote, commit only the LICENSE, push to main
+  - [x] 1.4 Existing `.md` files remain uncommitted until moved to their proper doc locations
+  - "# 2. Documentation Structure"
+  - [x] 2.1 Finalize Layout
+  - [x] 2.2 Split `designs/` per Track
+  - [x] 2.3 System Prompt → `src/agents/prompts/system-prompt.md`
+  - "# 3. Agent Skills — Open Standard"
+  - [x] 3.1 Adopt `agentskills.io` standard
+  - [x] 3.2 Starter Skill: `bun-project-conventions`
+  - "# 4. AGENTS.md (Finalized Draft)"
+  - [x] 4.1 Write operating manual
+  - "# 5. Linting/Formatting — Biome"
+  - [x] 5.1 Adopt Biome over ESLint/Prettier
+  - [x] 5.2 Set up `biome.json`
+  - [x] 5.3 Set Zod Strict Usage Policy
+  - "# 6. File Movement Plan"
+  - [x] 6.1 Move `git-gandalf-master-plan.md` to `docs/plans/active/git-gandalf-master-plan.md`
+  - [x] 6.2 Move `tech-stack-evaluation-design-choices.md` to `docs/humans/designs/tech-stack-evaluation.md`
+  - [x] 6.3 Create `docs/agents/designs/tech-stack-evaluation.md`
+  - [x] 6.4 Move `gg-system-prompt.md` to `src/agents/prompts/system-prompt.md`
+  - "# 7. Master Plan Updates Required"
+  - [x] 7.1 Add Biome configuration
+  - [x] 7.2 Add `bun-project-conventions` Agent Skill
+  - [x] 7.3 Update package.json scripts
+  - [x] 7.4 Elevate Zod strict policy to Phase 1 setup
+---
 # Git-Gandalf: Repository Setup & Agentic Development Plan
 
 > All decisions finalized. This plan covers GitHub repo bootstrap, documentation structure, Agent Skills setup, linting/formatting, and file organization.

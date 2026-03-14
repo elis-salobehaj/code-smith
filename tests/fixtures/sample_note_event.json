@@ -1,0 +1,28 @@
+{
+  "object_kind": "note",
+  "event_type": "note",
+  "user": {
+    "id": 2,
+    "name": "Bob Reviewer",
+    "username": "bob"
+  },
+  "project": {
+    "id": 42,
+    "web_url": "https://gitlab.example.com/alice/my-project",
+    "path_with_namespace": "alice/my-project"
+  },
+  "object_attributes": {
+    "id": 101,
+    "note": "/ai-review please check the auth logic",
+    "noteable_type": "MergeRequest",
+    "noteable_id": 7,
+    "url": "https://gitlab.example.com/alice/my-project/-/merge_requests/7#note_101"
+  },
+  "merge_request": {
+    "iid": 7,
+    "title": "Fix: handle null pointer in user service",
+    "source_branch": "fix/null-pointer-user-service",
+    "target_branch": "main",
+    "state": "opened"
+  }
+}

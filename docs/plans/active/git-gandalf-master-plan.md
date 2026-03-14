@@ -1,3 +1,80 @@
+---
+title: "GitGandalf — Master Implementation Plan"
+status: active
+priority: high
+estimated_hours: 40-60
+dependencies: []
+created: 2026-03-14
+date_updated: 2026-03-14
+related_files:
+  - package.json
+  - biome.json
+  - .agents/skills/bun-project-conventions/SKILL.md
+  - tsconfig.json
+  - .env.example
+  - .gitignore
+  - src/config.ts
+  - src/index.ts
+  - src/api/schemas.ts
+  - src/api/router.ts
+  - src/api/pipeline.ts
+  - src/gitlab-client/types.ts
+  - src/gitlab-client/client.ts
+  - src/context/repo-manager.ts
+  - src/context/tools.ts
+  - src/agents/state.ts
+  - src/agents/llm-client.ts
+  - src/agents/context-agent.ts
+  - src/agents/investigator-agent.ts
+  - src/agents/reflection-agent.ts
+  - src/agents/orchestrator.ts
+  - src/publisher/gitlab-publisher.ts
+  - Dockerfile
+  - docker-compose.yml
+  - README.md
+tags:
+  - implementation
+  - multi-agent
+  - gitlab
+  - code-review
+completion:
+  - "# Phase 1 — Setup & Webhooks"
+  - [x] 1.1 `package.json`
+  - [x] 1.2 `biome.json`
+  - [x] 1.3 `.agents/skills/bun-project-conventions/SKILL.md`
+  - [x] 1.4 Zod Strict Usage Policy
+  - [x] 1.5 `tsconfig.json`
+  - [x] 1.6 `.env.example`
+  - [x] 1.7 `.gitignore`
+  - [x] 1.8 `src/config.ts`
+  - [x] 1.9 `src/index.ts`
+  - [x] 1.10 `src/api/schemas.ts`
+  - [x] 1.11 `src/api/router.ts`
+  - [x] 1.12 `src/gitlab-client/types.ts`
+  - [x] 1.13 `src/api/pipeline.ts`
+  - [x] 1.14 `src/gitlab-client/client.ts`
+  - "# Phase 2 — Agent Tools & Context Engine"
+  - [ ] 2.1 `src/context/repo-manager.ts`
+  - [ ] 2.2 `src/context/tools.ts`
+  - "# Phase 3 — Multi-Agent Orchestration"
+  - [ ] 3.1 `src/agents/state.ts`
+  - [ ] 3.2 `src/agents/llm-client.ts`
+  - [ ] 3.3 `src/agents/context-agent.ts`
+  - [ ] 3.4 `src/agents/investigator-agent.ts`
+  - [ ] 3.5 `src/agents/reflection-agent.ts`
+  - [ ] 3.6 `src/agents/orchestrator.ts`
+  - "# Phase 4 — GitLab API Feedback Loop"
+  - [ ] 4.1 `src/publisher/gitlab-publisher.ts`
+  - [ ] 4.2 `src/api/router.ts` (Wire up pipeline)
+  - [ ] 4.3 `Dockerfile`
+  - [ ] 4.4 `docker-compose.yml`
+  - [ ] 4.5 `README.md`
+  - "# Phase 5+ — Production Hardening (Future)"
+  - [ ] 5.1 Task Queue (BullMQ + Valkey)
+  - [ ] 5.2 Kubernetes (KinD / EKS / GKE)
+  - [ ] 5.3 LLM Fallback (OpenAI / Google)
+  - [ ] 5.4 LLM Abstraction (Vercel AI SDK)
+---
 # GitGandalf — Master Implementation Plan
 
 > **Ecosystem**: TypeScript · **Runtime**: Bun · **Framework**: Hono
@@ -75,7 +152,8 @@ git-gandalf/
 │   ├── config.ts                   # Env vars via Zod-validated process.env
 │   ├── api/
 │   │   ├── router.ts               # Webhook + health route definitions
-│   │   └── schemas.ts              # Zod schemas for GitLab webhook payloads
+│   │   ├── schemas.ts              # Zod schemas for GitLab webhook payloads
+│   │   └── pipeline.ts             # Typed pipeline entry-point stub (filled in Phase 2–4)
 │   ├── gitlab-client/
 │   │   ├── client.ts               # @gitbeaker/rest wrapper (fetch MR, diff, discussions)
 │   │   └── types.ts                # TypeScript types for GitLab data (MRDetails, DiffFile, etc.)
@@ -93,7 +171,8 @@ git-gandalf/
 │       └── gitlab-publisher.ts     # Format findings → GitLab inline comments + summary
 └── tests/
     ├── fixtures/
-    │   └── sample_mr_event.json    # Sample webhook payload for testing
+    │   ├── sample_mr_event.json    # Sample MR open event payload
+    │   └── sample_note_event.json  # Sample /ai-review note event payload
     ├── webhook.test.ts             # Phase 1 tests
     ├── tools.test.ts               # Phase 2 tests
     ├── agents.test.ts              # Phase 3 tests
@@ -109,7 +188,7 @@ Stand up the Hono server on Bun, parse GitLab webhook payloads, and fetch MR dat
 
 ---
 
-#### [NEW] `package.json`
+#### [DONE] `package.json`
 - **Dependencies**: `hono`, `@gitbeaker/rest`, `@anthropic-ai/bedrock-sdk`, `@aws-sdk/credential-providers`, `zod`
 - **Dev dependencies**: `@types/bun`, `typescript`, `@biomejs/biome`
 - **Scripts**:
@@ -126,7 +205,7 @@ Stand up the Hono server on Bun, parse GitLab webhook payloads, and fetch MR dat
   }
   ```
 
-#### [NEW] `biome.json`
+#### [DONE] `biome.json`
 - Biome configuration for fast linting, formatting, and import sorting:
 ```json
 {
@@ -149,7 +228,7 @@ Stand up the Hono server on Bun, parse GitLab webhook payloads, and fetch MR dat
 }
 ```
 
-#### [NEW] `.agents/skills/bun-project-conventions/SKILL.md`
+#### [DONE] `.agents/skills/bun-project-conventions/SKILL.md`
 - Agent skill (open standard) teaching agents to use Bun-native APIs and conventions.
 
 #### Zod Strict Usage Policy
@@ -158,24 +237,24 @@ Stand up the Hono server on Bun, parse GitLab webhook payloads, and fetch MR dat
 - **No `as` type casts** for external data — always `.parse()` or `.safeParse()`.
 - **Export inferred types**: `type Config = z.infer<typeof configSchema>`.
 
-#### [NEW] `tsconfig.json`
+#### [DONE] `tsconfig.json`
 - `target: ESNext`, `module: ESNext`, `moduleResolution: bundler`, `strict: true`
 - Path aliases: `@/*` → `./src/*`
 
-#### [NEW] `.env.example`
+#### [DONE] `.env.example`
 ```env
 # GitLab
 GITLAB_URL=https://gitlab.example.com
 GITLAB_TOKEN=glpat-xxxxx
 GITLAB_WEBHOOK_SECRET=your-webhook-secret
 
-# AWS Bedrock
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
+# AWS Bedrock (bearer token auth)
+AWS_REGION=us-west-2
+AWS_BEARER_TOKEN_BEDROCK=<your-bedrock-bearer-token>
+AWS_AUTH_SCHEME_PREFERENCE='smithy.api#httpBearerAuth'
 
 # LLM
-LLM_MODEL=claude-sonnet-4-20250514
+LLM_MODEL=global.anthropic.claude-sonnet-4-6
 MAX_TOOL_ITERATIONS=15
 
 # Service
@@ -184,10 +263,10 @@ LOG_LEVEL=info
 PORT=8000
 ```
 
-#### [NEW] `.gitignore`
+#### [DONE] `.gitignore`
 - Standard Node/TS: `node_modules/`, `dist/`, `.env`, `repo_cache/`, `*.log`
 
-#### [NEW] `src/config.ts`
+#### [DONE] `src/config.ts`
 - Zod schema for environment validation. Parse `process.env`, export typed singleton:
 ```typescript
 import { z } from 'zod';
@@ -196,11 +275,11 @@ const envSchema = z.object({
   GITLAB_URL: z.string().url(),
   GITLAB_TOKEN: z.string().min(1),
   GITLAB_WEBHOOK_SECRET: z.string().min(1),
-  AWS_REGION: z.string().default('us-east-1'),
-  AWS_ACCESS_KEY_ID: z.string().optional(),
-  AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  LLM_MODEL: z.string().default('claude-sonnet-4-20250514'),
-  MAX_TOOL_ITERATIONS: z.coerce.number().default(15),
+  AWS_REGION: z.string().default('us-west-2'),
+  AWS_BEARER_TOKEN_BEDROCK: z.string().min(1),
+  AWS_AUTH_SCHEME_PREFERENCE: z.string().default('smithy.api#httpBearerAuth'),
+  LLM_MODEL: z.string().default('global.anthropic.claude-sonnet-4-6'),
+  MAX_TOOL_ITERATIONS: z.coerce.number().int().positive().default(15),
   REPO_CACHE_DIR: z.string().default('/tmp/repo_cache'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   PORT: z.coerce.number().default(8000),
@@ -210,7 +289,7 @@ export type Config = z.infer<typeof envSchema>;
 export const config = envSchema.parse(process.env);
 ```
 
-#### [NEW] `src/index.ts`
+#### [DONE] `src/index.ts`
 - Create Hono app, mount API router, start Bun HTTP server:
 ```typescript
 import { Hono } from 'hono';
@@ -228,13 +307,13 @@ export default {
 };
 ```
 
-#### [NEW] `src/api/schemas.ts`
+#### [DONE] `src/api/schemas.ts`
 - Zod schemas for GitLab webhook payloads:
   - `mergeRequestEventSchema` — `object_kind`, `event_type`, `project` (id, web_url, path_with_namespace), `object_attributes` (iid, title, description, source_branch, target_branch, action, url).
   - `noteEventSchema` — for comment-triggered reviews (`/ai-review`).
   - `webhookPayloadSchema` — discriminated union of both.
 
-#### [NEW] `src/api/router.ts`
+#### [DONE] `src/api/router.ts`
 - `POST /webhooks/gitlab`:
   1. Verify `X-Gitlab-Token` header against `config.GITLAB_WEBHOOK_SECRET`.
   2. Parse payload with Zod schemas.
@@ -243,10 +322,15 @@ export default {
   5. Return `202 Accepted`.
 - `GET /health` — health check returning `{ status: 'ok', timestamp }`.
 
-#### [NEW] `src/gitlab-client/types.ts`
+#### [DONE] `src/gitlab-client/types.ts`
 - TypeScript interfaces: `MRDetails`, `DiffFile`, `DiffHunk`, `Discussion`, `Note`.
 
-#### [NEW] `src/gitlab-client/client.ts`
+#### [DONE] `src/api/pipeline.ts`
+- Typed entry-point stub that `router.ts` imports for its fire-and-forget call.
+- Signature: `runPipeline(event: WebhookPayload): Promise<void>`. Phase 2–4 replace the body with the full orchestration chain.
+- Keeps the router free of Phase 2+ concerns while satisfying the TypeScript import at Phase 1.
+
+#### [DONE] `src/gitlab-client/client.ts`
 - Thin wrapper around `@gitbeaker/rest`:
 ```typescript
 import { Gitlab } from '@gitbeaker/rest';

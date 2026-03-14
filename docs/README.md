@@ -26,4 +26,14 @@ Detailed, visual documentation with Mermaid diagrams and full rationale.
 - **Active**: [GitGandalf Master Plan](./plans/active/git-gandalf-master-plan.md) — Phases 1–5 implementation roadmap
 - **Implemented**: [Agentic Development Plan](./plans/implemented/agentic-development-plan.md) — Repo bootstrap and dev tooling setup
 
-> *(Phase 1)* — placeholder files that will be populated during Phase 1 implementation.
+### Implementation Status
+
+| Phase | Status | Summary |
+|---|---|---|
+| **Phase 1** | ✅ Complete | Hono server, Zod webhook parsing, GitLab client, 15 tests |
+| **Phase 2** | 🔜 Next | Agent tools & context engine (repo clone, file/search tools) |
+| **Phase 3** | ⬜ Planned | Multi-agent pipeline (context, investigator, reflection agents) |
+| **Phase 4** | ⬜ Planned | GitLab publisher (inline comments, summary comment) |
+| **Phase 5** | ⬜ Planned | Hardening, BullMQ queue, Docker Compose |
+
+> *(Phase 1)* — documentation stub files to be filled in during Phase 2+ implementation.

@@ -13,33 +13,30 @@ license: Apache-2.0
 
 > **Pipeline position**: `implement` → `review-plan-phase` → **`plan-phase-remediation`**
 
-> **Constraint**: This skill produces a plan only. Do not write code, modify files, or execute any fixes during this pass. Implementation begins only after a human reviews and approves the plan.
+> **Constraint**: This skill produces a detailed remediation plan saved as a Markdown file under `docs/plans/review-reports`, starting with a holistic executive summary. Once the plan is saved, you **must automatically continue with executing the remediation steps** without waiting for human approval, except for tasks marked as `[human]`.
 
 Use this skill after a review report has already identified what is missing or weak
 in a plan-driven implementation. The purpose is to turn findings into an ordered,
-practical remediation plan. This skill plans the fixes. It does not perform them
-unless a human later asks for implementation.
+practical remediation plan, save it as a digestible report, and automatically execute the fixes.
 
 ## Outcome
 
-Produce a remediation plan that:
-- groups findings into coherent workstreams
-- orders fixes by dependency and risk
-- distinguishes blocking issues from follow-up improvements
+Produce and execute a remediation plan that:
+- begins with a high-level holistic overview of the findings and recommendations so a human can quickly digest the current state
+- groups findings into coherent workstreams and orders fixes by dependency and risk
 - includes code, tests, docs, and plan-tracking updates required for closure
-- identifies any decisions that need human confirmation before implementation starts
+- is saved as a Markdown file under `docs/plans/review-reports`
+- is then automatically executed by the agent without waiting for explicit human approval
 
 ## When To Use
 
 Use this skill for:
-- turning a `review-plan-phase` audit report into an execution plan
-- preparing a follow-up implementation pass after human approval
+- turning a `review-plan-phase` audit report into an execution plan, document it, and execute it
 - sequencing fixes across code, tests, docs, and plan bookkeeping
 - reducing a large audit report into a focused remediation backlog
 
 Do not use this skill for:
 - re-running the original architecture review
-- making code changes immediately
 - hand-waving fixes without tying them back to review findings
 
 ## Required Inputs
@@ -50,7 +47,7 @@ Before planning remediation, gather:
 - the current implementation surface
 - any human constraints on scope, timeline, or acceptable tradeoffs
 
-If the human has not yet approved remediation planning, ask first.
+
 
 ## Procedure
 
@@ -78,8 +75,8 @@ If the human has not yet approved remediation planning, ask first.
 6. Call out approval points.
    If any finding implies a design change, scope reduction, or plan deviation, mark it for human confirmation before implementation.
 
-7. Stop at the plan.
-   Deliver the ordered remediation plan and wait for human approval to execute it.
+7. Save the plan and execute.
+   Deliver the ordered remediation plan by writing it to a file under `docs/plans/review-reports/<report-name>.md`. Once saved, immediately continue with implementing the `[agent]` remediation steps without waiting for human approval.
 
 ## Decision Rules
 
@@ -101,25 +98,28 @@ Before finishing, verify that the remediation plan answers:
 
 ## Output Format
 
-Generate a Markdown-formatted remediation plan structurally identical to this:
+Generate a Markdown-formatted remediation plan and save it to `docs/plans/review-reports/`. The file must be structurally identical to this:
 
-### 1. Remediation Objective
-Summarize what the plan needs to correct.
+### 1. Holistic Overview (Executive Summary)
+A concise, high-level summary of the findings and recommendations. This serves as an entry point for a human to quickly digest the current state of the plan phase.
 
-### 2. Ordered Remediation Steps
+### 2. Remediation Objective
+Summarize what the detailed plan needs to correct.
+
+### 3. Ordered Remediation Steps
 Provide a sequentially ordered task list using Markdown checkboxes (`- [ ]`). Each item must include the autonomy tag, context, target file(s), and objective.
 Example:
 - [ ] **[agent] Fix Zod schema**: Add `.strict()` to `webhookPayloadSchema` in `src/api/schemas.ts` to reject unexpected webhook fields.
 - [ ] **[human] Confirm task-queue scope**: The plan specifies Phase 5 BullMQ work; confirm whether to include it in this remediation pass or defer to a future phase.
 
-### 3. Required Validations
+### 4. Required Validations
 State which tests, checks, and reviews should confirm completion.
 
-### 4. Documentation and Plan Updates
+### 5. Documentation and Plan Updates
 List the non-code updates (also using `- [ ]` checkboxes) needed before the phase can be considered done.
 
-### 5. Human Decisions Needed
-Call out anything that should be approved before implementation starts.
+### 6. Human Decisions Needed
+Call out anything that should be approved or answered by the human.
 
 ## Preferred Prompts
 

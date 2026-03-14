@@ -67,7 +67,7 @@ typings/
 
 # dotenv environment variables file
 .env
-.env.test
+# .env.test is intentionally tracked — contains only fake test credentials
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

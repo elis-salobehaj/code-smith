@@ -1,0 +1,24 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": {
+    "id": 1,
+    "name": "Alice Developer",
+    "username": "alice"
+  },
+  "project": {
+    "id": 42,
+    "web_url": "https://gitlab.example.com/alice/my-project",
+    "path_with_namespace": "alice/my-project"
+  },
+  "object_attributes": {
+    "iid": 7,
+    "title": "Fix: handle null pointer in user service",
+    "description": "Fixes a null pointer crash when the user has no profile set.",
+    "source_branch": "fix/null-pointer-user-service",
+    "target_branch": "main",
+    "action": "open",
+    "url": "https://gitlab.example.com/alice/my-project/-/merge_requests/7",
+    "state": "opened"
+  }
+}
