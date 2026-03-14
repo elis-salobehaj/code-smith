@@ -1,0 +1,30 @@
+{
+  "name": "git-gandalf",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "ci": "biome ci . && tsc --noEmit && bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0",
+    "@biomejs/biome": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@gitbeaker/rest": "latest",
+    "@anthropic-ai/bedrock-sdk": "latest",
+    "@aws-sdk/credential-providers": "latest",
+    "zod": "latest"
+  }
+}
