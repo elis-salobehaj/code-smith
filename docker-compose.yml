@@ -1,0 +1,12 @@
+services:
+  git-gandalf:
+    build: .
+    env_file: .env
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - repo-cache:/tmp/repo_cache
+    restart: unless-stopped
+
+volumes:
+  repo-cache:

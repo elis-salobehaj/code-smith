@@ -24,6 +24,7 @@ Detailed, visual documentation with Mermaid diagrams and full rationale.
 ## 📋 Implementation Plans (`docs/plans/`)
 
 - **Active**: [GitGandalf Master Plan](./plans/active/git-gandalf-master-plan.md) — Phases 1–5 implementation roadmap
+- **Backlog**: [Structured Logging](./plans/backlog/structured-logging-plan.md) — LogTape structured logging, request correlation, and docs overhaul across 5 phases
 - **Implemented**: [Agentic Development Plan](./plans/implemented/agentic-development-plan.md) — Repo bootstrap and dev tooling setup
 
 ### Implementation Status
@@ -34,8 +35,8 @@ Detailed, visual documentation with Mermaid diagrams and full rationale.
 | **Phase 2** | ✅ Complete | Repo cache manager, tool executor, file/search/directory tools, and test coverage foundation |
 | **Phase 2.5** | ✅ Complete | Tool-per-file modularization with stable barrel import path in `src/context/tools/` |
 | **Phase 3** | ✅ Complete | Shared review state, Bedrock client wrapper, context/investigator/reflection agents, orchestrator, and Phase 3 test coverage |
-| **Phase 4** | ⬜ Planned | GitLab publisher (inline comments, summary comment) |
-| **Phase 5** | ⬜ Planned | Hardening, BullMQ queue, Docker Compose |
+| **Phase 4** | ✅ Complete | GitLab publisher (inline comments, summary note, duplicate guard), full pipeline wiring, Dockerfile, Docker Compose, README |
+| **Phase 5** | ⬜ Planned | Hardening, BullMQ queue, Kubernetes |
 
 ## Current State Summary
 
@@ -47,7 +48,10 @@ Implemented today:
 - repo cache manager with host validation
 - modular tool surface for investigator agents
 - standalone multi-agent review subsystem with context, investigator, reflection, and orchestration stages
+- end-to-end pipeline: webhook → agents → GitLab inline comments + summary note
+- GitLab publisher with duplicate detection
+- Dockerfile and Docker Compose for self-hosted deployment
 
 Planned next:
 
-- Phase 4 result publishing and end-to-end review loop
+- Phase 5 production hardening (task queue, Kubernetes)

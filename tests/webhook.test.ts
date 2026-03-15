@@ -1,5 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import app from "../src/index";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 // ---------------------------------------------------------------------------
 // Env vars are loaded from .env.test by Bun before any module is evaluated.
@@ -7,6 +6,13 @@ import app from "../src/index";
 // This means config.ts can safely evaluate process.env at module load time.
 // ---------------------------------------------------------------------------
 const TEST_SECRET = "test-webhook-secret";
+const mockRunPipeline = mock(async () => undefined);
+
+mock.module("../src/api/pipeline", () => ({
+  runPipeline: mockRunPipeline,
+}));
+
+const { default: app } = await import("../src/index");
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,6 +34,11 @@ function makeRequest(body: unknown, secret: string | null = TEST_SECRET): Reques
 
 const mrOpenEvent = await Bun.file("tests/fixtures/sample_mr_event.json").json();
 const noteEvent = await Bun.file("tests/fixtures/sample_note_event.json").json();
+
+beforeEach(() => {
+  mockRunPipeline.mockReset();
+  mockRunPipeline.mockResolvedValue(undefined);
+});
 
 // ---------------------------------------------------------------------------
 // Health check
@@ -97,6 +108,7 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
   it("accepts MR open action and returns 202", async () => {
     const res = await app.fetch(makeRequest(mrOpenEvent));
     expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
   });
 
   it("accepts MR update action and returns 202", async () => {
@@ -104,6 +116,7 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
       makeRequest({ ...mrOpenEvent, object_attributes: { ...mrOpenEvent.object_attributes, action: "update" } }),
     );
     expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
   });
 
   it("accepts MR reopen action and returns 202", async () => {
@@ -111,6 +124,7 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
       makeRequest({ ...mrOpenEvent, object_attributes: { ...mrOpenEvent.object_attributes, action: "reopen" } }),
     );
     expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
   });
 
   it("ignores MR close action and returns 200", async () => {
@@ -118,6 +132,7 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
       makeRequest({ ...mrOpenEvent, object_attributes: { ...mrOpenEvent.object_attributes, action: "close" } }),
     );
     expect(res.status).toBe(200);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
   });
 
   it("ignores MR merge action and returns 200", async () => {
@@ -125,11 +140,13 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
       makeRequest({ ...mrOpenEvent, object_attributes: { ...mrOpenEvent.object_attributes, action: "merge" } }),
     );
     expect(res.status).toBe(200);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
   });
 
   it("accepts /ai-review note on a MergeRequest and returns 202", async () => {
     const res = await app.fetch(makeRequest(noteEvent));
     expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
   });
 
   it("ignores note that does not start with /ai-review", async () => {
@@ -143,6 +160,7 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
       }),
     );
     expect(res.status).toBe(200);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
   });
 
   it("ignores note on an Issue (not a MergeRequest)", async () => {
@@ -157,6 +175,7 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
       }),
     );
     expect(res.status).toBe(200);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
   });
 });
 

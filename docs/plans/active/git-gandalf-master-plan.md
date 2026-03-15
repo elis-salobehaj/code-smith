@@ -71,11 +71,11 @@ completion:
   - [x] 3.5 `src/agents/reflection-agent.ts`
   - [x] 3.6 `src/agents/orchestrator.ts`
   - "# Phase 4 — GitLab API Feedback Loop"
-  - [ ] 4.1 `src/publisher/gitlab-publisher.ts`
-  - [ ] 4.2 `src/api/router.ts` (Wire up pipeline)
-  - [ ] 4.3 `Dockerfile`
-  - [ ] 4.4 `docker-compose.yml`
-  - [ ] 4.5 `README.md`
+  - [x] 4.1 `src/publisher/gitlab-publisher.ts`
+  - [x] 4.2 `src/api/pipeline.ts` (Wire up pipeline)
+  - [x] 4.3 `Dockerfile`
+  - [x] 4.4 `docker-compose.yml`
+  - [x] 4.5 `README.md`
   - "# Phase 5+ — Production Hardening (Future)"
   - [ ] 5.1 Task Queue (BullMQ + Valkey)
   - [ ] 5.2 Kubernetes (KinD / EKS / GKE)
