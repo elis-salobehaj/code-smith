@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import { z } from "zod";
+import type { ReviewTriggerContext } from "../api/trigger";
 import type { DiffFile, MRDetails, ParsedHunk } from "../gitlab-client/types";
 import type { AgentMessage } from "./protocol";
 
@@ -37,6 +38,7 @@ export interface ReviewState {
   /** Structured hunks pre-parsed from diffFiles before the pipeline starts. */
   diffHunks: ParsedHunk[];
   repoPath: string;
+  triggerContext: ReviewTriggerContext;
 
   // --- Agent 1 output ---
   mrIntent: string;

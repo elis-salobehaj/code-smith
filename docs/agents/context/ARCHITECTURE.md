@@ -9,6 +9,7 @@ Concise reference for the architecture implemented in the current repo.
 - `src/config.ts`: Zod-validated config singleton parsed from `process.env`.
 - `src/api/router.ts`: verifies `X-Gitlab-Token`, validates webhook payloads, filters supported events, generates `requestId`, and starts the async pipeline.
 - `src/api/schemas.ts`: permissive Zod schemas for `merge_request` and `note` webhooks. Required fields are enforced; extra GitLab keys are tolerated.
+- `src/api/trigger.ts`: typed review trigger context (`automatic` vs `manual`, source event, optional note id) threaded into the pipeline.
 - `src/api/pipeline.ts`: fetches MR metadata and diffs, clones or updates the repo cache, runs the review pipeline, and publishes results back to GitLab.
 - `src/gitlab-client/client.ts`: typed wrapper over `@gitbeaker/rest` for MR details, diffs, discussions, summary notes, and inline discussions.
 - `src/context/repo-manager.ts`: shallow clone/update cache manager using native `git` through `Bun.spawn()`.
@@ -27,8 +28,9 @@ Concise reference for the architecture implemented in the current repo.
 	- merge requests with action `open`, `update`, or `reopen`
 	- note events on `MergeRequest` whose text begins with `/ai-review`
 5. Router generates `requestId` via `Bun.randomUUIDv7()`.
-6. Router calls `runPipeline(event)` inside `withContext({ requestId })` without awaiting it.
-7. HTTP response returns immediately:
+6. Router builds `ReviewTriggerContext` (`automatic` for MR events, `manual` for `/ai-review` notes).
+7. Router calls `runPipeline(event, trigger)` inside `withContext({ requestId })` without awaiting it.
+8. HTTP response returns immediately:
 	- `202 Accepted` for supported review triggers
 	- `200 Ignored` for valid but unsupported events
 	- `400` for invalid JSON or invalid payloads

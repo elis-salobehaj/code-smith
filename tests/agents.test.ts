@@ -90,6 +90,7 @@ function makeBaseState(): ReviewState {
     diffFiles,
     diffHunks: parseDiffHunks(diffFiles),
     repoPath: "/tmp/test-repo",
+    triggerContext: { mode: "automatic", source: "merge_request_event" },
     mrIntent: "Add Stripe payment integration for subscriptions.",
     changeCategories: ["billing", "API"],
     riskAreas: ["Check if webhook signature validation is implemented."],

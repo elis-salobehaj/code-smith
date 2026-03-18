@@ -388,28 +388,12 @@ describe("GitLabPublisher.postSummaryComment", () => {
     expect(body).toContain("<!-- git-gandalf:head sha=abc123sha -->");
   });
 
-  it("skips posting when an existing note has the same head SHA", async () => {
+  it("always posts a summary note and does not query existing notes", async () => {
     const existingBody = formatSummaryComment("APPROVE", [], "dupesha");
     const client = makeMockClient([], [{ id: 99, body: existingBody }]);
     const pub = new GitLabPublisher(client);
     await pub.postSummaryComment(1, 2, "APPROVE", [], "dupesha");
-    expect(client.createMRNote).not.toHaveBeenCalled();
-  });
-
-  it("posts when head SHA differs from existing summary note", async () => {
-    const existingBody = formatSummaryComment("APPROVE", [], "oldsha");
-    const client = makeMockClient([], [{ id: 99, body: existingBody }]);
-    const pub = new GitLabPublisher(client);
-    await pub.postSummaryComment(1, 2, "APPROVE", [], "newsha");
-    expect(client.createMRNote).toHaveBeenCalledTimes(1);
-  });
-
-  it("posts when existing note has summary marker but no head SHA (legacy note)", async () => {
-    // A note posted before Phase E0 has no head SHA — must not suppress new posts
-    const legacyBody = formatSummaryComment("APPROVE", []);
-    const client = makeMockClient([], [{ id: 88, body: legacyBody }]);
-    const pub = new GitLabPublisher(client);
-    await pub.postSummaryComment(1, 2, "APPROVE", [], "newsha");
+    expect(client.getMRNotes).not.toHaveBeenCalled();
     expect(client.createMRNote).toHaveBeenCalledTimes(1);
   });
 });

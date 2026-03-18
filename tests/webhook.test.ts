@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import type { ReviewTriggerContext } from "../src/api/trigger";
 
 // ---------------------------------------------------------------------------
 // Env vars are loaded from .env.test by Bun before any module is evaluated.
@@ -6,7 +7,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 // This means config.ts can safely evaluate process.env at module load time.
 // ---------------------------------------------------------------------------
 const TEST_SECRET = "test-webhook-secret";
-const mockRunPipeline = mock(async () => undefined);
+const mockRunPipeline = mock(async (_event: unknown, _trigger: ReviewTriggerContext) => undefined);
 
 mock.module("../src/api/pipeline", () => ({
   runPipeline: mockRunPipeline,
@@ -222,5 +223,51 @@ describe("POST /api/v1/webhooks/gitlab — realistic GitLab payloads", () => {
 
     expect(res.status).toBe(202);
     expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Webhook — trigger context
+// ---------------------------------------------------------------------------
+
+describe("POST /api/v1/webhooks/gitlab — trigger context", () => {
+  it("passes automatic trigger for merge_request event", async () => {
+    const res = await app.fetch(makeRequest(mrOpenEvent));
+    expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+
+    const [, trigger] = mockRunPipeline.mock.calls[0];
+    expect(trigger).toEqual({
+      mode: "automatic",
+      source: "merge_request_event",
+    });
+  });
+
+  it("passes manual trigger for /ai-review note event", async () => {
+    const res = await app.fetch(makeRequest(noteEvent));
+    expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+
+    const [, trigger] = mockRunPipeline.mock.calls[0];
+    expect(trigger).toEqual({
+      mode: "manual",
+      source: "mr_note_command",
+      noteId: noteEvent.object_attributes.id,
+      rawCommand: noteEvent.object_attributes.note,
+    });
+  });
+
+  it("passes automatic trigger for MR update action", async () => {
+    const res = await app.fetch(
+      makeRequest({ ...mrOpenEvent, object_attributes: { ...mrOpenEvent.object_attributes, action: "update" } }),
+    );
+    expect(res.status).toBe(202);
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+
+    const [, trigger] = mockRunPipeline.mock.calls[0];
+    expect(trigger).toEqual({
+      mode: "automatic",
+      source: "merge_request_event",
+    });
   });
 });

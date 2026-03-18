@@ -7,6 +7,7 @@ import type { Finding } from "../agents/state";
 import type { GitLabClient } from "../gitlab-client/client";
 import type { DiffFile, Discussion } from "../gitlab-client/types";
 import { getLogger } from "../logger";
+import { HEAD_MARKER_PREFIX, SUMMARY_MARKER } from "./summary-note";
 
 const logger = getLogger(["gandalf", "publisher"]);
 
@@ -28,8 +29,6 @@ const VERDICT_BADGE: Record<string, string> = {
 };
 
 const FINDING_MARKER_PREFIX = "<!-- git-gandalf:finding ";
-const SUMMARY_MARKER = "<!-- git-gandalf:summary -->";
-const HEAD_MARKER_PREFIX = "<!-- git-gandalf:head sha=";
 
 function buildFindingMarker(finding: Finding): string {
   return `${FINDING_MARKER_PREFIX}${finding.file}:${finding.lineStart}-${finding.lineEnd}:${finding.riskLevel}:${finding.title} -->`;
@@ -222,12 +221,10 @@ export class GitLabPublisher {
 
   /**
    * Post a top-level MR note summarising the review verdict and all findings.
-   * Skips posting when an existing note already contains the SUMMARY_MARKER and
-   * the same headSha, preventing duplicate summaries on repeated runs for the
-   * same MR head commit (Phase E0).
+   * The caller is responsible for deciding whether the review should run at all.
+   * Publisher-level summary dedupe is intentionally not enforced so manual
+   * reruns remain visible.
    */
-  // E4 will add trigger-mode awareness: manual reruns must always post a new summary
-  // note regardless of head SHA match. Until E4 ships, this guard applies to all callers.
   async postSummaryComment(
     projectId: number,
     mrIid: number,
@@ -235,18 +232,6 @@ export class GitLabPublisher {
     findings: Finding[],
     headSha: string,
   ): Promise<void> {
-    if (headSha) {
-      const existingNotes = await this.gitlab.getMRNotes(projectId, mrIid);
-      const headMarker = `${HEAD_MARKER_PREFIX}${headSha} -->`;
-      const duplicate = existingNotes.find((n) => n.body.includes(SUMMARY_MARKER) && n.body.includes(headMarker));
-      if (duplicate) {
-        logger.info("Skipping duplicate summary note — same head SHA already published", {
-          headSha,
-          existingNoteId: duplicate.id,
-        });
-        return;
-      }
-    }
     await this.gitlab.createMRNote(projectId, mrIid, formatSummaryComment(verdict, findings, headSha));
   }
 

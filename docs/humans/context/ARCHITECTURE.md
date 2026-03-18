@@ -117,7 +117,7 @@ git-gandalf/
 1. verifies the GitLab shared secret
 2. validates webhook payloads with Zod schemas that require the fields GitGandalf uses while tolerating additional GitLab webhook keys
 3. filters down to merge-request review triggers
-4. hands the event to `runPipeline(event)` without blocking the HTTP response
+4. hands the event to `runPipeline(event, trigger)` without blocking the HTTP response
 
 The filter rules are intentionally narrow:
 

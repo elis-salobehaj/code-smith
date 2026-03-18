@@ -17,9 +17,12 @@ Implemented in `src/api/router.ts`.
 2. parse JSON body
 3. `safeParse()` against `webhookPayloadSchema`
 4. filter unsupported events
-5. generate `requestId` via `Bun.randomUUIDv7()` and propagate via LogTape `withContext()`
-6. call `runPipeline(event)` without awaiting
-7. return `202 Accepted`
+5. build `ReviewTriggerContext` carrying trigger semantics into the pipeline:
+   - merge request events → `mode: "automatic"`, `source: "merge_request_event"`
+   - `/ai-review` note events → `mode: "manual"`, `source: "mr_note_command"`, plus `noteId` and `rawCommand`
+6. generate `requestId` via `Bun.randomUUIDv7()` and propagate via LogTape `withContext()`
+7. call `runPipeline(event, trigger)` without awaiting
+8. return `202 Accepted`
 
 HTTP request/response logging is handled automatically by `@logtape/hono` middleware and emits structured JSON Lines to stdout. Health check requests are excluded from logging.
 
@@ -61,6 +64,8 @@ If a specific tool call throws, Agent 2 catches the failure and sends the error 
 ## 4. Full Pipeline
 
 `src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → clone repo → run agents → publish findings.
+The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging. Future phases will use the trigger mode to branch automatic vs manual behavior (checkpoint skipping, publication policy).
+Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if an existing GitGandalf summary note already embeds the current `headSha`, the pipeline logs the skip and returns before fetching diffs, cloning the repo, or invoking agents. Manual `/ai-review` triggers bypass this guard and always run.
 All pipeline logs emit structured JSON under `["gandalf", "pipeline"]` and carry the implicit `requestId`, `projectId`, and `mrIid` context set by the router and pipeline entry.
 
 ## 5. Agent Review Workflow
@@ -78,7 +83,7 @@ Current publishing behavior after review:
 
 - inline discussions are created only for findings that can be anchored to diff positions
 - non-diff findings are skipped for inline publication and summarized instead of crashing publication
-- summary notes are head-SHA-deduped: if an existing MR note already contains `<!-- git-gandalf:summary -->` and `<!-- git-gandalf:head sha=<currentHeadSha> -->`, the summary post is skipped to prevent duplicate notes on repeated runs for the same head commit (Phase E0)
+- summary notes are always posted for completed review runs; automatic same-head duplicate prevention now happens earlier in `src/api/pipeline.ts`, before diff fetch, repo refresh, or agent execution
 
 The agent subsystem is implemented and invoked from the API pipeline.
 

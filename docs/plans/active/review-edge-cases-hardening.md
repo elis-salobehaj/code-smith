@@ -33,13 +33,14 @@ tags:
   - idempotency
 completion:
   - "# Phase E0 — Immediate Summary Deduplication Guard"
-  - [x] E0.1 Add head-SHA-based duplicate guard to `postSummaryComment` before full checkpoint machinery exists
+  - [x] E0.1 Add head-SHA-based duplicate guard for automatic same-head reruns before full checkpoint machinery exists
   - [x] Remediation complete — see `docs/plans/review-reports/phase-E0-review-2026-03-18-m3x9.md`
   - "# Phase E1 — Review Trigger Model"
-  - [ ] E1.1 Introduce typed review trigger context (`automatic` vs `manual`, source event, optional note id)
-  - [ ] E1.2 Make `/ai-review` always execute a review run even when the current head was reviewed already
-  - [ ] E1.3 Keep automatic MR events idempotent for already-reviewed heads
-  - [ ] E1.4 Add tests for auto vs manual trigger behavior
+  - [x] E1.1 Introduce typed review trigger context (`automatic` vs `manual`, source event, optional note id)
+  - [x] E1.2 Make `/ai-review` always execute a review run even when the current head was reviewed already
+  - [x] E1.3 Keep automatic MR events idempotent for already-reviewed heads
+  - [x] E1.4 Add tests for auto vs manual trigger behavior
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E1-review-2026-03-18-t7q2.md`
   - "# Phase E2 — Review Checkpointing"
   - [ ] E2.1 Persist review-run metadata in GitLab notes using a machine-readable marker
   - [ ] E2.2 Record last successful reviewed head SHA and reviewed range start SHA
@@ -600,20 +601,18 @@ the E1–E3 window adds another one. This phase is a surgical minimum fix.
 
 Deliverables:
 
-- In `postSummaryComment` (`src/publisher/gitlab-publisher.ts`): fetch existing MR
-  notes before posting; check whether any existing note contains `SUMMARY_MARKER`
-  and embeds the same `headSha` as the current run; if found, skip the post and log
-  at info level with the existing note id. Use `this.gitlab.getMRDiscussions()` or
-  a new lightweight `getMRNotes()` wrapper in `src/gitlab-client/client.ts` returning
-  just note body strings.
+- In `src/api/pipeline.ts`: after `getMRDetails()`, fetch existing MR notes for
+  automatic triggers and check whether any existing GitGandalf summary note embeds
+  the same `headSha` as the current run; if found, skip the review before diff fetch,
+  repo refresh, or agent execution and log at info level with the existing note id.
 - Embed `headSha` in the summary note body as a hidden HTML comment:
   `<!-- git-gandalf:head sha=<headSha> -->` appended after the visible content but
-  before the closing `---` footer. The deduplication check reads this field.
+  before the closing `---` footer. The early automatic-skip check reads this field.
 - Do not add the full checkpoint marker yet — that is E2's responsibility.
-- Add tests in `tests/publisher.test.ts` that verify: (1) a second summary call for
-  the same `headSha` results in zero new notes; (2) a second call with a *different*
-  `headSha` does post a note.
-- Update `WORKFLOWS.md` to note that summary notes are now head-SHA-deduped.
+- Add tests that verify: (1) automatic same-head reruns skip before review execution;
+  (2) manual reruns on the same head do not skip.
+- Update `WORKFLOWS.md` to note that duplicate-prevention now happens at pipeline
+  start for automatic triggers, while completed review runs still post a summary.
 
 Docs to update: `docs/agents/context/WORKFLOWS.md`
 
@@ -732,7 +731,7 @@ Docs to update: `docs/agents/context/ARCHITECTURE.md` (review range selector),
 ## Phase E4 — Publication and dedupe semantics
 
 Redesign duplicate suppression with review-version awareness. Note: basic summary
-deduplication is handled in E0 and should be shipped first — this phase completes
+duplicate prevention for automatic same-head reruns is handled in E0 and should be shipped first — this phase completes
 the full version-aware dedupe model.
 
 Deliverables:
@@ -742,9 +741,10 @@ Deliverables:
   head has a matching marker. Add `headSha` to the duplicate check: only suppress if
   the existing note's position `headSha` matches the current run's `headSha` (or if
   the finding is in a still-unchanged file/line).
-- Summary-note dedupe: now driven by E0 + E2 checkpoint; E4 is responsible for
-  completing the policy for manual reruns: manual reruns always post a new summary
-  note regardless of head SHA match (the E0 guard skips only for automatic mode).
+- Summary-note publication policy: automatic same-head duplicate prevention is now
+  driven by the E0 pipeline-start guard plus E2 checkpoint data; E4 is responsible
+  for completing the policy for manual reruns while keeping summary-note posting
+  unconditional for completed runs.
 - Explicit manual rerun publication behavior: `postInlineComments` receives
   `triggerMode`; in manual mode, suppress inline duplicates only for findings whose
   marker + position exactly matches an existing note at the *same head SHA*. In
@@ -812,7 +812,7 @@ At minimum, add coverage for:
 - same-head manual `/ai-review` rerun
 - force-push invalidating old checkpoint
 - stale inline note markers from older heads
-- summary-note dedupe/update behavior
+- automatic same-head skip and summary publication behavior
 - same-branch concurrent trigger race
 - metadata-only MR update
 
@@ -845,11 +845,11 @@ Add a more explicit test matrix by subsystem.
 
 ### Publisher and dedupe tests
 
-- automatic same-head rerun does not post duplicate summary note
+- automatic same-head rerun skips before posting a second summary note
 - automatic same-head rerun does not repost identical inline findings
 - manual same-head rerun posts a visible summary note
 - stale findings from an older head do not suppress valid findings on a newer head
-- identical APPROVE summary on same head is deduped in automatic mode
+- identical APPROVE summary on the same head is prevented by automatic-run skipping
 
 ### Repo-manager and freshness tests
 

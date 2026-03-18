@@ -3,6 +3,7 @@ import { config } from "../config";
 import { getLogger, withContext } from "../logger";
 import { runPipeline } from "./pipeline";
 import { type WebhookPayload, webhookPayloadSchema } from "./schemas";
+import type { ReviewTriggerContext } from "./trigger";
 
 const logger = getLogger(["gandalf", "router"]);
 
@@ -54,10 +55,24 @@ apiRouter.post("/webhooks/gitlab", async (c) => {
     return c.text("Ignored", 200);
   }
 
-  // 4. Fire-and-forget — return 202 immediately
+  // 4. Build trigger context
+  const trigger: ReviewTriggerContext =
+    event.object_kind === "note"
+      ? {
+          mode: "manual",
+          source: "mr_note_command",
+          noteId: event.object_attributes.id,
+          rawCommand: event.object_attributes.note,
+        }
+      : {
+          mode: "automatic",
+          source: "merge_request_event",
+        };
+
+  // 5. Fire-and-forget — return 202 immediately
   const requestId = Bun.randomUUIDv7();
   withContext({ requestId }, () => {
-    runPipeline(event).catch((err: unknown) => {
+    runPipeline(event, trigger).catch((err: unknown) => {
       logger.error("Unhandled pipeline error", { error: err instanceof Error ? err.message : String(err) });
     });
   });

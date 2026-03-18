@@ -53,6 +53,7 @@ function makeBaseState(): ReviewState {
     ],
     diffHunks: [],
     repoPath: SANDBOX,
+    triggerContext: { mode: "automatic", source: "merge_request_event" },
     mrIntent: "",
     changeCategories: [],
     riskAreas: [],
