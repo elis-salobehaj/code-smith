@@ -152,9 +152,9 @@ The wrapper also handles gitbeaker's awkward snake_case response shapes and came
 
 `src/context/repo-manager.ts` is the repo access layer used by the current review pipeline.
 
-- repo cache path: `<REPO_CACHE_DIR>/<projectId>`
+- repo cache path: `<REPO_CACHE_DIR>/<projectId>-<url-encoded-branch>`
 - first-time path: `git clone --depth 1 --branch <branch>`
-- refresh path: `git fetch origin <branch> --depth 1` + `git reset --hard origin/<branch>`
+- refresh path: `git fetch origin refs/heads/<branch>:refs/remotes/origin/<branch> --depth 1` + `git reset --hard origin/<branch>`
 - cleanup: TTL-based eviction using directory `mtime`
 
 Security detail: the clone URL hostname must match `GITLAB_URL`. The manager refuses to inject the GitLab token into a different host, which blocks token exfiltration through a malicious webhook payload.

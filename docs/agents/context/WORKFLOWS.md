@@ -34,9 +34,9 @@ HTTP request/response logging is handled automatically by `@logtape/hono` middle
 
 Implemented in `src/context/repo-manager.ts`.
 
-- cache location: `config.REPO_CACHE_DIR/<projectId>`
+- cache location: `config.REPO_CACHE_DIR/<projectId>-<url-encoded-branch>`
 - first fetch path: shallow clone
-- refresh path: shallow fetch + hard reset to `origin/<branch>`
+- refresh path: shallow fetch with explicit refspec + hard reset to `origin/<branch>`
 - cleanup path: delete cached directories older than TTL
 - security gate: clone URL host must match `config.GITLAB_URL`
 

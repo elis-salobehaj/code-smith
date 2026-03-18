@@ -25,14 +25,24 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------
 
 describe("RepoManager.getRepoPath", () => {
-  it("returns a path directly under REPO_CACHE_DIR using projectId as directory name", () => {
+  it("returns a path directly under REPO_CACHE_DIR using projectId and branch", () => {
     const manager = new RepoManager();
-    expect(manager.getRepoPath(42)).toBe(join(CACHE_DIR, "42"));
+    expect(manager.getRepoPath(42, "main")).toBe(join(CACHE_DIR, "42-main"));
   });
 
   it("stringifies the projectId", () => {
     const manager = new RepoManager();
-    expect(manager.getRepoPath(1001)).toBe(join(CACHE_DIR, "1001"));
+    expect(manager.getRepoPath(1001, "main")).toBe(join(CACHE_DIR, "1001-main"));
+  });
+
+  it("uses distinct cache paths for different branches in the same project", () => {
+    const manager = new RepoManager();
+    expect(manager.getRepoPath(42, "main")).not.toBe(manager.getRepoPath(42, "feature/fix-review"));
+  });
+
+  it("escapes branch names so slashes stay within a single cache directory", () => {
+    const manager = new RepoManager();
+    expect(manager.getRepoPath(42, "feature/fix-review")).toBe(join(CACHE_DIR, "42-feature%2Ffix-review"));
   });
 });
 

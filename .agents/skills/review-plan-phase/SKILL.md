@@ -1,139 +1,285 @@
 ---
 name: review-plan-phase
 description: >
-  Principal-engineer review workflow for GitGandalf implementation phases driven by
-  markdown plan files. Use when auditing whether an implementation fully followed a
-  plan, whether the code and architecture match AGENTS.md conventions, whether any
-  corners were cut, and whether plans and documentation were updated completely.
-  Produces a thorough evidence-based report and stops before remediation until a
-  human approves next steps.
-argument-hint: 'Describe the plan file, implementation scope, and code changes to review.'
+  Principal-engineer review and remediation workflow for GitGandalf implementation
+  phases driven by markdown plan files. Audits whether an implementation fully followed
+  a plan, checks code and architecture against AGENTS.md conventions, categorizes
+  findings as BLOCKER / RISK / OPTIMIZATION with mandatory actionable alternatives,
+  saves a report to docs/plans/review-reports/, and automatically executes remediation
+  when no human decisions are required. Waits for human input only when findings
+  require architectural decisions, scope changes, or explicit approval.
+argument-hint: 'Describe the plan file, phase, and implementation scope to review.'
 license: Apache-2.0
 ---
 
 # Review Plan Phase
 
-> **Pipeline position**: `implement` → **`review-plan-phase`** → `plan-phase-remediation`
+> **Pipeline position**: `implement` → **`review-plan-phase`** → (auto-remediate or wait for human)
 
-Use this skill to perform a thorough architecture and implementation review against a
-markdown plan file. This is not a lightweight checklist. The goal is to determine
-whether the previous agent actually implemented the plan in full, adhered to
-repository conventions, and completed all required documentation and plan-tracking
-updates.
+Use this skill to perform a thorough principal-engineer review of an implementation
+phase, save a structured report, and execute remediation — all in a single pass.
+
+The agent reviews, reports, and remediates in one invocation, stopping only
+when human decisions are required.
 
 ## Outcome
 
-Produce a principal-engineer review report that:
+Produce a review report saved to `docs/plans/review-reports/` that:
 - compares the implementation against the plan item by item
-- identifies where the implementation is complete, partial, incorrect, or missing
-- checks adherence to [AGENTS.md](../../../AGENTS.md) and project-specific conventions
-- verifies plan status updates and documentation updates were completed everywhere required
-- distinguishes solid implementation from placeholder, shallow, or shortcut work
-- recommends remediation only as follow-up work after human review
+- classifies every finding as `BLOCKER`, `RISK`, or `OPTIMIZATION` with a mandatory actionable alternative
+- identifies human decisions needed (if any) and surfaces them prominently
+- delivers a verdict: `🔴 NOT READY`, `🟡 CONDITIONAL`, or `🟢 READY`
+- includes ordered remediation steps with autonomy tags (`[agent]` or `[human]`)
 
-The review must end with a report. Do not begin remediation in the same pass unless a
-human explicitly asks for it after seeing the report.
+Then:
+- If **no human decisions** are needed: immediately execute all remediation steps, then
+  update the active plan with a one-line entry noting remediation was completed and
+  pointing to the report file.
+- If **human decisions** are needed: stop after saving the report. Present the human
+  decisions clearly. Resume remediation only after the human responds.
 
 ## When To Use
 
 Use this skill for:
-- reviewing work completed against a file in `docs/plans/active/` or another repo plan markdown file
-- auditing whether an agent skipped implementation details or papered over complexity
+- reviewing work completed against a plan in `docs/plans/active/` or `docs/plans/backlog/`
+- auditing whether an agent or engineer followed the plan thoroughly or cut corners
 - checking whether plan completion was reflected in docs, indexes, and status trackers
-- evaluating architecture quality, not just code compilation
-- preparing a human decision on whether a phase is actually done
+- executing fixes for gaps found during review — without a separate remediation pass
 
 Do not use this skill for:
+- reviewing a plan before implementation — use `review-plan-implementation` instead
 - writing the implementation from scratch
 - making opportunistic cleanups unrelated to the plan
-- starting fixes before the audit report is reviewed by a human
 
 ## Required Inputs
 
 Before starting, identify:
-- the plan file being reviewed
-- the code or docs changed for that plan or phase
-- any explicit repo rules that apply, especially from [AGENTS.md](../../../AGENTS.md)
-- any related supporting docs in `docs/agents/`, `docs/humans/`, `docs/guides/`, and `docs/README.md`
-
-If the scope is ambiguous, ask which plan or phase to audit before proceeding.
+- The plan file being reviewed (if ambiguous, ask before proceeding)
+- The phase or scope within that plan to audit
+- Any explicit repo rules from [AGENTS.md](../../../AGENTS.md)
 
 ## Review Standard
 
 Review as a principal engineer, not as a formatter or style checker.
 
-That means:
-- review as if auditing another agent's or engineer's work, not validating your own — assume nothing was done correctly until you have read the evidence
-- favor behavioral correctness, architecture fit, and plan fidelity over cosmetic observations
-- require evidence for every conclusion
-- treat unimplemented plan details as misses even if the code looks reasonable
-- treat undocumented architectural deviations as findings, not harmless creativity
-- treat incomplete plan bookkeeping and stale docs as real completion failures
-- assume that a task is not done until code, tests, plans, and docs all align
+- Audit as if reviewing another engineer's work — assume nothing was done correctly
+  until you have read the evidence
+- Favor behavioral correctness, architecture fit, and plan fidelity over cosmetic observations
+- Require evidence for every conclusion
+- Treat unimplemented plan details as misses even if the code looks reasonable
+- Treat undocumented architectural deviations as findings
+- Treat incomplete plan bookkeeping and stale docs as real completion failures
+- A task is not done until code, tests, plans, and docs all align
 
 ## Procedure
 
-0. Establish the actual changed surface.
-   Before reading plan items, determine what was implemented in this phase:
-   - Check for recent git changes, or explicit completion claims in the plan file (checked boxes, phase-complete notes).
-   - List the directories and files most likely touched for this phase using the plan's file inventory as the starting point.
-   - Scope the review to what changed — do not audit code that predates this phase.
-   - Identify all explicit completion claims so you know exactly what is being validated.
+### Step 0 — Establish the Changed Surface
 
-1. Read the governing materials first.
-   Read the target plan file, [AGENTS.md](../../../AGENTS.md), and the relevant agent-oriented docs under `docs/agents/` before judging any implementation.
+Before reading plan items, determine what was implemented:
+- Check for recent git changes or explicit completion claims in the plan file (checked
+  boxes, phase-complete notes)
+- List the directories and files most likely touched, using the plan's file inventory
+  as the starting point
+- Scope the review to what changed — do not audit code that predates this phase
+- Identify all explicit completion claims so you know exactly what is being validated
 
-2. Extract concrete obligations from the plan.
-   Convert the plan into reviewable obligations such as:
-   - files that should exist
-   - APIs or behaviors that should be implemented
-   - validation, testing, and error-handling expectations
-   - architecture decisions that were committed in writing
-   - documentation and plan-status updates required to consider the phase complete
+### Step 1 — Load Governing Materials
 
-3. Inspect the implementation directly.
-   Use precise codebase tools (e.g., file readers, directory listings, or grep searches) to review the changed code, config, tests, prompts, scripts, and documentation. Look for:
-   - missing files or stubbed sections
-   - TODO-driven gaps disguised as completion
-   - hard-coded shortcuts that avoid the plan's intended design
-   - shallow implementations that satisfy only the happy path
-   - mismatches between claimed architecture and actual code structure
+Read these before judging any implementation:
+1. The target plan file in full
+2. [AGENTS.md](../../../AGENTS.md)
+3. [docs/agents/context/ARCHITECTURE.md](../../../docs/agents/context/ARCHITECTURE.md)
+4. [docs/agents/context/WORKFLOWS.md](../../../docs/agents/context/WORKFLOWS.md)
+5. Active plans under `docs/plans/active/` to check for coordination conflicts
 
-4. Check AGENTS.md compliance explicitly.
-   Verify at minimum:
-   - Bun-only workflows and commands
-   - Zod at external boundaries instead of unchecked casts
-   - Biome-centric lint and format conventions
-   - plan checkboxes and phase status updated where applicable
-   - `docs/README.md` updated when plan status changed
-   - security constraints were preserved when file or search access is involved
+### Step 2 — Extract Concrete Obligations
 
-5. Verify implementation depth.
-   Ask of each major plan item:
-   - Is the real implementation present, or only scaffolding?
-   - Are edge cases, validation, and failure modes handled appropriately?
-   - Does the code match the stated architecture, or only approximate it?
-   - Do tests meaningfully prove the intended behavior?
-   - Are docs aligned with the final implementation rather than the intent?
+Convert the plan phase into reviewable obligations:
+- Files that should exist or be modified
+- APIs or behaviors that should be implemented
+- Validation, testing, and error-handling expectations
+- Architecture decisions committed in writing
+- Documentation and plan-status updates required for completion
 
-6. Audit completion bookkeeping.
-   Review all plan and documentation touchpoints, including:
-   - the source plan file
-   - `docs/plans/active/`, `docs/plans/implemented/`, and any backlog moves when relevant
-   - `docs/README.md`
-   - related READMEs in `docs/agents/`, `docs/humans/`, or top-level docs affected by the change
+### Step 3 — Inspect the Implementation
 
-   If a phase is claimed complete but these updates are missing or stale, report that as incomplete completion hygiene.
+Use codebase tools (file reads, directory listings, grep) to review changed code,
+config, tests, prompts, scripts, and documentation. Look for:
+- Missing files or stubbed sections
+- TODO-driven gaps disguised as completion
+- Hard-coded shortcuts that avoid the plan's intended design
+- Shallow implementations that satisfy only the happy path
+- Mismatches between claimed architecture and actual code structure
 
-7. Separate findings by severity and certainty.
-   Use clear categories such as:
-   - Critical: the implementation materially fails the plan or introduces architectural risk
-   - Major: important plan details, conventions, tests, or docs are missing or weak
-   - Minor: smaller gaps that should still be closed before calling the phase complete
-   - Confirmed strengths: areas implemented correctly and thoroughly
+### Step 4 — Check AGENTS.md Compliance
 
-8. Produce the report and stop.
-   End with a review report and recommended remediation areas, but do not start editing files until the human confirms which findings should be addressed.
+Verify at minimum:
+- Bun-only workflows and commands
+- Zod at external boundaries instead of unchecked casts
+- Biome-centric lint and format conventions
+- Plan checkboxes and phase status updated where applicable
+- `docs/README.md` updated when plan status changed
+- Security constraints preserved when file or search access is involved
+
+### Step 5 — Verify Implementation Depth
+
+For each major plan item, ask:
+- Is the real implementation present, or only scaffolding?
+- Are edge cases, validation, and failure modes handled?
+- Does the code match the stated architecture, or only approximate it?
+- Do tests meaningfully prove the intended behavior?
+- Are docs aligned with the final implementation, not the original intent?
+
+### Step 6 — Audit Completion Bookkeeping
+
+Review all plan and documentation touchpoints:
+- The source plan file (checkboxes, status)
+- `docs/plans/active/`, `docs/plans/implemented/`, backlog moves
+- `docs/README.md`
+- Related READMEs in `docs/agents/`, `docs/humans/`, or top-level docs
+
+If a phase is claimed complete but these updates are missing or stale, report
+incomplete completion hygiene.
+
+### Step 7 — Classify Findings
+
+Categorize every finding using **exactly** these severity levels:
+
+| Severity | Definition | Gate |
+|---|---|---|
+| `BLOCKER` | Implementation materially fails the plan or introduces architectural/security risk. | Phase **cannot** be considered complete until resolved. |
+| `RISK` | Important plan details, conventions, tests, or docs are missing or weak. Likely to cause problems. | Should be resolved before completion. May proceed with documented acceptance. |
+| `OPTIMIZATION` | Implementation works but can be improved. Cleaner approach, tighter scope, better pattern. | Address during remediation or defer with justification. |
+
+**Every finding must include:**
+1. **Severity**: `BLOCKER` | `RISK` | `OPTIMIZATION`
+2. **Dimension**: Which area it falls under (Architecture, Library, Security, Resilience, Structure, Docs, Tests)
+3. **Finding**: What is wrong — specific, evidence-based
+4. **Impact**: What happens if not addressed
+5. **Alternative**: A concrete actionable fix — not "consider improving" but "do X in file Y"
+
+### Step 8 — Build Remediation Plan
+
+Convert findings into ordered remediation steps:
+
+1. **Tag each step** with autonomy classification:
+   - `[agent]` — can be executed without human judgment
+   - `[human]` — requires architectural decision, scope confirmation, or explicit approval
+
+2. **Order by dependency and risk**: blockers first, then risks, then optimizations.
+   Schema changes before handlers. Architecture fixes before tests. Implementation
+   before documentation.
+
+3. **Group related fixes**: If multiple findings stem from one root cause, group them
+   under one remediation workstream.
+
+4. **Define completion criteria**: For each step, specify what evidence shows the gap
+   is closed.
+
+### Step 9 — Save Report and Act
+
+1. **Save the report** to `docs/plans/review-reports/<phase>-review-<YYYY-MM-DD>-<hash>.md`
+   (e.g., `phase-3-review-2026-03-18-k4h7.md`) using the format specified below.
+   Generate a random 4-character alphanumeric hash to ensure uniqueness when the same
+   phase is reviewed multiple times on the same day.
+   The file **must** exist on disk before any remediation begins. Do not deliver the
+   report only as chat output.
+
+2. **Evaluate the remediation path:**
+
+   - **No `[human]` items exist**: Immediately execute all remediation steps. After
+     completion, add a one-line entry to the active plan's current phase:
+     ```
+     - [x] Remediation complete — see `docs/plans/review-reports/<filename>.md`
+     ```
+     Then run `bun run check && bun run typecheck && bun test` to validate.
+
+   - After remediation execution, perform a **lightweight re-verification** of the
+     original findings: re-read the affected files and confirm each remediated finding
+     is actually closed. If any finding remains open after remediation, report it as
+     a residual gap in the chat output.
+
+   - **`[human]` items exist**: Stop after saving the report. Present the human
+     decisions clearly in chat. Do not begin any remediation until the human responds.
+     Once the human provides decisions, execute all `[agent]` items and any `[human]`
+     items that were approved.
+
+## Report Format
+
+The saved report file must follow this structure exactly:
+
+```markdown
+## Plan Review: [Plan Title — Phase N]
+
+**Plan file**: `docs/plans/.../plan-file.md`
+**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Verdict**: 🔴 NOT READY / 🟡 CONDITIONAL / 🟢 READY
+
+### Human Decisions
+
+> Omit this section entirely if no human decisions are needed.
+
+1. **[Decision title]**: [1-2 sentence summary of what the human needs to decide and why]
+
+### Summary
+
+[2-3 sentence executive summary of the phase's readiness]
+
+**Findings**: X BLOCKER · Y RISK · Z OPTIMIZATION
+
+---
+
+### BLOCKERs
+
+#### B1: [Short title]
+- **Dimension**: [Architecture | Library | Security | Resilience | Structure | Docs | Tests]
+- **Finding**: [What is wrong]
+- **Impact**: [What happens if not addressed]
+- **Alternative**: [Concrete fix]
+
+---
+
+### RISKs
+
+#### R1: [Short title]
+- **Dimension**: [Architecture | Library | Security | Resilience | Structure | Docs | Tests]
+- **Finding**: [What is wrong]
+- **Impact**: [What happens if not addressed]
+- **Alternative**: [Concrete fix]
+
+---
+
+### OPTIMIZATIONs
+
+#### O1: [Short title]
+- **Dimension**: [Architecture | Library | Security | Resilience | Structure | Docs | Tests]
+- **Finding**: [What is wrong]
+- **Impact**: [What happens if not addressed]
+- **Alternative**: [Concrete fix]
+
+---
+
+### Confirmed Strengths
+
+[Call out aspects of the phase that are well-implemented, well-tested, or particularly thorough]
+
+### Verdict & Remediation Details
+
+[Explain the verdict. If CONDITIONAL, state exactly which findings must be resolved.
+If NOT READY, state the minimum changes required.]
+
+### Ordered Remediation Steps
+
+- [ ] **[agent/human] Step title**: Description of what to fix, which files, and completion criteria.
+- [ ] **[agent/human] Step title**: ...
+
+### Required Validations
+
+- [ ] `bun run check`
+- [ ] `bun run typecheck`
+- [ ] `bun test`
+- [ ] Documentation references verified (no stale behavior, removed files, or outdated config)
+```
 
 ## Evidence Rules
 
@@ -146,53 +292,42 @@ That means:
 ## Decision Rules
 
 - If the plan says a file, behavior, or workflow should exist and it does not, mark it missing.
-- If the implementation substitutes a simpler approach than the plan without documenting the deviation, mark it as a gap or unauthorized deviation.
+- If the implementation substitutes a simpler approach without documenting the deviation,
+  mark it as a gap.
 - If AGENTS.md requires a convention and the code violates it, report it even if the code works.
-- If tests are absent for a meaningful new behavior, treat that as incomplete implementation unless the plan explicitly excluded tests.
-- If docs or plan indexes were supposed to change and did not, do not treat the phase as fully complete.
-- If the implementation appears intentionally minimal, verify whether the plan explicitly called for a thin scaffold. If not, treat it as a likely shortcut.
+- If tests are absent for meaningful new behavior, treat as incomplete unless the plan
+  explicitly excluded tests.
+- If docs or plan indexes were supposed to change and did not, the phase is not fully complete.
+- Fix blockers before polish. Prefer root-cause fixes over symptom patches.
+- If multiple findings stem from one architectural issue, group them.
+- If a finding reflects plan ambiguity rather than implementation failure, flag it as a
+  clarification item.
+- Every critique must have an actionable alternative.
+
+## Verdict Rules
+
+- Zero BLOCKERs and zero RISKs → `🟢 READY`
+- RISKs but no BLOCKERs → `🟡 CONDITIONAL`
+- Any BLOCKERs → `🔴 NOT READY`
 
 ## Completion Checks
 
-Before finishing the review, verify that you have answered all of these:
-- Which plan items were implemented correctly?
-- Which plan items were partially implemented?
-- Which plan items were skipped or contradicted?
-- Which AGENTS.md conventions were followed or violated?
-- Which tests exist, and do they prove the planned behavior adequately?
-- Which docs and plan-tracking files were updated, and which were missed?
-- Is the phase actually complete, or only code-complete but not documentation-complete?
-- What should be remediated first, after human approval?
-
-## Report Format
-
-Generate a Markdown-formatted audit output structurally identical to this:
-
-### 1. Scope Reviewed
-Name the plan, phase, and implementation surface examined.
-
-### 2. Verdict
-State whether the work is `✅ Complete`, `⚠️ Partially Complete`, or `❌ Not Complete`.
-
-### 3. Findings
-List findings by severity (Critical, Major, Minor) with concrete file paths and evidence.
-
-### 4. What Was Implemented Well
-Call out work that genuinely matches the plan and repo standards.
-
-### 5. What Was Missed or Still Needs Work
-Be explicit about remaining gaps that block completion.
-
-### 6. Documentation and Plan Status Audit
-State whether all affected docs and plan trackers were updated properly.
-
-### 7. Recommended Remediation Areas
-Suggest next fixes grouped logically, but stop and wait for human feedback before executing them.
+Before finishing, verify:
+- Every plan obligation was evaluated — none skipped
+- Every finding has severity, dimension, finding, impact, and alternative
+- Finding counts in the summary match actual findings listed
+- Verdict matches severity distribution
+- Confirmed strengths are called out
+- Report file is saved to `docs/plans/review-reports/`
+- Remediation steps are ordered with autonomy tags
+- If no human decisions: remediation was executed and plan updated
+- If human decisions: report was presented and agent is waiting for response
+- Post-remediation validation gates passed (`bun run check`, `bun run typecheck`, `bun test`)
 
 ## Preferred Prompts
 
-- Review this phase implementation against `docs/plans/active/...` as a principal engineer and tell me what was actually completed versus skipped.
-- Audit whether this agent followed the implementation plan thoroughly or cut corners.
-- Compare these code changes to the plan and AGENTS.md, then produce a report before any remediation.
-- Verify that this completed phase updated all plans and docs correctly, including `docs/README.md`.
-- Perform a deep implementation and architecture review of this plan-driven change, then wait for my approval before fixing anything.
+- Review this phase implementation against the plan and fix what's broken.
+- Audit whether this agent followed the plan thoroughly or cut corners, then remediate.
+- Review and remediate Phase 3 of the master plan.
+- Check if this phase is actually done — code, tests, docs, plan tracking — and fix gaps.
+- Perform a principal-engineer review of this plan phase and execute the remediation.

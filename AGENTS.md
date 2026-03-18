@@ -56,8 +56,9 @@ Auto-discovered by Cursor, VSCode Copilot, OpenCode, and Antigravity.
 
 Current repo skills include:
 - `bun-project-conventions` for Bun-native implementation and review work
-- `review-plan-phase` for principal-engineer audits of plan-driven implementation phases
-- `plan-phase-remediation` for turning an approved audit report into an ordered remediation plan
+- `plan-implementation` for producing thorough, repo-aware implementation plans
+- `review-plan-implementation` for ruthless pre-implementation plan audits (architecture, security, dependencies, resilience)
+- `review-plan-phase` for principal-engineer audits of plan-driven implementation phases with auto-remediation
 - `conventional-commits` for composing and validating git commit messages
 
 ## ✅ Plan Completion Gate
@@ -72,7 +73,7 @@ For plan-driven work, agents must:
 - verify all required documentation and plan-tracking updates were completed, including `docs/README.md` and relevant files under `docs/plans/`
 - produce a report that distinguishes what was implemented correctly from what was missed or still needs work
 
-If the review identifies gaps, do not start remediation automatically unless the human asks for it. After approval, use the `plan-phase-remediation` skill to turn the review report into an ordered remediation plan before editing code.
+If the review identifies gaps, do not start remediation automatically unless the review determines no human decisions are needed. The `review-plan-phase` skill handles both review and remediation in a single pass — it auto-remediates when safe and stops for human input when architectural or scope decisions are required.
 
 Do not present a plan phase as complete based only on passing checks, partial scaffolding, or code that roughly resembles the plan. Completion requires alignment across implementation, tests, documentation, and plan bookkeeping.
 

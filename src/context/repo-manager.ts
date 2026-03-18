@@ -3,6 +3,10 @@ import { join } from "node:path";
 import { config } from "../config";
 
 export class RepoManager {
+  private getCacheKey(projectId: number, branch: string): string {
+    return `${projectId}-${encodeURIComponent(branch)}`;
+  }
+
   /**
    * Clone the repository at `projectUrl` shallowly at `branch` into the cache
    * directory, or update the existing clone if it is already cached.
@@ -14,7 +18,7 @@ export class RepoManager {
    * webhook-supplied URL exfiltrating the token to a third-party host.
    */
   async cloneOrUpdate(projectUrl: string, branch: string, projectId: number): Promise<string> {
-    const repoPath = join(config.REPO_CACHE_DIR, String(projectId));
+    const repoPath = this.getRepoPath(projectId, branch);
     const authedUrl = this.injectToken(projectUrl);
 
     const repoExists = await stat(join(repoPath, ".git"))
@@ -23,7 +27,12 @@ export class RepoManager {
 
     if (repoExists) {
       // Bring the existing clone up to date with a depth-1 fetch + hard reset.
-      await this.run(["git", "fetch", "origin", branch, "--depth", "1"], repoPath);
+      // Use an explicit refspec so the remote-tracking branch exists even in
+      // shallow single-branch clones.
+      await this.run(
+        ["git", "fetch", "origin", `refs/heads/${branch}:refs/remotes/origin/${branch}`, "--depth", "1"],
+        repoPath,
+      );
       await this.run(["git", "reset", "--hard", `origin/${branch}`], repoPath);
     } else {
       // First time: ensure the cache directory exists, then do a shallow clone.
@@ -39,8 +48,8 @@ export class RepoManager {
    * any I/O. Useful for downstream code that wants to build a path without
    * triggering a clone.
    */
-  getRepoPath(projectId: number): string {
-    return join(config.REPO_CACHE_DIR, String(projectId));
+  getRepoPath(projectId: number, branch: string): string {
+    return join(config.REPO_CACHE_DIR, this.getCacheKey(projectId, branch));
   }
 
   /**

@@ -44,9 +44,9 @@ Concise reference for the architecture implemented in the current repo.
 
 ### Repo manager
 
-- cache key: `<REPO_CACHE_DIR>/<projectId>`
+- cache key: `<REPO_CACHE_DIR>/<projectId>-<url-encoded-branch>`
 - clone path: `git clone --depth 1 --branch <branch>`
-- refresh path: `git fetch origin <branch> --depth 1` then `git reset --hard origin/<branch>`
+- refresh path: `git fetch origin refs/heads/<branch>:refs/remotes/origin/<branch> --depth 1` then `git reset --hard origin/<branch>`
 - cleanup: TTL eviction using directory `mtime`
 - host guard: clone URL hostname must match `config.GITLAB_URL`
 

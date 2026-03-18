@@ -26,6 +26,8 @@ Detailed, visual documentation with Mermaid diagrams and full rationale.
 
 - **Active**: [GitGandalf Master Plan](./plans/active/git-gandalf-master-plan.md) — Phases 1–4 complete, with internal agent protocol now implemented and Phase 4.5 Jira integration / Phase 4.6 GitLab compatibility planned next
 - **Active**: [Gandalf Awakening Personality Plan](./plans/active/Gandalf-awakening-personality-plan.md) — Trigger alias expansion, Gandalf-mode acknowledgements, and tone-aware top-level summary behavior
+- **Active**: [Review Edge Cases Hardening](./plans/active/review-edge-cases-hardening.md) — Incremental multi-commit review ranges, manual `/ai-review` override semantics, version-aware dedupe, and repo freshness/concurrency hardening
+- **Backlog**: [Deno Runtime Evaluation And Migration Plan](./plans/backlog/deno-runtime-evaluation-and-migration-plan.md) — Security-first runtime evaluation, Bun-to-Deno rewrite scope, replacement matrix, and spike-first migration path
 - **Implemented**: [Structured Logging](./plans/implemented/structured-logging-plan.md) — LogTape structured logging, request correlation, and docs overhaul across 5 phases
 - **Implemented**: [Agentic Development Plan](./plans/implemented/agentic-development-plan.md) — Repo bootstrap and dev tooling setup
 
