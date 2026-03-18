@@ -85,7 +85,13 @@ export async function runPipeline(event: WebhookPayload): Promise<void> {
     };
 
     await publisher.postInlineComments(projectId, mrIid, publishableFindings, diffRefs, diffFiles);
-    await publisher.postSummaryComment(projectId, mrIid, finalState.summaryVerdict, publishableFindings);
+    await publisher.postSummaryComment(
+      projectId,
+      mrIid,
+      finalState.summaryVerdict,
+      publishableFindings,
+      mrDetails.headSha,
+    );
 
     logger.info("Review complete", {
       mrIid,

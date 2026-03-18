@@ -33,7 +33,8 @@ tags:
   - idempotency
 completion:
   - "# Phase E0 — Immediate Summary Deduplication Guard"
-  - [ ] E0.1 Add head-SHA-based duplicate guard to `postSummaryComment` before full checkpoint machinery exists
+  - [x] E0.1 Add head-SHA-based duplicate guard to `postSummaryComment` before full checkpoint machinery exists
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E0-review-2026-03-18-m3x9.md`
   - "# Phase E1 — Review Trigger Model"
   - [ ] E1.1 Introduce typed review trigger context (`automatic` vs `manual`, source event, optional note id)
   - [ ] E1.2 Make `/ai-review` always execute a review run even when the current head was reviewed already

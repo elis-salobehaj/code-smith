@@ -209,6 +209,20 @@ describe("formatSummaryComment", () => {
     const body = formatSummaryComment("APPROVE", []);
     expect(body).toContain("GitGandalf");
   });
+
+  it("embeds hidden head SHA marker when headSha is provided", () => {
+    const body = formatSummaryComment("APPROVE", [], "deadbeefsha");
+    expect(body).toContain("<!-- git-gandalf:head sha=deadbeefsha -->");
+    // Marker must appear before the footer separator line (not the table row |---|---|)
+    const markerIdx = body.indexOf("<!-- git-gandalf:head sha=");
+    const footerIdx = body.indexOf("\n---\n");
+    expect(markerIdx).toBeLessThan(footerIdx);
+  });
+
+  it("omits head SHA marker when headSha is absent", () => {
+    const body = formatSummaryComment("APPROVE", []);
+    expect(body).not.toContain("<!-- git-gandalf:head sha=");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -258,9 +272,10 @@ function makeBotDiscussion(filePath: string, line: number, finding: Finding): Di
   return { id: "disc-2", notes: [note] };
 }
 
-function makeMockClient(discussions: Discussion[] = []): GitLabClient {
+function makeMockClient(discussions: Discussion[] = [], notes: Array<{ id: number; body: string }> = []): GitLabClient {
   return {
     getMRDiscussions: mock(async () => discussions),
+    getMRNotes: mock(async () => notes),
     createInlineDiscussion: mock(async () => undefined),
     createMRNote: mock(async () => undefined),
   } as unknown as GitLabClient;
@@ -345,7 +360,7 @@ describe("GitLabPublisher.postSummaryComment", () => {
   it("calls createMRNote with the formatted summary body", async () => {
     const client = makeMockClient();
     const pub = new GitLabPublisher(client);
-    await pub.postSummaryComment(1, 2, "APPROVE", []);
+    await pub.postSummaryComment(1, 2, "APPROVE", [], diffRefs.headSha);
     expect(client.createMRNote).toHaveBeenCalledTimes(1);
     const [projId, mrIid, body] = (client.createMRNote as ReturnType<typeof mock>).mock.calls[0] as [
       number,
@@ -360,8 +375,41 @@ describe("GitLabPublisher.postSummaryComment", () => {
   it("includes findings titles in the summary when findings are present", async () => {
     const client = makeMockClient();
     const pub = new GitLabPublisher(client);
-    await pub.postSummaryComment(1, 2, "REQUEST_CHANGES", [criticalFinding]);
+    await pub.postSummaryComment(1, 2, "REQUEST_CHANGES", [criticalFinding], diffRefs.headSha);
     const [, , body] = (client.createMRNote as ReturnType<typeof mock>).mock.calls[0] as [number, number, string];
     expect(body).toContain(criticalFinding.title);
+  });
+
+  it("embeds the head SHA marker in the posted body", async () => {
+    const client = makeMockClient();
+    const pub = new GitLabPublisher(client);
+    await pub.postSummaryComment(1, 2, "APPROVE", [], "abc123sha");
+    const [, , body] = (client.createMRNote as ReturnType<typeof mock>).mock.calls[0] as [number, number, string];
+    expect(body).toContain("<!-- git-gandalf:head sha=abc123sha -->");
+  });
+
+  it("skips posting when an existing note has the same head SHA", async () => {
+    const existingBody = formatSummaryComment("APPROVE", [], "dupesha");
+    const client = makeMockClient([], [{ id: 99, body: existingBody }]);
+    const pub = new GitLabPublisher(client);
+    await pub.postSummaryComment(1, 2, "APPROVE", [], "dupesha");
+    expect(client.createMRNote).not.toHaveBeenCalled();
+  });
+
+  it("posts when head SHA differs from existing summary note", async () => {
+    const existingBody = formatSummaryComment("APPROVE", [], "oldsha");
+    const client = makeMockClient([], [{ id: 99, body: existingBody }]);
+    const pub = new GitLabPublisher(client);
+    await pub.postSummaryComment(1, 2, "APPROVE", [], "newsha");
+    expect(client.createMRNote).toHaveBeenCalledTimes(1);
+  });
+
+  it("posts when existing note has summary marker but no head SHA (legacy note)", async () => {
+    // A note posted before Phase E0 has no head SHA — must not suppress new posts
+    const legacyBody = formatSummaryComment("APPROVE", []);
+    const client = makeMockClient([], [{ id: 88, body: legacyBody }]);
+    const pub = new GitLabPublisher(client);
+    await pub.postSummaryComment(1, 2, "APPROVE", [], "newsha");
+    expect(client.createMRNote).toHaveBeenCalledTimes(1);
   });
 });

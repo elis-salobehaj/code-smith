@@ -119,6 +119,21 @@ export class GitLabClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Fetch all MR-level notes (top-level, non-inline).
+  // Used by the publisher to check for existing summary notes before posting.
+  // Returns minimal {id, body} pairs — callers that need full Note shape should
+  // use getMRDiscussions instead.
+  // ---------------------------------------------------------------------------
+
+  async getMRNotes(projectId: number, mrIid: number): Promise<Array<{ id: number; body: string }>> {
+    const notes = await this.api.MergeRequestNotes.all(projectId, mrIid);
+    return notes.map((n) => ({
+      id: Number(n.id),
+      body: String(n.body),
+    }));
+  }
+
+  // ---------------------------------------------------------------------------
   // Create an inline discussion on a specific line.
   // Verified method: MergeRequestDiscussions.create(projectId, mrIid, body, opts)
   // The position option is typed as Camelize<DiscussionNotePositionSchema>,

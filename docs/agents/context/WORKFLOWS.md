@@ -78,6 +78,7 @@ Current publishing behavior after review:
 
 - inline discussions are created only for findings that can be anchored to diff positions
 - non-diff findings are skipped for inline publication and summarized instead of crashing publication
+- summary notes are head-SHA-deduped: if an existing MR note already contains `<!-- git-gandalf:summary -->` and `<!-- git-gandalf:head sha=<currentHeadSha> -->`, the summary post is skipped to prevent duplicate notes on repeated runs for the same head commit (Phase E0)
 
 The agent subsystem is implemented and invoked from the API pipeline.
 
