@@ -1,8 +1,10 @@
 import { runReview } from "../agents/orchestrator";
 import type { ReviewState } from "../agents/state";
+import { config } from "../config";
 import { parseDiffHunks } from "../context/diff-parser";
 import { RepoManager } from "../context/repo-manager";
 import { GitLabClient } from "../gitlab-client/client";
+import { fetchLinkedTickets } from "../integrations/jira/client";
 import { getLogger, withContext } from "../logger";
 import { GitLabPublisher } from "../publisher/gitlab-publisher";
 import { normalizeFindingsForPublication } from "../publisher/suggestion-normalizer";
@@ -66,13 +68,17 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
     // 2. Clone or update the source branch into the local cache
     const repoPath = await repoManager.cloneOrUpdate(event.project.web_url, mrDetails.sourceBranch, projectId);
 
-    // 3. Build initial ReviewState and run the 3-agent pipeline
+    // 3. Fetch linked Jira tickets (read-only; degrades safely when disabled or unavailable)
+    const linkedTickets = await fetchLinkedTickets(mrDetails.title, mrDetails.description ?? undefined, config);
+
+    // 4. Build initial ReviewState and run the 3-agent pipeline
     const initialState: ReviewState = {
       mrDetails,
       diffFiles,
       diffHunks: parseDiffHunks(diffFiles),
       repoPath,
       triggerContext: trigger,
+      linkedTickets,
       mrIntent: "",
       changeCategories: [],
       riskAreas: [],
@@ -109,7 +115,7 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
       });
     }
 
-    // 4. Publish inline comments for each verified finding, then a summary note
+    // 5. Publish inline comments for each verified finding, then a summary note
     const diffRefs = {
       baseSha: mrDetails.baseSha,
       headSha: mrDetails.headSha,

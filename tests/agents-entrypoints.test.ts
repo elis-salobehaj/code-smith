@@ -57,6 +57,7 @@ function makeBaseState(): ReviewState {
     mrIntent: "",
     changeCategories: [],
     riskAreas: [],
+    linkedTickets: [],
     rawFindings: [],
     verifiedFindings: [],
     summaryVerdict: "APPROVE",

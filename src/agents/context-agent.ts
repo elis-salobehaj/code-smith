@@ -4,8 +4,6 @@ import { loadAgentPrompt } from "./prompt-loader";
 import { type AgentMessage, firstTextBlock, textMessage } from "./protocol";
 import type { ReviewState } from "./state";
 
-const CONTEXT_AGENT_SYSTEM_PROMPT = loadAgentPrompt("context_agent");
-
 // ---------------------------------------------------------------------------
 // Zod schema for LLM output validation
 // ---------------------------------------------------------------------------
@@ -35,6 +33,22 @@ export function buildContextPrompt(state: ReviewState): string {
     .join("\n\n")
     .slice(0, MAX_DIFF_CHARS);
 
+  const ticketSection =
+    state.linkedTickets.length > 0
+      ? [
+          "",
+          "## Linked Jira Tickets",
+          ...state.linkedTickets.map((t) => {
+            const lines = [`**${t.key}** — ${t.summary}`, `- Status: ${t.status}  Type: ${t.issueType}`];
+            if (t.priority) lines.push(`- Priority: ${t.priority}`);
+            if (t.assignee) lines.push(`- Assignee: ${t.assignee}`);
+            if (t.description) lines.push(`- Description: ${t.description.slice(0, 400)}`);
+            if (t.acceptanceCriteria) lines.push(`- Acceptance Criteria: ${t.acceptanceCriteria.slice(0, 400)}`);
+            return lines.join("\n");
+          }),
+        ]
+      : [];
+
   return [
     `## Merge Request`,
     `**Title**: ${state.mrDetails.title}`,
@@ -42,6 +56,7 @@ export function buildContextPrompt(state: ReviewState): string {
     `**Author**: ${state.mrDetails.authorUsername}`,
     `**Source branch**: ${state.mrDetails.sourceBranch} → ${state.mrDetails.targetBranch}`,
     `**Files changed**: ${state.diffFiles.length}`,
+    ...ticketSection,
     ``,
     `## Diff`,
     diffSummary,
@@ -83,7 +98,9 @@ export function parseContextResponse(response: AgentMessage): {
 // ---------------------------------------------------------------------------
 
 export async function contextAgent(state: ReviewState): Promise<ReviewState> {
-  const response = await chatCompletion(CONTEXT_AGENT_SYSTEM_PROMPT, [textMessage("user", buildContextPrompt(state))]);
+  const response = await chatCompletion(loadAgentPrompt("context_agent"), [
+    textMessage("user", buildContextPrompt(state)),
+  ]);
 
   const parsed = parseContextResponse(response.message);
 

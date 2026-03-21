@@ -5,7 +5,7 @@ priority: high
 estimated_hours: 40-60
 dependencies: []
 created: 2026-03-14
-date_updated: 2026-03-15
+date_updated: 2026-03-20
 
 related_files:
   - package.json
@@ -77,22 +77,26 @@ completion:
   - [x] 4.3 `Dockerfile`
   - [x] 4.4 `docker-compose.yml`
   - [x] 4.5 `README.md`
-  - "# Phase 4.5 — Ticket Context Integration"
-  - [ ] 4.5.1 Jira provider configuration and Zod validation
-  - [ ] 4.5.2 Jira client for ticket fetch + normalization
-  - [ ] 4.5.3 Pipeline enrichment with linked ticket context
-  - [ ] 4.5.4 Agent prompt updates to consume ticket context
-  - [ ] 4.5.5 Tests + docs for Jira setup and failure modes
-  - "# Phase 4.6 — GitLab SaaS + Self-Hosted Compatibility"
-  - [ ] 4.6.1 Add `GITLAB_SELF_HOSTED` env flag and config validation
-  - [ ] 4.6.2 Normalize clone/API behavior for GitLab.com and self-hosted instances
-  - [ ] 4.6.3 Document supported auth and URL combinations
+  - "# Phase 4.5 — Jira Read-Only Context Enrichment"
+  - [x] 4.5.1 Jira read-only provider configuration and Zod validation
+  - [x] 4.5.2 Thin Jira fetch client for issue lookup + normalization
+  - [x] 4.5.3 Pipeline enrichment with bounded linked-ticket context
+  - [x] 4.5.4 Agent prompt/state updates to consume linked ticket context
+  - [x] 4.5.5 Tests + docs for Jira setup, field mapping, and failure modes
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-4.5-review-2026-03-20-p9k2.md`
+  - "# Phase 4.6 — GitLab Deployment Hardening"
+  - [ ] 4.6.1 Verify and document supported GitLab deployment/auth combinations
+  - [ ] 4.6.2 Add concrete transport/auth hardening only where current behavior is insufficient
+  - [ ] 4.6.3 Add tests for host validation, TLS/custom-CA behavior, and clone/API compatibility
   - "# Phase 5 — Production Hardening (Future)"
   - [ ] 5.1 Task Queue (BullMQ + Valkey)
   - [ ] 5.2 Kubernetes (KinD / EKS / GKE)
   - [ ] 5.3 LLM Fallback (OpenAI / Google)
   - [x] 5.4 Internal LLM Contract (provider-agnostic agent schema)
   - [ ] 5.5 Optional Adapter Evaluation (Vercel AI SDK or direct SDKs)
+  - "# Phase 6 — Jira Write Actions (Deferred)"
+  - [ ] 6.1 Explicitly design Jira write permissions and least-privilege auth
+  - [ ] 6.2 Add write-mode workflows only after review of security and product scope
 ---
 # GitGandalf — Master Implementation Plan
 
@@ -116,7 +120,7 @@ completion:
 | **GitLab API Client** | **`@gitbeaker/rest`** | Actively maintained (v43.8+), fully typed, comprehensive GitLab API coverage. Works on Bun natively. |
 | **Git Operations** | **`Bun.spawn()`** + native Git CLI | Pragmatic: `posix_spawn(3)` is the fastest subprocess model. Uses system `git` and `ripgrep` (trivial Docker install). Avoids `isomorphic-git` overhead and `simple-git` unnecessary abstraction. `Bun.file().text()` for zero-copy file reads. |
 | **Validation** | **Zod** | Runtime type validation + static type inference. TypeScript-native Pydantic equivalent. |
-| **Task Queue (Phase 5)** | **BullMQ** (MIT) + **Valkey** | BullMQ explicitly supports Valkey. Use `iovalkey` (100% TS Redis/Valkey client). Open-source only. |
+| **Task Queue (Phase 5)** | **BullMQ** (MIT) + **Valkey** | BullMQ remains the queue choice. Implementation must use BullMQ's documented Redis client path or complete a compatibility spike before choosing an alternative client such as `iovalkey`. |
 | **Deployment (Phase 1-4)** | **Docker Compose** | Simple, reproducible, self-contained. |
 | **Deployment (Phase 5)** | **Kubernetes** | Start with KinD for local dev. Keep EKS/GKE parity in mind from the start. |
 
@@ -803,14 +807,30 @@ volumes:
 - Architecture overview with agent pipeline explanation
 - Contributing guidelines
 
+> [!IMPORTANT]
+> Coordination requirement for future phases: Phase 4.5 and Phase 4.6 both touch
+> `src/api/router.ts`, `src/api/pipeline.ts`, `src/api/schemas.ts`,
+> `src/gitlab-client/client.ts`, and `src/agents/state.ts`. These phases must build
+> on the trigger/checkpoint/range-selection work in
+> `docs/plans/active/review-edge-cases-hardening.md` rather than proceeding in
+> parallel with conflicting changes.
+
 ---
 
-## Phase 4.5: Ticket Context Integration
+## Phase 4.5: Jira Read-Only Context Enrichment
 
 ### Goal
-Enrich reviews with real ticket context from Jira so the agents can reason about
-the intended scope, acceptance criteria, and linked implementation details rather
-than relying only on ticket IDs extracted from MR text.
+Enrich reviews with read-only ticket context from Jira so the agents can reason
+about intended scope and linked implementation details rather than relying only
+on ticket IDs extracted from MR text.
+
+### Locked scope for Phase 4.5
+
+- Jira is **read-only** in this phase.
+- No Jira comments, transitions, worklogs, issue edits, issue creation, or link mutation.
+- Any Jira write-mode ideas are deferred to Phase 6.
+- The first implementation should target Jira Cloud-compatible REST usage. Any
+  broader Jira deployment support must be explicitly scoped before implementation.
 
 #### [NEW] Jira configuration surface
 - Add optional env vars for Jira integration, validated with Zod:
@@ -819,10 +839,12 @@ than relying only on ticket IDs extracted from MR text.
   - `JIRA_EMAIL=<jira-user-email>`
   - `JIRA_API_TOKEN=<jira-api-token>`
   - `JIRA_PROJECT_KEYS=ENG,PLATFORM` (optional allow-list)
+- Optional deployment-specific field mappings:
+  - `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID=<customfield_12345>`
 - Keep Jira integration disabled by default so current local setups continue to work.
 
 #### [NEW] `src/integrations/jira/client.ts`
-- Thin typed client for Jira issue lookup by key.
+- Thin typed client for Jira issue lookup by key using direct `fetch`, not a Jira SDK.
 - Normalize Jira responses into a compact internal ticket shape:
   - `key`
   - `summary`
@@ -831,49 +853,60 @@ than relying only on ticket IDs extracted from MR text.
   - `issueType`
   - `priority`
   - `assignee`
-  - `acceptanceCriteria` when present
+  - `acceptanceCriteria` only when a configured field mapping exists or a clearly documented extraction rule is defined
 
 #### [MODIFY] `src/api/pipeline.ts`
 - Extract ticket keys from MR title and description.
 - Fetch Jira ticket details when integration is enabled.
+- Bound the Jira work inside the request path:
+  - cap linked ticket lookups per run
+  - dedupe repeated keys within a run
+  - fetch only the fields required for the normalized ticket shape
+  - apply a short timeout and log-and-continue on failure
 - Pass normalized ticket context into the agent review state.
 - Degrade safely: log and continue if Jira is unavailable or a ticket lookup fails.
 
 #### [MODIFY] agent prompts and state
 - Extend review state with `linkedTickets`.
 - Update Agent 1 and Agent 2 prompts so they compare the MR against ticket scope,
-  expected behavior, and acceptance criteria.
+  expected behavior, and acceptance criteria when available.
 - Treat ticket context as supporting evidence, not a hard blocker when absent.
 
 #### [NEW] verification for Phase 4.5
 - Unit tests for Jira config validation, ticket-key extraction, response normalization,
-  and pipeline behavior when Jira is disabled or unavailable.
-- Guide updates covering Jira token creation, env setup, and troubleshooting.
+  bounded ticket-fetch behavior, and pipeline behavior when Jira is disabled or unavailable.
+- Guide updates covering Jira token creation, env setup, optional custom-field mapping,
+  and troubleshooting.
 
 ---
 
-## Phase 4.6: GitLab SaaS + Self-Hosted Compatibility
+## Phase 4.6: GitLab Deployment Hardening
 
 ### Goal
-Support both GitLab.com and self-hosted GitLab instances with explicit,
-documented configuration so the same codebase can run in either environment.
+Harden the existing GitLab integration for real deployment differences without
+introducing configuration that does not correspond to a concrete runtime need.
+
+Current reality: the system already works against a self-hosted GitLab instance.
+This phase should address only verified deployment gaps.
 
 #### [MODIFY] configuration
-- Add `GITLAB_SELF_HOSTED=true` to `.env.example` and `src/config.ts`.
-- Use the flag to document and validate deployment expectations rather than infer
-  them implicitly from the URL alone.
+- Do **not** add `GITLAB_SELF_HOSTED` unless a concrete incompatibility requires it.
+- Add configuration only for real deployment needs, for example:
+  - custom CA / TLS verification options
+  - clone auth mode or token-mode documentation
+  - reverse-proxy or instance base-path handling if verified necessary
 
 #### [MODIFY] GitLab integration path
-- Verify API and clone flows work against both GitLab.com and self-hosted hosts.
-- Keep host validation for token-injected clone URLs, but ensure the expected host
-  logic is compatible with both deployment models.
-- Document any auth differences that matter operationally.
+- Verify API and clone flows against the actual supported deployment matrix.
+- Keep host validation for token-injected clone URLs, but harden the logic only
+  where current behavior is insufficient.
+- Document the supported auth and URL combinations that matter operationally.
 
 #### [NEW] documentation and tests
 - Add setup examples for:
-  - GitLab.com with `GITLAB_SELF_HOSTED=false`
-  - self-hosted GitLab with `GITLAB_SELF_HOSTED=true`
-- Add tests around config parsing and host validation behavior.
+  - GitLab.com
+  - self-hosted GitLab
+- Add tests around host validation and any newly introduced TLS/auth behavior.
 
 ---
 
@@ -884,6 +917,8 @@ documented configuration so the same codebase can run in either environment.
 
 ### Task Queue
 - Add **BullMQ + Valkey** for production-grade async job processing.
+- Before implementation, verify BullMQ client compatibility and use BullMQ's
+  documented Redis client path unless an alternative client passes a dedicated spike.
 - Replace fire-and-forget `runPipeline()` with `reviewQueue.add('review', payload)`.
 - Separate worker process for pipeline execution.
 - Job retry, timeout, and dead-letter queue handling.
@@ -910,19 +945,41 @@ documented configuration so the same codebase can run in either environment.
 
 ---
 
+## Phase 6: Jira Write Actions (Deferred)
+
+### Goal
+Defer any Jira write behavior until the read-only enrichment phase has shipped,
+been reviewed, and the required security/product decisions have been made.
+
+#### Deferred scope only
+- Jira comments
+- issue transitions
+- field edits
+- worklogs
+- issue creation
+- link mutation
+
+#### Preconditions
+- Explicit product approval for each write workflow
+- Least-privilege auth design and credential review
+- A dedicated pre-implementation security review
+
+---
+
 ## User Review Required
 
 > [!IMPORTANT]
 > **Ticket Integration (Jira/Linear)**: The plan currently extracts ticket IDs from the MR description using regex patterns (e.g., `PROJ-123`, `LIN-456`). If you want the agent to actually *fetch* ticket details from Jira/Linear APIs, that requires additional API keys and client code. Should we include this in Phase 2, or defer it?
 Resolution:
-- Include this as Phase 4.5, with Jira ticket fetching added as the next planned implementation phase.
+- Include this as Phase 4.5, but keep it strictly **read-only** and bounded to
+  ticket lookup and normalization. Defer any Jira write-mode capability to Phase 6.
 
 > [!WARNING]
-> **GitLab Self-Managed vs. SaaS**: `@gitbeaker/rest` works with both, but auth and URL configuration differ. Please confirm which GitLab variant you're targeting.
+> **GitLab Self-Managed vs. SaaS**: `@gitbeaker/rest` works with both, but the next phase should target only verified deployment gaps rather than introducing a boolean deployment flag without a concrete runtime need.
 Resolution:
-- Target both GitLab.com and self-hosted GitLab.
-- Add a dedicated follow-up phase for compatibility work.
-- Introduce a `GITLAB_SELF_HOSTED=true` env variable in that phase to make deployment intent explicit.
+- Continue supporting both GitLab.com and self-hosted GitLab.
+- Focus the follow-up phase on concrete deployment/auth/TLS hardening needs.
+- Do not add `GITLAB_SELF_HOSTED` unless a specific incompatibility proves that it is necessary.
 
 ---
 
@@ -934,6 +991,12 @@ All tests run with Bun's built-in test runner:
 
 ```bash
 bun test
+```
+
+Dependency-affecting phases must also run:
+
+```bash
+bun audit
 ```
 
 | Test File | Phase | What It Covers |
@@ -957,6 +1020,7 @@ bun test
    ```
 3. Verify the 3-agent pipeline executes in console output.
 4. (With real GitLab + Bedrock credentials) Verify inline comments appear on a test MR.
+5. For Jira-enabled runs, verify ticket lookup degrades safely when Jira is unavailable.
 
 ### Manual Verification
 
@@ -969,3 +1033,5 @@ bun test
    - Comments are high-signal (no formatting nitpicks, no linting issues).
 4. **Push an update** to the MR — verify it doesn't re-post duplicate comments.
 5. **Comment `/ai-review`** — verify it triggers a fresh review.
+6. **If Jira read-only enrichment is enabled** — verify ticket context is fetched,
+   bounded, and does not block the review when Jira returns an error or times out.

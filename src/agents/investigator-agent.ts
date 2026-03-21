@@ -6,8 +6,6 @@ import { loadAgentPrompt } from "./prompt-loader";
 import { type AgentMessage, textMessage, toolCallBlocks } from "./protocol";
 import { type Finding, findingSchema, type ReviewState } from "./state";
 
-const INVESTIGATOR_SYSTEM_PROMPT = loadAgentPrompt("investigator_agent");
-
 // ---------------------------------------------------------------------------
 // Response-parsing schemas
 // ---------------------------------------------------------------------------
@@ -102,7 +100,7 @@ export async function investigatorLoop(state: ReviewState): Promise<ReviewState>
   let iterations = 0;
 
   while (iterations < config.MAX_TOOL_ITERATIONS) {
-    const response = await chatCompletion(INVESTIGATOR_SYSTEM_PROMPT, messages, TOOL_DEFINITIONS);
+    const response = await chatCompletion(loadAgentPrompt("investigator_agent"), messages, TOOL_DEFINITIONS);
 
     // Append the assistant turn to history
     messages.push(response.message);

@@ -34,6 +34,7 @@ All loggers root at `"gandalf"`. Sub-categories follow the module hierarchy:
 | `src/api/router.ts` | `["gandalf", "router"]` |
 | `src/api/pipeline.ts` | `["gandalf", "pipeline"]` |
 | `src/agents/orchestrator.ts` | `["gandalf", "orchestrator"]` |
+| `src/integrations/jira/client.ts` | `["gandalf", "jira"]` |
 | `src/publisher/gitlab-publisher.ts` | `["gandalf", "publisher"]` |
 
 ### Request correlation
@@ -107,6 +108,7 @@ Current tests:
 - `tests/repo-manager.test.ts`: cache path, TTL cleanup, SSRF host validation
 - `tests/publisher.test.ts`: inline publication, duplicate detection, anchoring, and summary-note behavior
 - `tests/logger.test.ts`: LogTape configuration, filtering, and structured logging behavior
+- `tests/jira.test.ts`: `extractTicketKeys` pure function, `fetchJiraTicket` with mocked fetch, and `fetchLinkedTickets` integration covering disabled guard, key extraction, allow-list filtering, per-run cap, dedup, and ADF description parsing
 
 Use the repository's actual `bun test` output as the source of truth for suite size. The count changes as the implementation evolves.
 

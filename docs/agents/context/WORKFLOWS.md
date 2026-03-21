@@ -63,17 +63,46 @@ If a specific tool call throws, Agent 2 catches the failure and sends the error 
 
 ## 4. Full Pipeline
 
-`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → clone repo → run agents → publish findings.
+`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → clone repo → fetch Jira context → run agents → publish findings.
 The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging. Future phases will use the trigger mode to branch automatic vs manual behavior (checkpoint skipping, publication policy).
 Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if an existing GitGandalf summary note already embeds the current `headSha`, the pipeline logs the skip and returns before fetching diffs, cloning the repo, or invoking agents. Manual `/ai-review` triggers bypass this guard and always run.
 All pipeline logs emit structured JSON under `["gandalf", "pipeline"]` and carry the implicit `requestId`, `projectId`, and `mrIid` context set by the router and pipeline entry.
+
+## 4a. Jira Ticket Enrichment
+
+Implemented in `src/integrations/jira/client.ts`. Called from `src/api/pipeline.ts` between repo clone and agent invocation.
+
+### Key extraction
+
+`extractTicketKeys(text, allowedProjectKeys?)` scans the MR title and description with `/\b([A-Z][A-Z0-9]+-\d+)\b/g`.
+
+- handles the common `PROJ-NNN: title` format (e.g. `SRT-28326: refactor auth`)
+- deduplicates repeated keys across title and description
+- applies the `JIRA_PROJECT_KEYS` allow-list when configured
+- caps the result with `JIRA_MAX_TICKETS` before fetching
+
+### Per-ticket fetch
+
+`fetchJiraTicket(key, config)` calls `/rest/api/3/issue/<key>` with Basic Auth (`JIRA_EMAIL:JIRA_API_TOKEN`).
+
+- uses an `AbortController` with `JIRA_TICKET_TIMEOUT_MS` per request
+- extracts `summary`, `status`, `issueType`, `priority`, `assignee`, `description`
+- supports Atlassian Document Format (ADF) descriptions — plain text is extracted from paragraph nodes
+- supports an optional acceptance-criteria custom field via `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID`
+- Zod-validates the raw API response before normalizing; returns `null` on any failure
+- never throws — all errors are logged as `warn` and degrade gracefully
+
+### Integration with agents
+
+`ReviewState.linkedTickets: JiraTicket[]` carries the resolved tickets into the agent pipeline.
+`contextAgent()` includes a `## Linked Jira Tickets` block in its user prompt when the array is non-empty. Each ticket entry renders key, summary, status, type, optional priority, assignee, description (truncated to 400 chars), and acceptance criteria (truncated to 400 chars).
 
 ## 5. Agent Review Workflow
 
 Implemented in `src/agents/`.
 
-1. caller provides `ReviewState` input fields: `mrDetails`, `diffFiles`, `repoPath`
-2. `contextAgent()` derives `mrIntent`, `changeCategories`, and `riskAreas`
+1. caller provides `ReviewState` input fields: `mrDetails`, `diffFiles`, `repoPath`, `linkedTickets`
+2. `contextAgent()` derives `mrIntent`, `changeCategories`, and `riskAreas`; uses `linkedTickets` when non-empty
 3. `investigatorLoop()` builds the investigation prompt and calls Bedrock Runtime Converse through the internal protocol adapter
 4. tool requests are executed through `executeTool()` using `TOOL_DEFINITIONS`
 5. `reflectionAgent()` filters the raw findings and assigns a verdict
@@ -94,6 +123,7 @@ All structured logs are emitted as JSON Lines to stdout via LogTape:
 - `["gandalf", "http"]` — HTTP request/response via `@logtape/hono` middleware
 - `["gandalf", "router"]` — webhook auth and validation events
 - `["gandalf", "pipeline"]` — pipeline start/complete
+- `["gandalf", "jira"]` — Jira fetch start, completion, and degradation warnings
 - `["gandalf", "orchestrator"]` — per-agent-stage progress
 - `["gandalf", "publisher"]` — inline comment posting, duplicates, errors
 

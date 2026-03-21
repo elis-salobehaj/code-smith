@@ -21,8 +21,6 @@ const systemPromptsSchema = z.object({
 
 type PromptKey = keyof z.infer<typeof systemPromptsSchema>;
 
-const promptCache = new Map<PromptKey, string>();
-
 function renderPrompt(sections: z.infer<typeof promptSectionsSchema>): string {
   return [
     "<role>",
@@ -53,12 +51,5 @@ export function loadPromptConfig(): z.infer<typeof systemPromptsSchema> {
 }
 
 export function loadAgentPrompt(promptKey: PromptKey): string {
-  const cached = promptCache.get(promptKey);
-  if (cached) {
-    return cached;
-  }
-
-  const promptBody = renderPrompt(loadPromptConfig()[promptKey]);
-  promptCache.set(promptKey, promptBody);
-  return promptBody;
+  return renderPrompt(loadPromptConfig()[promptKey]);
 }

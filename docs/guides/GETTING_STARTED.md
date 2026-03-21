@@ -201,25 +201,49 @@ For self-hosted GitLab system hooks, remember one more constraint: the GitLab in
 
 ## Jira setup
 
-Jira ticket fetching is planned for Phase 4.5 and is not consumed by the runtime yet.
-If you want to prepare the credentials now, use a dedicated Jira service account.
+Jira ticket fetching is live and optional. When enabled, GitGandalf reads ticket keys from the MR title and description, fetches each ticket from the Jira REST API, and passes the context to Agent 1 before the review begins. This step always degrades gracefully — if Jira is unavailable or a ticket cannot be fetched, the review continues without ticket context.
 
-For Jira Cloud:
+The integration is **disabled by default** (`JIRA_ENABLED=false`). Existing deployments are unaffected until you opt in.
 
-1. Confirm your Jira base URL, for example `https://your-company.atlassian.net`.
-2. Create an API token at Atlassian account settings → Security → API tokens.
-3. Record the email address for the Jira account that owns the token.
-4. Decide which project keys GitGandalf should be allowed to query.
+### Jira API token
 
-Recommended values to keep ready for the upcoming phase:
+GitGandalf uses Jira Cloud's REST API v3 with Basic Auth. The credential is `email:api_token`, base64-encoded in each request header.
 
-- `JIRA_BASE_URL`
-- `JIRA_EMAIL`
-- `JIRA_API_TOKEN`
-- `JIRA_PROJECT_KEYS` as a comma-separated allow-list when you want to restrict lookups
+To create a token:
 
-Use a Jira account with read-only project access if possible. The planned integration only
-needs to read issue details; it does not need permission to edit tickets.
+1. Log in to your Atlassian account (even if your org uses SSO via Okta, Azure AD, or similar, you can still generate API tokens from the Atlassian account portal).
+2. Go to **https://id.atlassian.com/manage-profile/security/api-tokens** (not the Jira project settings — this is the Atlassian account-level page).
+3. Click **Create API token**, give it a label (e.g. `git-gandalf`), and copy the value immediately — it is not shown again.
+4. Set `JIRA_EMAIL` to the email address on that Atlassian account and `JIRA_API_TOKEN` to the copied token.
+
+**Critical:** paste `JIRA_API_TOKEN` as a **single unbroken line** in `.env`. A line break anywhere in the token value causes it to be read as two separate variables and Jira will return `401 Client must be authenticated`.
+
+**SSO note:** if your organization enforces SAML SSO via Atlassian Access and has additionally restricted API token usage, API tokens may not work for accounts governed by that policy. In that case, ask an Atlassian administrator to either exempt a service account from the restriction or create a dedicated non-SSO Jira account for GitGandalf.
+
+### Recommended: read-only service account
+
+For production use, create a dedicated Jira account (e.g. `git-gandalf-bot@your-company.com`) and grant it only **Browse Projects** permission on the relevant Jira project permission scheme. Generate the API token for that account. This limits blast radius: if the token is ever compromised, it cannot write to Jira or access projects it has not been explicitly granted.
+
+### Environment variables
+
+```env
+JIRA_ENABLED=true
+JIRA_BASE_URL=https://your-company.atlassian.net
+JIRA_EMAIL=git-gandalf-bot@your-company.com
+JIRA_API_TOKEN=<paste full token on one line>
+# Optional: restrict lookups to specific project keys
+JIRA_PROJECT_KEYS=SRT,ENG
+# Optional: custom field ID for acceptance criteria
+# JIRA_ACCEPTANCE_CRITERIA_FIELD_ID=customfield_12345
+```
+
+### How it works at runtime
+
+Once enabled, the pipeline extracts ticket keys from the MR title and description using the pattern `[A-Z][A-Z0-9]+-\d+`. The most common pattern in practice is a title that begins with the ticket key followed by a colon — for example `SRT-28326: refactor authentication layer`. GitGandalf handles this automatically; you do not need to configure any title format.
+
+Keys found in both the title and description are deduplicated. The `JIRA_PROJECT_KEYS` allow-list filters out keys from projects you do not want GitGandalf to look up. `JIRA_MAX_TICKETS` (default 5) caps the number of API calls per review run.
+
+Resolved tickets are attached to `ReviewState.linkedTickets` and included in Agent 1's prompt as a `## Linked Jira Tickets` section with the ticket's summary, status, issue type, priority, assignee, description, and acceptance criteria. All logs from the Jira fetch step appear under the `["gandalf", "jira"]` log category.
 
 ## AWS Bedrock bearer-token setup
 
@@ -287,6 +311,7 @@ Implemented now:
 - GitLab publisher with duplicate detection
 - recoverable Agent 2 tool errors, returned to the model as error tool results
 - structured logging via LogTape: JSON Lines to stdout, `LOG_LEVEL` filtering, request correlation
+- Jira read-only ticket enrichment: key extraction from MR title/description, REST API fetch, ADF description parsing, acceptance-criteria custom-field support, graceful degradation
 
 Every accepted webhook emits logs with a unique `requestId` plus `projectId` and `mrIid` for end-to-end traceability.
 
@@ -294,7 +319,6 @@ Set `LOG_LEVEL=debug` for verbose per-agent output, or `LOG_LEVEL=warn` for quie
 
 Still planned:
 
-- Phase 4.5 ticket context integration for Jira-backed issue enrichment
 - Phase 4.6 GitLab.com and self-hosted compatibility hardening
 - Phase 5 production hardening (task queue, Kubernetes, provider fallback)
 

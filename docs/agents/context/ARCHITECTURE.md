@@ -10,8 +10,9 @@ Concise reference for the architecture implemented in the current repo.
 - `src/api/router.ts`: verifies `X-Gitlab-Token`, validates webhook payloads, filters supported events, generates `requestId`, and starts the async pipeline.
 - `src/api/schemas.ts`: permissive Zod schemas for `merge_request` and `note` webhooks. Required fields are enforced; extra GitLab keys are tolerated.
 - `src/api/trigger.ts`: typed review trigger context (`automatic` vs `manual`, source event, optional note id) threaded into the pipeline.
-- `src/api/pipeline.ts`: fetches MR metadata and diffs, clones or updates the repo cache, runs the review pipeline, and publishes results back to GitLab.
+- `src/api/pipeline.ts`: fetches MR metadata and diffs, clones or updates the repo cache, calls `fetchLinkedTickets()` to enrich state with Jira context, runs the review pipeline, and publishes results back to GitLab.
 - `src/gitlab-client/client.ts`: typed wrapper over `@gitbeaker/rest` for MR details, diffs, discussions, summary notes, and inline discussions.
+- `src/integrations/jira/client.ts`: thin read-only Jira REST API client. Exports `extractTicketKeys()`, `fetchJiraTicket()`, and `fetchLinkedTickets()`. Uses native `fetch`, no SDK dependency. All errors are caught and returned as `null` — never throws.
 - `src/context/repo-manager.ts`: shallow clone/update cache manager using native `git` through `Bun.spawn()`.
 - `src/context/tools/`: modular tool implementations and the public tool manifest consumed by Agent 2.
 - `src/agents/protocol.ts`: app-owned message, tool-call, tool-result, stop-reason, and tool-definition contract.
@@ -66,10 +67,11 @@ All tool file access is sandboxed with `path.resolve()` plus repo-root prefix ch
 
 The pipeline is fully implemented and invoked from `src/api/pipeline.ts`.
 
-1. `contextAgent()` derives MR intent, change categories, and risk areas.
-2. `investigatorLoop()` calls Bedrock through `chatCompletion()`, executes tool calls, and accumulates raw findings.
-3. `reflectionAgent()` filters unsupported or weak findings and assigns the verdict.
-4. `orchestrator.ts` allows one reinvestigation pass when reflection requests it.
+1. `fetchLinkedTickets()` extracts Jira ticket keys from the MR title and description, fetches each ticket from the Jira REST API, and attaches them to `ReviewState.linkedTickets`. Keys are extracted with `/\b([A-Z][A-Z0-9]+-\d+)\b/g`, which handles prefixes like `SRT-28326:` at the start of MR titles. This step is skipped when `JIRA_ENABLED=false`.
+2. `contextAgent()` derives `mrIntent`, `changeCategories`, and `riskAreas`. When `linkedTickets` is non-empty, the prompt includes a `## Linked Jira Tickets` section with summary, status, type, priority, assignee, description, and acceptance criteria.
+3. `investigatorLoop()` calls Bedrock through `chatCompletion()`, executes tool calls, and accumulates raw findings.
+4. `reflectionAgent()` filters unsupported or weak findings and assigns the verdict.
+5. `orchestrator.ts` allows one reinvestigation round when `needsReinvestigation` is true.
 
 ### Internal protocol boundary
 
@@ -91,7 +93,6 @@ The pipeline is fully implemented and invoked from `src/api/pipeline.ts`.
 
 ## Planned Next Boundaries
 
-- Phase 4.5: Jira ticket-context enrichment
 - Phase 4.6: GitLab SaaS and self-hosted compatibility hardening
 - Phase 5+: queueing, Kubernetes, provider fallback
 

@@ -4,8 +4,6 @@ import { loadAgentPrompt } from "./prompt-loader";
 import { type AgentMessage, firstTextBlock, textMessage } from "./protocol";
 import { findingSchema, type ReviewState } from "./state";
 
-const REFLECTION_AGENT_SYSTEM_PROMPT = loadAgentPrompt("reflection_agent");
-
 // ---------------------------------------------------------------------------
 // Zod schema for LLM output validation
 // ---------------------------------------------------------------------------
@@ -70,7 +68,7 @@ export function parseReflectionResponse(response: AgentMessage): {
 // ---------------------------------------------------------------------------
 
 export async function reflectionAgent(state: ReviewState): Promise<ReviewState> {
-  const response = await chatCompletion(REFLECTION_AGENT_SYSTEM_PROMPT, [
+  const response = await chatCompletion(loadAgentPrompt("reflection_agent"), [
     textMessage("user", buildReflectionPrompt(state)),
   ]);
 

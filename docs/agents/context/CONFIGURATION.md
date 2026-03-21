@@ -16,6 +16,14 @@ Compact reference for all environment variables accepted by `src/config.ts`.
 | `REPO_CACHE_DIR` | no | string | `/tmp/repo_cache` | Root directory for shallow repo clones managed by `RepoManager`. |
 | `LOG_LEVEL` | no | enum | `info` | Wired to LogTape via `src/logger.ts`. Controls the `lowestLevel` of the root `["gandalf"]` logger category. Accepted values: `debug`, `info`, `warn`, `error`. Mapped to LogTape's level names internally. When set to `debug` outside tests, logs are also appended to `logs/gg-dev.log` under the project root. |
 | `PORT` | no | positive integer | `8020` | Port used by the Bun server export in `src/index.ts`. |
+| `JIRA_ENABLED` | no | boolean string | `false` | Set to `"true"` to activate Jira ticket-context enrichment. When `false`, `fetchLinkedTickets()` returns an empty array immediately and no network calls are made. |
+| `JIRA_BASE_URL` | no | URL string | none | Jira Cloud base URL, e.g. `https://your-company.atlassian.net`. Required when `JIRA_ENABLED=true`. |
+| `JIRA_EMAIL` | no | string | none | Email address associated with the Jira API token. Required when `JIRA_ENABLED=true`. |
+| `JIRA_API_TOKEN` | no | string | none | Atlassian API token (Basic Auth credential). Generate at `https://id.atlassian.com/manage-profile/security/api-tokens`. Must be on a single unbroken line in `.env`. Required when `JIRA_ENABLED=true`. |
+| `JIRA_PROJECT_KEYS` | no | comma-separated string | none | Optional allow-list of Jira project key prefixes, e.g. `SRT,ENG,PLATFORM`. When unset, all extracted keys are fetched. |
+| `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID` | no | string | none | Optional custom-field ID for acceptance criteria content, e.g. `customfield_12345`. When set, that field's value is included in the normalized `JiraTicket`. |
+| `JIRA_MAX_TICKETS` | no | positive integer | `5` | Maximum ticket fetches per pipeline run. Caps blast radius when many keys appear in the MR. |
+| `JIRA_TICKET_TIMEOUT_MS` | no | positive integer | `5000` | Per-ticket HTTP timeout in milliseconds. Each `fetchJiraTicket()` call uses an `AbortController` to enforce this limit. |
 
 ## Validation Rules
 

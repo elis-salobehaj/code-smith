@@ -62,38 +62,38 @@ const diffFiles: DiffFile[] = [
 // ---------------------------------------------------------------------------
 
 describe("formatFindingComment", () => {
-  it("includes risk emoji, level, and title in heading", () => {
+  it("includes risk emoji and title without level label or H2 heading", () => {
     const comment = formatFindingComment(criticalFinding);
     expect(comment).toContain("git-gandalf:finding");
     expect(comment).toContain("🔴");
-    expect(comment).toContain("CRITICAL");
-    expect(comment).toContain("Missing authentication check");
+    expect(comment).toContain("**Missing authentication check**");
+    expect(comment).not.toContain("## ");
+    expect(comment).not.toContain("CRITICAL:");
   });
 
-  it("includes description and evidence sections", () => {
+  it("includes description and evidence text without section labels", () => {
     const comment = formatFindingComment(criticalFinding);
-    expect(comment).toContain("**Risk**:");
-    expect(comment).toContain("**Evidence**:");
+    expect(comment).not.toContain("**Risk**:");
+    expect(comment).not.toContain("**Evidence**:");
     expect(comment).toContain(criticalFinding.description);
     expect(comment).toContain(criticalFinding.evidence);
   });
 
-  it("includes suggested fix block when present", () => {
+  it("includes suggestion code fence when suggestedFixCode is present; skips redundant prose", () => {
     const comment = formatFindingComment(criticalFinding);
-    expect(comment).toContain("**Suggested Fix**:");
-    expect(comment).toContain(criticalFinding.suggestedFix as string);
+    expect(comment).not.toContain("**Suggested Fix**:");
     expect(comment).toContain("```suggestion:-0+3");
     expect(comment).toContain(criticalFinding.suggestedFixCode as string);
   });
 
-  it("suggestion block is empty for deletion findings", () => {
+  it("suggestion block is empty for deletion findings; no prose label", () => {
     const deletionFinding: Finding = {
       ...criticalFinding,
       suggestedFix: "Remove this line entirely.",
       suggestedFixCode: "",
     };
     const comment = formatFindingComment(deletionFinding);
-    expect(comment).toContain("**Suggested Fix**: Remove this line entirely.");
+    expect(comment).not.toContain("**Suggested Fix**:");
     expect(comment).toContain("```suggestion:-0+3");
   });
 
@@ -102,18 +102,19 @@ describe("formatFindingComment", () => {
     expect(comment).toContain("```suggestion:-1+2");
   });
 
-  it("omits suggestion block when suggestedFixCode is absent", () => {
+  it("shows prose guidance without label when suggestedFixCode is absent", () => {
     const noCodeFinding: Finding = {
       ...criticalFinding,
       suggestedFix: "Refactor this module.",
       suggestedFixCode: undefined,
     };
     const comment = formatFindingComment(noCodeFinding);
-    expect(comment).toContain("**Suggested Fix**: Refactor this module.");
+    expect(comment).not.toContain("**Suggested Fix**:");
+    expect(comment).toContain("Refactor this module.");
     expect(comment).not.toContain("```suggestion");
   });
 
-  it("omits suggested fix block when absent", () => {
+  it("omits suggested fix section when absent", () => {
     const comment = formatFindingComment(lowFinding);
     expect(comment).not.toContain("Suggested Fix");
     expect(comment).not.toContain("```suggestion");
@@ -301,13 +302,18 @@ describe("GitLabPublisher.postInlineComments", () => {
     const client = makeMockClient([]);
     const pub = new GitLabPublisher(client);
     await pub.postInlineComments(1, 2, [criticalFinding], diffRefs, diffFiles);
-    expect(client.createInlineDiscussion).toHaveBeenCalledWith(1, 2, expect.stringContaining("CRITICAL"), {
-      baseSha: diffRefs.baseSha,
-      startSha: diffRefs.startSha,
-      headSha: diffRefs.headSha,
-      newPath: criticalFinding.file,
-      newLine: 42,
-    });
+    expect(client.createInlineDiscussion).toHaveBeenCalledWith(
+      1,
+      2,
+      expect.stringContaining("Missing authentication check"),
+      {
+        baseSha: diffRefs.baseSha,
+        startSha: diffRefs.startSha,
+        headSha: diffRefs.headSha,
+        newPath: criticalFinding.file,
+        newLine: 42,
+      },
+    );
   });
 
   it("does not treat a human comment on the same line as a duplicate", async () => {
@@ -327,7 +333,7 @@ describe("GitLabPublisher.postInlineComments", () => {
     expect(client.createInlineDiscussion).toHaveBeenCalledWith(
       1,
       2,
-      expect.stringContaining("LOW"),
+      expect.stringContaining("Unused variable"),
       expect.objectContaining({ newPath: lowFinding.file }),
     );
   });

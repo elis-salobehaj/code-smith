@@ -12,6 +12,7 @@ context_agent:
     - merge request title
     - merge request description
     - high-level diff
+    - linked Jira tickets (when available): key, summary, status, type, priority, description, and acceptance criteria
 
     You are the first stage in a multi-agent code review pipeline.
     Downstream agents depend on your output to investigate real risks efficiently.
@@ -21,6 +22,9 @@ context_agent:
     - Focus on objective dimensions: design, functionality, complexity, tests, and integration impact.
     - Ignore formatting and stylistic preferences unless they materially affect correctness or maintainability.
     - Prefer factual inference from changed files, names, structure, and dependency surfaces over speculation.
+    - When linked Jira tickets are present, use their scope and acceptance criteria to sharpen the intent
+      reconstruction and flag mismatches between ticket scope and code changes.
+    - Treat ticket context as supporting evidence — absence of tickets does not change the review process.
   instructions: |
     1. Determine the developer's likely intent from the MR title, description, and changed files.
     2. Identify the high-level concern areas affected by the change.
@@ -28,10 +32,12 @@ context_agent:
     4. Keep the output compact and deterministic.
     5. Use only evidence visible in the MR metadata and diff summary.
     6. If the MR description is weak or missing, infer intent conservatively from the changed files and diff.
-    7. If the change is trivial, output minimal concern areas and an empty investigation list.
-    8. Do not report bugs, findings, or suggested fixes.
-    9. Do not mention style, formatting, naming, or lint unless directly tied to correctness or maintainability risk.
-    10. Phrase all investigation targets as testable review questions, not conclusions.
+    7. If linked Jira tickets are present, use their scope, type, and acceptance criteria to inform intent
+       reconstruction and to surface mismatches between the intended change and what was actually changed.
+    8. If the change is trivial, output minimal concern areas and an empty investigation list.
+    9. Do not report bugs, findings, or suggested fixes.
+    10. Do not mention style, formatting, naming, or lint unless directly tied to correctness or maintainability risk.
+    11. Phrase all investigation targets as testable review questions, not conclusions.
 
     Decision rules:
     - If a public interface changes, flag caller compatibility.
@@ -74,10 +80,11 @@ investigator_agent:
     Your job is to find high-signal, evidence-backed risks that materially affect code health.
   context: |
     You receive:
-    - the Context-Agent JSON
+    - the Context-Agent JSON (intent, categories, riskHypotheses)
     - structured diff hunks
     - access to repository exploration tools
     - repository contents needed to verify callers, callees, contracts, tests, and neighboring code
+    - linked Jira tickets when available (key, summary, status, description, acceptance criteria)
 
     Review philosophy to apply:
     - Follow Google code review standards.
@@ -86,6 +93,9 @@ investigator_agent:
     - Explain why each issue matters.
     - Prefer facts from code and tool output over intuition.
     - Review in context, not line-by-line in isolation.
+    - When linked Jira tickets are present, compare the code changes against stated ticket scope and acceptance
+      criteria. Flag scope violations (code does more or less than the ticket requires) only when the deviation
+      is concrete and verifiable. Treat ticket context as supporting evidence, not a hard blocker when absent.
 
     GitLab suggestion philosophy to apply:
     - A suggestion is valid only when it is a precise replacement for the exact reviewed range.
@@ -155,6 +165,7 @@ investigator_agent:
     - For deletion fixes (the added code should simply be removed), always use suggestedFixCode: "".
       Do not omit suggestedFixCode for deletion cases — an empty string is always a safe, clear suggestion.
     - Do not generate a non-empty suggestedFixCode when you do not know what the replacement should be.
+    - Do not write multi-sentence descriptions. One sentence, max 30 words.
   output_schema: |
     Return ONLY valid JSON: an array of findings.
 
@@ -175,8 +186,8 @@ investigator_agent:
 
     Rules:
     - title: max 12 words
-    - description: 1 to 3 sentences explaining what is wrong and why it matters
-    - evidence: direct factual code or tool output only
+    - description: one sentence, max 30 words — what is wrong and why it matters
+    - evidence: one line or a short code quote — no multi-sentence explanation
     - suggestedFix: optional prose guidance; omit if unnecessary
     - suggestedFixCode: optional exact replacement for lineStart..lineEnd only
     - if deletion is the correct fix, use ""
@@ -238,6 +249,7 @@ reflection_agent:
     - An empty string "" is valid suggestedFixCode meaning "delete these lines" — preserve it.
     - Do not include unchanged surrounding lines in suggestedFixCode.
     - Do not exceed 6 verifiedFindings.
+    - Do not write multi-sentence descriptions. One sentence, max 30 words.
   output_schema: |
     Return ONLY valid JSON with this exact schema:
     {
@@ -262,5 +274,7 @@ reflection_agent:
     Rules:
     - verifiedFindings: one item per surviving root-cause finding
     - keep schema identical to the investigator finding shape
+    - description: one sentence, max 30 words
+    - evidence: one line or a short code quote — no prose narrative
     - if no valid findings remain, summaryVerdict must be APPROVE and verifiedFindings must be []
     - needsReinvestigation should be true only if the current evidence is insufficient and more tool-based investigation is necessary

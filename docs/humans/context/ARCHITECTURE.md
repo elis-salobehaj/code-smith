@@ -16,7 +16,8 @@ graph TD
 	D -->|accepted event| G[runPipeline fire-and-forget]
 	G --> GA[withContext requestId + projectId + mrIid]
 	GA --> H[Fetch MR data + clone repo]
-	H --> I[runReview agents]
+	H --> HJ[fetchLinkedTickets — Jira REST API]
+	HJ --> I[runReview agents]
 	I --> IA[Agent 2 tool failures become error tool_result blocks]
 	IA --> J[publish inline comments + summary]
 	J --> K[LogTape JSON Lines to stdout]
@@ -60,20 +61,24 @@ git-gandalf/
 │   │   ├── state.ts                # ReviewState type + Finding type definitions
 │   │   ├── protocol.ts             # Internal GitGandalf message/tool contract
 	│   │   ├── llm-client.ts           # Bedrock Runtime Converse adapter behind the internal protocol
-│   │   ├── context-agent.ts        # Agent 1: Context & Intent Mapper
-│   │   ├── investigator-agent.ts   # Agent 2: Socratic Investigator (tool loop)
-│   │   └── reflection-agent.ts     # Agent 3: Reflection & Consolidation
+	│   │   ├── context-agent.ts        # Agent 1: Context & Intent Mapper (uses linkedTickets when present)
+	│   │   ├── investigator-agent.ts   # Agent 2: Socratic Investigator (tool loop)
+	│   │   └── reflection-agent.ts     # Agent 3: Reflection & Consolidation
+	│   ├── integrations/
+	│   │   └── jira/
+	│   │       └── client.ts           # Read-only Jira REST client: key extraction, ticket fetch, ADF parsing
 │   └── publisher/
 │       └── gitlab-publisher.ts     # Format findings → GitLab inline comments + summary
-└── tests/
-	├── fixtures/
-	│   ├── sample_mr_event.json    # Sample MR open event payload
-	│   └── sample_note_event.json  # Sample /ai-review note event payload
-	├── webhook.test.ts             # Phase 1 tests
-	├── tools.test.ts               # Phase 2 tests
-	├── agents.test.ts              # Phase 3 tests
-	├── agents-entrypoints.test.ts  # Direct Phase 3 agent entrypoint tests with mocked LLM responses
-	└── publisher.test.ts           # Phase 4 tests
+	├── tests/
+		├── fixtures/
+		│   ├── sample_mr_event.json    # Sample MR open event payload
+		│   └── sample_note_event.json  # Sample /ai-review note event payload
+		├── webhook.test.ts             # Phase 1 tests
+		├── tools.test.ts               # Phase 2 tests
+		├── agents.test.ts              # Phase 3 tests
+		├── agents-entrypoints.test.ts  # Direct Phase 3 agent entrypoint tests with mocked LLM responses
+		├── publisher.test.ts           # Phase 4 tests
+		└── jira.test.ts                # Phase 4.5 Jira client unit tests
 ```
 
 ## Phase Ownership
@@ -87,11 +92,13 @@ git-gandalf/
 | `src/context/tools/` | Implemented | Phase 2 and 2.5 | Tool surface exists, is modularized one-tool-per-file, and uses the app-owned tool-definition contract. |
 | `src/agents/` | Implemented | Phase 3 | Shared state, internal protocol, Bedrock Runtime adapter, context agent, investigator agent, reflection agent, and orchestrator are implemented and invoked by the API pipeline. |
 | `src/publisher/` | Implemented | Phase 4 | GitLab publisher posts inline comments and a summary comment, with duplicate detection and diff-position anchoring. |
+| `src/integrations/jira/` | Implemented | Phase 4.5 | Read-only Jira REST client. Extracts ticket keys from MR title/description, fetches each ticket, normalizes ADF descriptions, supports acceptance-criteria custom fields, and degrades gracefully on any failure. |
 | `Dockerfile`, `docker-compose.yml`, top-level `README.md` | Implemented | Phase 4 | Deployment packaging and end-user project documentation are present in the repository. |
 | `tests/webhook.test.ts` | Implemented | Phase 1 | Covers auth, filtering, invalid payloads, and realistic GitLab payload tolerance. |
 | `tests/tools.test.ts`, `tests/repo-manager.test.ts` | Implemented | Phase 2 and 2.5 | Covers tool sandboxing, search and tree behavior, repo cache cleanup, and SSRF guard behavior. |
 | `tests/agents.test.ts`, `tests/agents-entrypoints.test.ts` | Implemented | Phase 3 | Covers prompt builders/parsers, orchestrator control flow, direct agent entrypoints with mocked LLM responses, and tool-failure recovery behavior. |
 | `tests/publisher.test.ts` | Implemented | Phase 4 | Covers comment formatting, duplicate detection, diff anchoring, error continuation, and summary-note posting. |
+| `tests/jira.test.ts` | Implemented | Phase 4.5 | Covers `extractTicketKeys` (pure), `fetchJiraTicket` (mocked fetch), and `fetchLinkedTickets` integration behavior including disabled guard, allow-list filtering, cap, dedup, and ADF description parsing. |
 
 ## Implemented Components
 
@@ -194,6 +201,32 @@ This review subsystem is implemented, tested, and wired into the full API pipeli
 Important runtime detail: if Agent 2 calls a tool incorrectly or asks for a missing file, the tool error is converted into an error `tool_result` block and sent back to the model. The review continues instead of aborting the entire pipeline.
 
 Another current behavior worth knowing: only findings that can be anchored to the MR diff are published inline. Findings outside the diff are skipped for inline publication and summarized instead.
+
+### Jira ticket context enrichment
+
+`src/integrations/jira/client.ts` is the read-only Jira integration added in Phase 4.5. It runs in the pipeline between repo clone and agent invocation.
+
+**What it does:**
+
+- Scans the MR title and description for Jira ticket keys with the pattern `[A-Z][A-Z0-9]+-\d+` (e.g. `SRT-28326`, `ENG-123`, `PLATFORM-7`). This pattern correctly handles the common `SRT-28326: some MR title` format because the `\b` word boundary matches before the colon.
+- Deduplicates keys found across title and description.
+- Filters by `JIRA_PROJECT_KEYS` when configured (e.g. `SRT,ENG`).
+- Caps fetches at `JIRA_MAX_TICKETS` (default 5).
+- Fetches each ticket from the Jira REST API (`/rest/api/3/issue/<key>`) using Basic Auth with `JIRA_EMAIL:JIRA_API_TOKEN`.
+- Normalizes each ticket into a `JiraTicket` value with `key`, `summary`, `status`, `issueType`, `priority`, `assignee`, `description`, and `acceptanceCriteria`.
+- Handles Atlassian Document Format (ADF) descriptions by extracting plain text from paragraph nodes.
+- Supports a custom acceptance-criteria field via `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID`.
+- Returns `null` on any per-ticket failure and logs a `warn` through `["gandalf", "jira"]`. The pipeline always receives an array — never a thrown error.
+
+**How Agent 1 uses it:**
+
+`contextAgent()` receives `ReviewState.linkedTickets`. When the array is non-empty, it prepends a `## Linked Jira Tickets` section to the user prompt, rendering each ticket's key, summary, status, type, and optional priority, assignee, description, and acceptance criteria. This gives Agent 1 the business context behind the MR before it produces risk hypotheses.
+
+**Enabling the integration:**
+
+Set `JIRA_ENABLED=true` in `.env`. The integration is disabled by default so existing deployments are unaffected. See [Getting Started](../../guides/GETTING_STARTED.md) for the full setup procedure including API token creation.
+
+**Important:** paste `JIRA_API_TOKEN` as a single unbroken line in `.env`. A token that wraps across two lines is read as two separate values by dotenv, and Jira will return `401`.
 
 ## What Is Still Planned
 

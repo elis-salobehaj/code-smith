@@ -103,17 +103,20 @@ export function formatFindingComment(finding: Finding, anchorLine = finding.line
   const emoji = RISK_EMOJI[finding.riskLevel];
   const lines = [
     buildFindingMarker(finding),
-    `## ${emoji} ${finding.riskLevel.toUpperCase()}: ${finding.title}`,
+    `${emoji} **${finding.title}**`,
     "",
-    `**Risk**: ${finding.description}`,
+    finding.description,
     "",
-    `**Evidence**: ${finding.evidence}`,
+    finding.evidence,
   ];
 
   if (finding.suggestedFix) {
-    lines.push("", `**Suggested Fix**: ${finding.suggestedFix}`);
     if (finding.suggestedFixCode !== undefined) {
-      lines.push(buildSuggestionFenceHeader(finding, anchorLine), finding.suggestedFixCode, "```");
+      // Code suggestion: the fence is self-explanatory — skip redundant prose
+      lines.push("", buildSuggestionFenceHeader(finding, anchorLine), finding.suggestedFixCode, "```");
+    } else {
+      // Architectural or cross-file guidance: no fence, show prose
+      lines.push("", finding.suggestedFix);
     }
   }
 

@@ -5,6 +5,7 @@
 import { z } from "zod";
 import type { ReviewTriggerContext } from "../api/trigger";
 import type { DiffFile, MRDetails, ParsedHunk } from "../gitlab-client/types";
+import type { JiraTicket } from "../integrations/jira/client";
 import type { AgentMessage } from "./protocol";
 
 // ---------------------------------------------------------------------------
@@ -39,6 +40,8 @@ export interface ReviewState {
   diffHunks: ParsedHunk[];
   repoPath: string;
   triggerContext: ReviewTriggerContext;
+  /** Jira tickets linked from the MR title/description (Phase 4.5). Empty when Jira is disabled. */
+  linkedTickets: JiraTicket[];
 
   // --- Agent 1 output ---
   mrIntent: string;

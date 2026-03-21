@@ -94,6 +94,7 @@ function makeBaseState(): ReviewState {
     mrIntent: "Add Stripe payment integration for subscriptions.",
     changeCategories: ["billing", "API"],
     riskAreas: ["Check if webhook signature validation is implemented."],
+    linkedTickets: [],
     rawFindings: [],
     verifiedFindings: [],
     summaryVerdict: "APPROVE",
