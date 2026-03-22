@@ -332,8 +332,35 @@ The current runtime already includes queueing, worker execution, Kubernetes mani
 and multi-provider fallback. The remaining planned work is narrower:
 
 - Gandalf Awakening: trigger aliases, immediate acknowledgement notes, and tone-aware summary behavior
+- Crown storage evolution: a dedicated ops role, singleton-owned SQLite for phase-one learning and analytics, and a threshold-driven migration seam to PostgreSQL later
 - Phase 5.5 optional adapter evaluation remains deferred by the master plan
 - Phase 6 Jira write actions remain deferred pending explicit scope and security review
+
+## Planned Crown Storage Boundary
+
+The Crown Plan adds a storage architecture for organizational learning and analytics that is deliberately conservative at first and deliberately migratable later.
+
+### Phase-one design
+
+- A dedicated ops/control-plane role is planned in CP6 with its own process entrypoint and deployment identity.
+- Webhook and worker roles remain horizontally scalable review producers.
+- Learning and analytics writes are planned to flow through durable BullMQ jobs and be owned only by the singleton ops role.
+- The first relational store is planned as `bun:sqlite` because it is Bun-native and cheap to operate for a single writer.
+- SQLite is only planned for safe block-backed `ReadWriteOnce` storage owned by that singleton ops deployment. Shared RWX or generic network-filesystem mounts are explicitly outside the intended design.
+
+### Trust boundary
+
+- Worker pods are not supposed to mount the SQLite file directly in production.
+- Worker read access to learned patterns is planned through a separate internal read-only service contract.
+- Operator admin routes and worker read access are separate trust surfaces with separate credentials.
+- Valkey remains queue and cache infrastructure, not the system of record for learning or analytics facts.
+
+### Future migration path
+
+- CP3 and CP5 now plan storage contracts so handlers, queue payloads, and prompt-injection logic stay DB-neutral.
+- CP7 defines PostgreSQL as the long-term relational scale-up target once activation criteria are met.
+- `pgvector` is intentionally optional future scope only if GitGandalf later proves it needs semantic retrieval across free-form review memory.
+- Dedicated vector databases remain a later specialized choice, not the default next step.
 
 ## Why the Design Looks This Way
 

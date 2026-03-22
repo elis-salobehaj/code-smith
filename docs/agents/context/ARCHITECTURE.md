@@ -139,4 +139,17 @@ The pipeline is fully implemented and invoked from `src/api/pipeline.ts`.
 - **Docker Compose**: `docker-compose.yml` runs `git-gandalf` (webhook), `worker`, and `valkey` services. Worker uses `stop_grace_period: 11m`.
 - **Kubernetes**: `k8s/` directory contains full manifests — `namespace`, `configmap`, `secret`, `deployment` (2 replicas), `worker-deployment` (1 replica, 660s `terminationGracePeriodSeconds`), `service` (ClusterIP), and `valkey` (dev/KinD only). `REVIEW_JOB_TIMEOUT_MS` is set in the ConfigMap for worker timeout control.
 
+## Planned Crown Storage Boundary
+
+The following storage architecture is planned in the Crown Plan set but is not implemented in the current runtime yet:
+
+- CP6 introduces a dedicated ops/control-plane role (`DEPLOYMENT_ROLE=ops`) with a separate `src/ops.ts` entrypoint.
+- Webhook and worker roles remain horizontally scalable producers of durable BullMQ jobs for learning and analytics writes.
+- Only the ops role writes the phase-one relational store for CP3 and CP5.
+- Phase-one relational storage is `bun:sqlite`, but only for a singleton ops deployment with block-backed `ReadWriteOnce` storage. Shared RWX or generic network-filesystem mounts are explicitly out of scope for the SQLite file.
+- Worker read access to learned patterns is planned through a separate internal read-only service contract, not through the operator admin surface and not through direct SQLite mounts on worker pods.
+- Storage contracts are planned in `src/learning/store.ts` and `src/analytics/store.ts` so queue payloads, route contracts, and prompt-injection logic stay DB-neutral.
+- CP7 defines the future migration seam: PostgreSQL becomes the long-term relational system of record when activation criteria are met, and `pgvector` remains optional future infrastructure only if semantic retrieval becomes a validated product need.
+- Valkey remains queue and cache infrastructure. It is not the planned source of truth for learning or analytics data.
+
 For the fuller human walkthrough, see [`docs/humans/context/ARCHITECTURE.md`](../../humans/context/ARCHITECTURE.md).

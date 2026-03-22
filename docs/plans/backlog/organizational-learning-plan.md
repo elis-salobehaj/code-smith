@@ -7,7 +7,7 @@ dependencies:
   - docs/plans/backlog/repo-review-config-plan.md
   - docs/plans/backlog/production-hardening-plan.md
 created: 2026-03-21
-date_updated: 2026-03-21
+date_updated: 2026-03-22
 
 related_files:
   - src/api/pipeline.ts
@@ -17,6 +17,8 @@ related_files:
   - src/agents/prompt-loader.ts
   - src/publisher/gitlab-publisher.ts
   - src/config.ts
+  - src/learning/store.ts
+  - src/learning/sqlite-store.ts
   - docs/agents/context/ARCHITECTURE.md
   - docs/agents/context/CONFIGURATION.md
   - docs/agents/context/WORKFLOWS.md
@@ -83,12 +85,14 @@ Git Gandalf currently has no feedback mechanism. Every review runs fresh — the
 
 This plan introduces a complete learning feedback loop:
 1. **Capture** — track developer reactions (👍/👎) and suggestion application/dismissal
-2. **Store** — persist feedback in a singleton ops-owned SQLite database
+2. **Store** — persist feedback in a singleton ops-owned relational database, starting with SQLite behind a storage abstraction
 3. **Learn** — extract patterns from aggregated feedback signals
 4. **Inject** — feed relevant learned patterns into future reviews through a cached internal read path
 5. **Manage** — provide API endpoints for viewing and curating learned patterns behind a dedicated admin route group
 
 This is the most technically complex child plan and the highest-impact competitive differentiator.
+
+Phase-one storage uses `bun:sqlite` because it is Bun-native and operationally cheap, but this plan treats SQLite as an implementation choice rather than the permanent architecture. The learning subsystem must expose storage interfaces so CP7 can migrate the source of truth to PostgreSQL later without rewriting queue contracts, route contracts, or prompt-injection logic.
 
 ## Architecture
 
@@ -128,8 +132,10 @@ flowchart TD
 | Concern | Choice | Rationale |
 |---|---|---|
 | Database | `bun:sqlite` with WAL mode | Built-in, zero deps, 3-6x faster than better-sqlite3, concurrent reads |
+| Phase-one deployment constraint | Singleton ops pod with block-backed `ReadWriteOnce` storage only | SQLite is acceptable only when the DB file shares safe local/block-attached semantics with the app server |
 | DB ownership | Singleton ops service | Prevents multi-writer contention across replicated webhook and worker pods |
 | Write transport | BullMQ jobs on existing Valkey | Reuses the repo's durable queue pattern; webhook and worker pods enqueue write intents instead of touching SQLite |
+| Storage abstraction | Domain store interfaces over DB-specific calls | Keeps PostgreSQL migration additive instead of forcing CP3/CP5 rewrites |
 | Schema migrations | Versioned SQL files, forward-only | Simple, no ORM dependency, matches Bun-native philosophy |
 | Feedback polling | Periodic timer (setInterval + GitLab API) | Simpler than webhooks for reactions; GitLab doesn't webhook emoji reactions |
 | Feedback sync strategy | Cursor-based bounded polling | Avoids rescanning broad time windows and reduces GitLab API fan-out |
@@ -137,6 +143,9 @@ flowchart TD
 | Confidence threshold | Minimum 5 signals before trusting a pattern | Prevents overfitting on a single developer's preference |
 | Learning scope | Per-project (default) with opt-in cross-project | Respects different team conventions across projects |
 | Admin auth | Dedicated bearer token or mTLS | Keeps operator surfaces separate from webhook auth |
+| Future scale-up target | PostgreSQL; add `pgvector` only if semantic retrieval becomes a requirement | Preserves a clean path to HA and richer retrieval without forcing vector infrastructure early |
+
+**Storage boundary note:** The relational store is the system of record for feedback events, learned patterns, and review-run facts. Valkey remains queue/cache infrastructure. Dedicated vector indexing is explicitly future scope only if Git Gandalf later needs semantic retrieval across free-form review memory.
 
 ## Database Schema
 
@@ -257,11 +266,25 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 
 **Goal:** Set up the SQLite database, schema, and basic CRUD operations.
 
+**Phase-one storage constraint:** SQLite in this phase is supported only on the singleton ops deployment with block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem mounts are unsupported for the SQLite file.
+
+**Migration seam requirement:** OL1 must define store interfaces now so CP7 can introduce PostgreSQL later without changing BullMQ job schemas or API route contracts.
+
+**OL1.0** — Create storage contracts:
+- Create `src/learning/store.ts`
+- Define interfaces such as `FeedbackEventStore`, `LearnedPatternStore`, and `ReviewRunStore`
+- Keep public method signatures DB-neutral so SQLite and PostgreSQL implementations can satisfy the same contract
+- Route handlers, queue consumers, and prompt-injection code must depend on these contracts rather than importing SQLite-specific helpers directly
+
 **OL1.1** — Create `src/learning/database.ts`:
 - `initLearningDB(dbPath: string): Database`
 - Open with `bun:sqlite`, enable WAL mode, set busy timeout
 - Run migrations on first open
 - Export singleton `getLearningDB()` accessor used only by the ops service in production
+
+**OL1.1a** — Create `src/learning/sqlite-store.ts`:
+- Implement the OL1.0 interfaces using `bun:sqlite`
+- Treat this as the phase-one adapter, not the architectural boundary
 
 **OL1.2** — Create `src/learning/schema.ts`:
 - Zod schemas for `FeedbackEvent`, `LearnedPattern`, `ReviewRun`, and `FeedbackSyncState`
@@ -295,6 +318,11 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 - Concurrent read verification
 
 **OL1.6** — Update CONFIGURATION.md (new env vars) and ARCHITECTURE.md (learning subsystem overview).
+
+**OL1.7** — Create a storage ADR:
+- Record SQLite as the phase-one store
+- Record PostgreSQL as the default scale-up target for CP7
+- Record that `pgvector` is future optional scope only when semantic retrieval becomes a demonstrated requirement
 
 ### Phase OL2 — Feedback Ingestion
 
@@ -392,6 +420,7 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 - Query the internal `LearningClient` for active patterns through the read-only internal learning endpoint owned by the singleton ops service
 - Filter to patterns relevant to the current review's changed file set (match `file_pattern`)
 - Attach to ReviewState as `learnedPatterns: LearnedPattern[]`
+- Keep the `LearningClient` contract retrieval-oriented and backend-neutral so CP7 can change the underlying store without changing review-worker call sites
 
 **OL4.2** — Investigator agent injection:
 - Add a `<learned_review_rules>` section to the investigator prompt

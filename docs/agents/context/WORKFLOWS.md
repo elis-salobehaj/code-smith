@@ -160,3 +160,23 @@ All structured logs are emitted as JSON Lines to stdout via LogTape:
 - `["gandalf", "publisher"]` — inline comment posting, duplicates, errors
 
 All log lines in the webhook → pipeline flow carry `requestId`, `projectId`, and `mrIid` automatically via LogTape implicit context.
+
+## 7. Planned Crown Learning / Analytics Workflow
+
+The following workflow is planned by CP3, CP5, CP6, and CP7 but is not implemented in the current repo yet:
+
+1. webhook and worker roles emit durable BullMQ jobs for learning feedback writes, analytics writes, retention work, and pattern extraction triggers
+2. a singleton ops role consumes those jobs and is the only role allowed to mutate the phase-one relational store
+3. phase-one storage uses `bun:sqlite` under WAL mode, but only on block-backed `ReadWriteOnce` storage owned by the ops pod
+4. worker pods read active learned patterns through a separate internal read-only service contract; they do not receive operator admin credentials and do not mount the SQLite file directly
+5. admin and analytics APIs live behind a dedicated `/api/v1/admin/*` surface with separate auth from webhook ingestion
+6. if activation criteria are met later, CP7 switches the relational adapters from SQLite to PostgreSQL without changing queue payloads or HTTP contracts; `pgvector` is added only if semantic retrieval is proven necessary
+
+### Activation criteria for CP7
+
+- HA pressure beyond a singleton writer plus queue-based buffering
+- external SQL or BI/reporting consumers
+- sustained queue lag caused by learning or analytics writes
+- multi-GB growth with degraded bounded admin queries
+- stronger backup or PITR requirements than file-copy restore
+- semantic retrieval needs that heuristic learned-pattern rules cannot satisfy

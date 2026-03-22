@@ -7,7 +7,7 @@ dependencies:
   - docs/plans/backlog/organizational-learning-plan.md
   - docs/plans/backlog/production-hardening-plan.md
 created: 2026-03-21
-date_updated: 2026-03-21
+date_updated: 2026-03-22
 
 related_files:
   - src/index.ts
@@ -16,6 +16,8 @@ related_files:
   - src/config.ts
   - src/agents/llm-client.ts
   - src/publisher/gitlab-publisher.ts
+  - src/analytics/store.ts
+  - src/analytics/sqlite-store.ts
   - docs/agents/context/ARCHITECTURE.md
   - docs/agents/context/CONFIGURATION.md
   - docs/agents/context/WORKFLOWS.md
@@ -71,9 +73,11 @@ CodeRabbit provides a built-in analytics dashboard showing review trends, findin
 This plan adds two layers of observability:
 
 1. **Operational metrics** (Prometheus) — request latency, queue depth, LLM call duration, error rates. For SRE teams with existing Grafana stacks.
-2. **Review analytics** (SQLite + REST API) — finding trends, severity distributions, per-project stats, false positive rates, review quality scores. For engineering leadership visibility.
+2. **Review analytics** (relational store + REST API, starting with SQLite) — finding trends, severity distributions, per-project stats, false positive rates, review quality scores. For engineering leadership visibility.
 
 CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric definitions, instrumentation, and `/metrics` endpoint. CP6 consumes that foundation for deployment wiring, scrape configuration, runbooks, and autoscaling follow-on work. The review analytics database reuses the schema from CP3 (Organizational Learning) `review_runs` table and follows the same singleton ops ownership model for writes.
+
+Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a permanent architectural commitment. CP7 is the explicit future path if Git Gandalf later needs PostgreSQL-backed HA, external SQL/reporting consumers, or semantic retrieval with `pgvector`.
 
 ## Technology Decisions
 
@@ -82,12 +86,16 @@ CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric 
 | Operational metrics | `prom-client` (Prometheus client for Node.js/Bun) | Lightweight, battle-tested, Bun-compatible, exports text format for Prometheus scraping |
 | Metrics endpoint | `/metrics` on existing Hono server | Standard Prometheus convention; no separate metrics port needed |
 | Analytics storage | `bun:sqlite` via singleton ops ownership | Zero extra deps while avoiding multi-writer contention across replicated pods |
+| Phase-one deployment constraint | Singleton ops pod with block-backed `ReadWriteOnce` storage only | Avoid unsafe shared-filesystem SQLite semantics in Kubernetes |
 | Analytics write transport | BullMQ jobs consumed by the ops service | Reuses the existing queue stack, gives durable buffering, and keeps SQLite write access isolated |
 | Analytics API | Hono routes under `/api/v1/admin/analytics/` | Keeps operator surfaces behind dedicated admin auth rather than exposing them like the webhook endpoint |
 | Default metrics | Explicit app metrics first, Bun-validated default metrics second | Avoid relying on Node-default collectors until compatibility is verified under Bun |
 | Dashboard | Grafana JSON template (no built-in UI) | Grafana is already the industry standard; building a UI is scope creep |
+| Storage abstraction | Domain analytics/query interfaces over DB-specific code | Makes CP7 migration additive and keeps HTTP/queue contracts stable |
 
 **Plan boundary note:** CP5 owns `src/metrics/*`, instrumentation call sites, and the `/metrics` route. CP6 owns Helm/Prometheus scrape integration, operational docs, and scaling features that consume those metrics.
+
+**Storage boundary note:** The relational store is the source of truth for analytics facts and aggregates. Valkey remains queue and cache infrastructure only. Dedicated vector search is out of scope for CP5 unless CP7 activates semantic retrieval work later.
 
 ## Metrics Inventory
 
@@ -172,6 +180,15 @@ CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric 
 
 **Goal:** Persist review metadata in SQLite for analytics queries.
 
+**Phase-one storage constraint:** SQLite is supported only on the singleton ops deployment with block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem SQLite deployments are unsupported.
+
+**Migration seam requirement:** Define DB-neutral storage interfaces here so PostgreSQL can replace the phase-one SQLite adapter later without rewriting route handlers, queue producers, or instrumentation call sites.
+
+**A2.0** — Create analytics store contracts:
+- Create `src/analytics/store.ts`
+- Define repository/query interfaces for review-run writes, review-finding writes, retention, and analytics query endpoints
+- Ensure queue payloads and HTTP response schemas do not expose SQLite-specific details
+
 **A2.1** — Extend learning database (from CP3):
 - If CP3 is not yet implemented, create standalone analytics DB with same pattern
 - `review_runs` table already defined in CP3 schema — reuse it
@@ -196,6 +213,7 @@ CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric 
 - At pipeline completion (success or failure), enqueue an ops-owned analytics write job through BullMQ with a stable idempotency key (`projectId:mrIid:headSha:runKind`)
 - Ops service consumes the job, validates the payload with Zod, and persists the record transactionally to SQLite
 - Capture: project_id, mr_iid, head_sha, trigger_mode, review_range_mode, findings_count, verdict, duration_ms, llm_provider
+- Implement the phase-one adapter in `src/analytics/sqlite-store.ts` behind the A2.0 interfaces
 
 **A2.3** — Record per-finding publication status:
 - After publication, include per-finding publication status in the same ops job or an adjacent idempotent child job so non-ops pods never write SQLite directly
@@ -212,6 +230,7 @@ CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric 
 - Retention cleanup
 - Duplicate job delivery resolves idempotently
 - Query performance with moderate data volume (~10K records)
+- Verify indexes and query plans cover the planned summary, project, trends, and findings endpoints
 
 **A2.6** — Update WORKFLOWS.md.
 
@@ -254,6 +273,12 @@ CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric 
 - Response: finding category breakdown with counts and average severity
 
 **A3.5** — Zod-validate all query parameters and response schemas. Enforce dedicated admin auth and return 400 for invalid params.
+
+**A3.5a** — Query budget and bounded workload rules:
+- Every analytics endpoint must require a bounded date window or pagination
+- Add explicit indexes that match endpoint filters and group-bys
+- Prefer precomputed rollups or cached aggregates when full-history scans become expensive
+- Document target latency budgets for operator endpoints so slow growth becomes visible before CP7 is forced by surprise
 
 **A3.6** — Tests:
 - All endpoints with mock data

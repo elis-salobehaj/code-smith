@@ -5,7 +5,7 @@ priority: high
 estimated_hours: 40-60
 dependencies: []
 created: 2026-03-21
-date_updated: 2026-03-21
+date_updated: 2026-03-22
 
 related_files:
   - Dockerfile
@@ -104,9 +104,11 @@ The plan has no dependencies on other Crown Plan children and can start immediat
 - The webhook and review-worker surfaces may scale horizontally.
 - Learning, retention, and analytics writes are owned by a singleton internal ops deployment.
 - Webhook and worker surfaces enqueue durable internal BullMQ jobs for ops-owned writes; they do not write SQLite directly.
+- Phase-one SQLite storage is supported only when the ops pod uses block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem mounts are unsupported for the SQLite file.
 - Admin and analytics APIs are disabled by default and exposed only through a dedicated admin route group with separate auth.
 - Readiness is based on local process health and critical local dependencies, not on transient GitLab reachability.
 - Every dependency-introducing phase must run `bun audit` and either remediate or explicitly record accepted risk. Optional reporting helpers may be used in CI, but they do not replace the Bun-native audit gate.
+- If Git Gandalf later requires HA beyond a singleton writer, external SQL/reporting consumers, or semantic retrieval over free-form feedback memory, activate CP7 and migrate the source of truth to PostgreSQL before trying to stretch SQLite past its intended role.
 
 ## Architecture — Target Deployment
 
@@ -160,6 +162,8 @@ flowchart TD
 **PH0.2** — Singleton ops deployment:
 - Define a singleton internal ops deployment that owns SQLite writes for learning, analytics retention, and feedback polling
 - Webhook and worker pods do not mount the learning database by default
+- Require block-backed `ReadWriteOnce` storage for the SQLite volume; explicitly disallow shared RWX/network-filesystem mounts for the SQLite file
+- Document that SQLite support assumes the DB file shares local/block-attached storage semantics with the singleton ops service
 
 **PH0.2b** — Ops service entrypoint and role detection:
 - Create `src/ops.ts` as the ops process entrypoint (analogous to `src/worker.ts` for review workers)
@@ -237,6 +241,7 @@ charts/git-gandalf/
 - Hosts feedback polling, retention jobs, admin APIs, and analytics aggregation
 - Exposed only on an internal ClusterIP service
 - Consumes internal BullMQ job types for learning and analytics writes
+- Default to a block-backed `ReadWriteOnce` PVC and document shared RWX/network-filesystem storage as unsupported for the SQLite file
 
 **PH1.5** — Valkey StatefulSet (optional):
 - Enabled via `valkey.enabled: true` (default: false for production — use external Redis/Valkey)
@@ -452,6 +457,8 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
   - Maximum acceptable data loss window: 24 hours of feedback data; learned patterns are reconstructible from persisted feedback events
   - Recovery procedure: restore from most recent backup, replay BullMQ dead-letter queue if needed
   - Add `LEARNING_DB_BACKUP_INTERVAL_HOURS` (default: `24`) and `LEARNING_DB_BACKUP_PATH` (default: `./data/backups/`) to config
+  - Document the phase-one storage guardrail: block-backed `ReadWriteOnce` only, with shared RWX/network-filesystem mounts unsupported for the SQLite file
+  - Document the explicit activation criteria for CP7 migration to PostgreSQL
 - Valkey persistence guidance
 - Admin route-group access model and ops-service ownership
 - Log analysis guide (structured JSON queries, common patterns)

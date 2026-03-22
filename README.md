@@ -22,6 +22,7 @@ runtime, provider stack, or deployment model.
 
 - [Quick Start](#quick-start)
 - [Features](#features)
+- [Independent Evaluation](#independent-evaluation)
 - [Showcase](#showcase)
 - [Review Flow](#review-flow)
 - [Deployment Modes](#deployment-modes)
@@ -80,6 +81,25 @@ bun run kind:down
 - ☸️ **Kubernetes-ready** — raw manifests for webhook, worker, service, config, secrets, and local Valkey validation on KinD.
 - 🔎 **Jira enrichment** — optionally pulls linked Jira ticket context from MR title and description.
 - 📜 **Structured logging** — LogTape JSON logs with request correlation, pipeline context, and debug-file output.
+
+---
+
+## Independent Evaluation
+
+If you want the honest build-vs-buy view before trying GitGandalf, read the full evaluation:
+
+- [docs/AI-Code-Review-Tool-Evaluation.md](docs/AI-Code-Review-Tool-Evaluation.md)
+
+That document is intentionally not a sales sheet. It compares GitGandalf against GitLab Duo and CodeRabbit, covers where each option is stronger or weaker, and explains why GitGandalf is compelling for teams that care about:
+
+- self-hosted control over the review runtime and provider stack
+- stronger data-sovereignty posture than SaaS review platforms
+- prompt and workflow customization without vendor dependency
+- agentic, repository-aware review instead of diff-only analysis
+
+It also states the current limitations directly: GitGandalf is still pre-production, has no built-in organizational learning yet, and still needs the production-hardening work tracked in the Crown Plan.
+
+If that tradeoff profile fits your team, the evaluation should give you a realistic picture of what GitGandalf already does well and what is still being built.
 
 ---
 
@@ -253,6 +273,7 @@ Use `ssh -R`, not `ssh -L`, when the goal is to expose your local GitGandalf pro
 
 | Guide | Description |
 |---|---|
+| [docs/AI-Code-Review-Tool-Evaluation.md](docs/AI-Code-Review-Tool-Evaluation.md) | Evidence-backed, non-sales comparison of GitGandalf vs GitLab Duo vs CodeRabbit |
 | [docs/README.md](docs/README.md) | Main documentation index and phase status |
 | [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | Setup, env config, queueing, provider fallback, and KinD bootstrap |
 | [docs/guides/DEVELOPMENT.md](docs/guides/DEVELOPMENT.md) | Bun commands, testing strategy, and development workflow |

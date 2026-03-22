@@ -49,4 +49,25 @@ Compact reference for all environment variables accepted by `src/config.ts`.
 - `.env.test` points `REPO_CACHE_DIR` at an isolated test path so repo-manager tests do not touch the production default cache
 - fake Bedrock credentials are committed in `.env.test` because the schema requires those fields before modules import
 
+## Planned Crown Configuration Additions
+
+These variables are planned by CP3, CP5, CP6, and CP7, but they are not accepted by `src/config.ts` yet.
+
+| Variable | Planned Phase | Purpose |
+|---|---|---|
+| `DEPLOYMENT_ROLE` | CP6 | Distinguish `webhook`, `worker`, and `ops` processes so the future ops role can own learning and analytics writes. |
+| `LEARNING_ENABLED` | CP3 | Feature-flag the organizational learning subsystem during rollout. |
+| `LEARNING_DB_PATH` | CP3 | Filesystem path for the phase-one SQLite database owned by the ops role. |
+| `METRICS_ENABLED` | CP5 | Optional guard for the `/metrics` surface and Prometheus instrumentation rollout. |
+| `ANALYTICS_RETENTION_DAYS` | CP5 | Retention window for review analytics cleanup jobs executed by the ops role. |
+| admin auth settings | CP6 | Separate credentials or platform identity for `/api/v1/admin/*`, distinct from webhook auth. |
+| internal read-path auth settings | CP6 | Read-only service-to-service auth for worker access to learned patterns, separate from operator admin credentials. |
+| PostgreSQL settings (`POSTGRES_ENABLED`, `POSTGRES_URL`, pool/SSL options) | CP7 | Threshold-driven migration from phase-one SQLite to PostgreSQL adapters without changing queue payloads or route contracts. |
+
+### Planned storage constraints
+
+- Phase-one SQLite is planned only for a singleton ops deployment with block-backed `ReadWriteOnce` storage.
+- Shared RWX or generic network-filesystem mounts are out of scope for the SQLite database file.
+- Valkey remains queue and cache infrastructure only; future PostgreSQL settings do not replace it for BullMQ.
+
 Source of truth remains [`src/config.ts`](../../../src/config.ts).

@@ -6,7 +6,7 @@ estimated_hours: 200-320
 dependencies:
   - docs/plans/active/git-gandalf-master-plan.md
 created: 2026-03-21
-date_updated: 2026-03-21
+date_updated: 2026-03-22
 
 related_files:
   - docs/plans/backlog/repo-review-config-plan.md
@@ -15,6 +15,7 @@ related_files:
   - docs/plans/backlog/enhanced-review-output-plan.md
   - docs/plans/backlog/analytics-observability-plan.md
   - docs/plans/backlog/production-hardening-plan.md
+  - docs/plans/backlog/postgresql-pgvector-migration-plan.md
 
 tags:
   - master-plan
@@ -30,6 +31,7 @@ completion:
   - [ ] CP4 — Enhanced Review Output plan implemented
   - [ ] CP5 — Analytics & Observability plan implemented
   - [ ] CP6 — Production Hardening & Developer Experience plan implemented
+  - [ ] CP7 — PostgreSQL & pgvector Migration Path plan implemented when activation criteria are met
   - "# Crown Validation"
   - [ ] CV1 — Re-run competitive evaluation scoring with evidence
   - [ ] CV2 — Update AI-Code-Review-Tool-Evaluation.md with new scores
@@ -46,22 +48,25 @@ The crown plan now assumes the following implementation constraints. They are no
 - Initial linter scope is Biome and other instance-owned standalone binaries only. ESLint is explicitly deferred to a future dependency-hydration and sandbox design.
 - Learning and analytics data use `bun:sqlite`, but write ownership belongs to a singleton internal ops/control-plane service rather than multi-writer shared pods.
 - Webhook and worker pods send learning and analytics write intents to the ops service through durable internal BullMQ jobs with idempotency keys; only the ops service writes SQLite.
+- SQLite is phase-one relational storage, not a permanent architectural boundary. Learning and analytics code must sit behind storage interfaces so PostgreSQL can replace SQLite later without queue-payload or route-contract churn.
 - Learning feedback starts with GitLab reactions and suggestion-state tracking. Explicit comment commands are future work.
 - Admin and analytics routes use a dedicated bearer-auth or mTLS-protected internal route group, disabled by default, and never reuse webhook auth.
 - Feedback polling stores persisted sync cursors and source identifiers so resume and deduplication are deterministic after restarts.
 - Operational observability uses Prometheus metrics; leadership analytics use SQLite-backed APIs behind the admin route group.
+- SQLite is supported only on a singleton ops deployment with block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem deployments are explicitly unsupported for the SQLite file.
 - Kubernetes packaging uses Helm.
 - Summary output is tiered: smart summary always, walkthrough only when the MR is large or explicitly enabled.
 - Glob matching defaults to `Bun.Glob`; an external matcher is added only if Bun-native behavior proves insufficient.
 - Dependency-introducing phases must include a `bun audit` remediation or explicit risk-acceptance step before merge. `bun audit` is the canonical gate; optional wrappers may assist CI reporting but must not replace it.
 - Standalone linter profiles run with an explicit sandbox contract: minimal inherited environment, stripped credentials, bounded output, bounded time, and isolated temp storage.
 - Readiness is role-specific across webhook, worker, and ops deployments; external dependency reachability stays on diagnostics only.
+- Storage roles are explicit: relational storage is the source of truth for feedback, learned patterns, and analytics facts; Valkey remains queue/cache infrastructure; vector indexing is future optional infrastructure only if semantic retrieval becomes a real requirement.
 
 ## Strategic Vision
 
 Git Gandalf's corrected evaluation score is **7.3/10** — marginally behind GitLab Duo (7.4) and above CodeRabbit (6.9). The score is honest: Git Gandalf leads on data sovereignty and cost but gets hammered on production readiness (4/10), ease of setup (5/10), and operational maturity. The gap to GitLab Duo is 0.1 points — closing it requires meaningful gains in readiness, operations, and integration depth.
 
-This plan closes every competitive gap through six surgical child plans. The target is a legitimate **9.0/10** — earned through real capabilities, not marketing.
+This plan closes every competitive gap through six primary child plans plus one threshold-driven future migration plan. The target is a legitimate **9.0/10** — earned through real capabilities, not marketing.
 
 ```mermaid
 ---
@@ -76,6 +81,7 @@ flowchart LR
   CP4["CP4: Enhanced\nReview Output"]
   CP5["CP5: Analytics &\nObservability"]
   CP6["CP6: Production\nHardening & DX"]
+  CP7["CP7: PostgreSQL +\npgvector Migration"]
 
   CP1 --> CP2
   CP1 --> CP3
@@ -83,6 +89,9 @@ flowchart LR
   CP6 --> CP3
   CP6 --> CP5
   CP3 --> CP5
+  CP3 --> CP7
+  CP5 --> CP7
+  CP6 --> CP7
 
   style CP1 fill:#4CAF50,color:#fff
   style CP6 fill:#4CAF50,color:#fff
@@ -90,9 +99,10 @@ flowchart LR
   style CP3 fill:#2196F3,color:#fff
   style CP4 fill:#2196F3,color:#fff
   style CP5 fill:#FF9800,color:#fff
+  style CP7 fill:#9C27B0,color:#fff
 ```
 
-**Legend:** Green = start immediately (no dependencies); Blue = start after CP1; Orange = start after prerequisites.
+**Legend:** Green = start immediately (no dependencies); Blue = start after CP1; Orange = start after prerequisites; Purple = threshold-driven future migration path.
 
 ---
 
@@ -260,6 +270,27 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 ---
 
+### CP7 — PostgreSQL & pgvector Migration Path
+
+**File:** [`docs/plans/backlog/postgresql-pgvector-migration-plan.md`](../backlog/postgresql-pgvector-migration-plan.md)
+**Priority:** FUTURE / THRESHOLD-DRIVEN
+**Estimated hours:** 40–70
+**Depends on:** CP3, CP5, CP6
+
+**What it does:** Defines the additive migration path from the phase-one singleton SQLite design to PostgreSQL as the long-term system of record, with optional `pgvector` only if Git Gandalf later needs semantic retrieval over free-form review memory.
+
+**Competitive gap closed:** Long-term operational maturity, HA storage, and future semantic memory without locking the product into a premature specialized database.
+
+**Activation criteria:** Start CP7 only when one or more thresholds are met: multi-writer or HA pressure on the ops service, external SQL/reporting consumers, sustained queue lag from analytics writes, multi-GB growth with degraded admin queries, stronger PITR/backup expectations, or a proven need for semantic retrieval beyond heuristic learning rules.
+
+**Key capabilities:**
+- Storage abstraction seam across CP3 and CP5 so migration is additive rather than invasive
+- PostgreSQL foundation for transactional learning and analytics data
+- Dual-write/backfill/cutover plan with verification gates
+- Optional `pgvector` extension only when semantic retrieval becomes a justified product requirement
+
+---
+
 ## Execution Strategy
 
 ### Phase 1 — Foundation (Weeks 1–3)
@@ -283,7 +314,11 @@ With CP3 and CP6 complete, start CP5 (Analytics & Observability).
 
 - **CP5** builds on CP6's Prometheus foundation and CP3's learning database
 
-### Phase 4 — Crown Validation (Week 10)
+### Phase 4 — Storage Validation & Future Scale Path (Week 10+)
+
+With CP3, CP5, and CP6 implemented, review the storage activation criteria. If the thresholds are not met, keep the phase-one SQLite design. If they are met, activate CP7 and migrate to PostgreSQL, adding `pgvector` only if semantic retrieval is part of the requirement.
+
+### Phase 5 — Crown Validation (after required child plans)
 
 Re-run the competitive evaluation scoring with evidence from implemented capabilities. Update the evaluation document with honest, evidence-backed scores.
 
@@ -293,11 +328,12 @@ Re-run the competitive evaluation scoring with evidence from implemented capabil
 
 The Crown Plan is complete when:
 
-1. All six child plans are implemented, reviewed (via `review-plan-phase`), and moved to `docs/plans/implemented/`
-2. The competitive evaluation scoring can be re-run with evidence showing Git Gandalf at **9.0+** weighted score
-3. Every scoring improvement claim is backed by a working, tested feature — not aspirational capability
-4. The evaluation document (`docs/AI-Code-Review-Tool-Evaluation.md`) is updated with new scores and evidence
-5. No child plan was marked complete based on partial scaffolding, stub implementations, or skipped tests
+1. CP1–CP6 are implemented, reviewed (via `review-plan-phase`), and moved to `docs/plans/implemented/`
+2. CP7 is either implemented after its activation criteria are met or explicitly left deferred with the criteria documented as not yet met
+3. The competitive evaluation scoring can be re-run with evidence showing Git Gandalf at **9.0+** weighted score
+4. Every scoring improvement claim is backed by a working, tested feature — not aspirational capability
+5. The evaluation document (`docs/AI-Code-Review-Tool-Evaluation.md`) is updated with new scores and evidence
+6. No child plan was marked complete based on partial scaffolding, stub implementations, or skipped tests
 
 ---
 

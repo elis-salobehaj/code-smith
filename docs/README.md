@@ -26,13 +26,14 @@ Detailed, visual documentation with Mermaid diagrams and full rationale.
 
 - **Active**: [GitGandalf Master Plan](./plans/active/git-gandalf-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
 - **Active**: [Gandalf Awakening Personality Plan](./plans/active/Gandalf-awakening-personality-plan.md) — Trigger alias expansion, Gandalf-mode acknowledgements, and tone-aware top-level summary behavior
-- **Active**: [The Crown Plan](./plans/active/git-gandalf-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 child plans (config, linters, learning, output, analytics, production hardening)
+- **Active**: [The Crown Plan](./plans/active/git-gandalf-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 primary child plans plus a threshold-driven PostgreSQL/pgvector migration path
 - **Backlog**: [CP1 — Repo-Based Review Configuration](./plans/backlog/repo-review-config-plan.md) — `.gitgandalf.yaml` repo-level config with per-file-pattern rules, severity overrides, file exclusions, and feature flags
 - **Backlog**: [CP2 — Linter & SAST Integration](./plans/backlog/linter-sast-integration-plan.md) — Auto-detect and run Biome plus instance-owned standalone analysis profiles against changed files, with explicit subprocess sandbox controls, normalized findings, and agent/publisher integration
 - **Backlog**: [CP3 — Organizational Learning](./plans/backlog/organizational-learning-plan.md) — Feedback capture (reactions, applied suggestions), singleton ops-owned SQLite learning DB, persisted sync cursors, durable write jobs, and prompt injection for future reviews
 - **Backlog**: [CP4 — Enhanced Review Output](./plans/backlog/enhanced-review-output-plan.md) — Smart MR summaries, file-by-file walkthroughs, improved suggestion formatting and one-click fix UX
 - **Backlog**: [CP5 — Analytics & Observability](./plans/backlog/analytics-observability-plan.md) — Prometheus metrics, SQLite analytics, REST API for review trends, Grafana dashboard template
 - **Backlog**: [CP6 — Production Hardening & DX](./plans/backlog/production-hardening-plan.md) — Helm chart, HPA, health probes, circuit breakers, benchmarks, E2E tests, contributor guide, operational runbook
+- **Backlog**: [CP7 — PostgreSQL & pgvector Migration Path](./plans/backlog/postgresql-pgvector-migration-plan.md) — Threshold-driven migration from phase-one SQLite storage to PostgreSQL, with optional pgvector only when semantic retrieval is justified
 - **Backlog**: [Deno Runtime Evaluation And Migration Plan](./plans/backlog/deno-runtime-evaluation-and-migration-plan.md) — Security-first runtime evaluation, Bun-to-Deno rewrite scope, replacement matrix, and spike-first migration path
 - **Implemented**: [Review Edge Cases Hardening](./plans/implemented/review-edge-cases-hardening.md) — Same-head idempotency, review ledger + incremental ranges, publication semantics, full-pipeline branch serialization, repo freshness validation, metadata-only update skipping, and explicit draft policy
 - **Implemented**: [Structured Logging](./plans/implemented/structured-logging-plan.md) — LogTape structured logging, request correlation, and docs overhaul across 5 phases
@@ -51,7 +52,7 @@ Detailed, visual documentation with Mermaid diagrams and full rationale.
 | **Phase 4.6** | ✅ Complete | `GITLAB_CA_FILE` TLS/custom-CA support for self-hosted GitLab; `buildGitEnv()` injects `GIT_SSL_CAINFO` into git spawns; `NODE_EXTRA_CA_CERTS` set at startup for API client; host validation and auth documented; deployment matrix in GETTING_STARTED.md |
 | **Logging** | ✅ Complete | LogTape structured logging, `LOG_LEVEL` wired, `@logtape/hono` middleware, request correlation via `withContext()`, debug log file at `logs/gg-dev.log` |
 | **Phase 5** | ✅ Complete | BullMQ+Valkey task queue with retries, timeout boundary, dead-letter handling, Kubernetes manifests, and multi-provider LLM fallback (OpenAI/Google) |
-| **Crown Plan** | ⬜ Planned | 6 child plans to close competitive gaps: repo config, linter integration, organizational learning, enhanced output, analytics, and production hardening |
+| **Crown Plan** | ⬜ Planned | 6 primary child plans to close competitive gaps, plus CP7 as the threshold-driven future migration path from SQLite to PostgreSQL/pgvector |
 
 ## Current State Summary
 
@@ -81,4 +82,4 @@ Implemented today:
 Planned next:
 
 - Gandalf trigger and personality awakening for note-triggered reviews
-- Crown Plan: repo-based review configuration (`.gitgandalf.yaml`), linter/SAST integration, organizational learning system, enhanced review output, analytics & observability, and production hardening
+- Crown Plan: repo-based review configuration (`.gitgandalf.yaml`), linter/SAST integration, organizational learning system, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector
