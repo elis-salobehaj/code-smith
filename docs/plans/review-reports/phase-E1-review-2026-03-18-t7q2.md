@@ -1,6 +1,6 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E1
 
-**Plan file**: `docs/plans/active/review-edge-cases-hardening.md`
+**Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
 **Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
 **Verdict**: 🟡 CONDITIONAL
 
@@ -59,7 +59,7 @@ Phase E1 delivers the trigger-context plumbing correctly: new type file, router 
 
 ### Ordered Remediation Steps
 
-- [ ] **[agent] R1: Uncheck E1.2 and E1.3 in plan frontmatter**: Revert E1.2 and E1.3 checkboxes to unchecked in `docs/plans/active/review-edge-cases-hardening.md`. These are not E1 deliverables — they describe behavioral enforcement that arrives in E2+.
+- [ ] **[agent] R1: Uncheck E1.2 and E1.3 in plan frontmatter**: Revert E1.2 and E1.3 checkboxes to unchecked in `docs/plans/implemented/review-edge-cases-hardening.md`. These are not E1 deliverables — they describe behavioral enforcement that arrives in E2+.
 - [ ] **[agent] R2: Update ARCHITECTURE.md runtime surface and webhook flow**: In `docs/agents/context/ARCHITECTURE.md`: (1) add `src/api/trigger.ts: typed review trigger context (automatic vs manual, source event, optional note id)` to the Runtime Surface list after the `schemas.ts` entry, (2) update webhook flow step 6 from `runPipeline(event)` to `runPipeline(event, trigger)` and add a step between 4 and 5 noting trigger context construction.
 - [ ] **[agent] R3: Fix stale human docs reference**: In `docs/humans/context/ARCHITECTURE.md` line 120, update `runPipeline(event)` to `runPipeline(event, trigger)`.
 - [ ] **[agent] Add E1 remediation line to plan**: Add `- [x] Remediation complete — see docs/plans/review-reports/phase-E1-review-2026-03-18-t7q2.md` after E1.4 in the plan frontmatter.

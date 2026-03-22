@@ -36,6 +36,13 @@ const mergeRequestAttributesSchema = z
     state: z.string(),
     draft: z.boolean().optional(),
     work_in_progress: z.boolean().optional(),
+    oldrev: z.string().nullable().optional(),
+    last_commit: z
+      .object({
+        id: z.string(),
+      })
+      .loose()
+      .optional(),
   })
   .loose();
 

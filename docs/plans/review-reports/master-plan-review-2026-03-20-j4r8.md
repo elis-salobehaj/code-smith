@@ -50,7 +50,7 @@ The master plan is directionally strong on the core Bun, Hono, Zod, GitLab, and 
 
 #### R4: The master plan is not coordinated with the active edge-case hardening plan
 - **Dimension**: Structure
-- **Finding**: `docs/plans/active/review-edge-cases-hardening.md` is active and currently owns many of the same files that Phase 4.5 and 4.6 would modify, including `src/api/router.ts`, `src/api/pipeline.ts`, `src/api/schemas.ts`, `src/gitlab-client/client.ts`, and `src/agents/state.ts`. The master plan does not mention this overlap or define an ordering constraint.
+- **Finding**: `docs/plans/implemented/review-edge-cases-hardening.md` owned many of the same files that Phase 4.5 and 4.6 would modify, including `src/api/router.ts`, `src/api/pipeline.ts`, `src/api/schemas.ts`, `src/gitlab-client/client.ts`, and `src/agents/state.ts`. The master plan did not mention this overlap or define an ordering constraint.
 - **Impact**: Future implementation can easily create contradictory designs or duplicated changes in trigger context, pipeline sequencing, and GitLab client behavior.
 - **Alternative**: Add an explicit dependency note that Phase 4.5 and any GitLab deployment hardening work must build on the trigger/checkpoint/range-selection work from the active edge-case hardening plan rather than proceeding independently.
 

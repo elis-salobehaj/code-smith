@@ -29,49 +29,95 @@ Webhook → Context Agent → Investigator Agent (tool loop) → Reflection Agen
 ## 🏗️ Architecture Diagram
 
 ```mermaid
+---
+title: multi-agent pipeline flow
+config:
+  look: "classic"
+  markdownAutoWrap: false
+  flowchart:
+    curve: ""
+    subGraphTitleMargin:
+      top: 20
+      bottom: 30
+---
 flowchart TD
-    WH([GitLab Webhook\nnote / MR event])
-    Router[Hono Router\nsrc/api/router.ts]
-    Pipeline[Pipeline\nsrc/api/pipeline.ts]
+  WH["`GitLab webhook
+  MR event or /ai-review note`"]
+  Router["`Hono router
+  src/api/router.ts`"]
+  Lock["`Branch lock
+  one pipeline per source branch`"]
+  MRMeta["`GitLab fetch
+  MR details, diff, notes,
+  discussions, versions, commits`"]
+  Range["`Review range selection
+  full / incremental / skip`"]
+  Repo["`Repo cache
+  clone or update source branch`"]
+  Jira["`Jira enrichment
+  linkedTickets when enabled`"]
+  GitLab([GitLab API])
 
-    subgraph "Agent Pipeline — src/agents/"
-        A1[Agent 1\nContext & Intent]
-        A2[Agent 2\nSocratic Investigator\ntool calling loop]
-        A3[Agent 3\nReflection & Consolidation]
-        Reinvest{needsReinvestigation?\nreinvestigationCount < 1}
-    end
+  subgraph agent_pipeline [Agent Pipeline - src/agents/]
+    direction TB
+    A1["`Agent 1
+    Context and Intent`"]
+    A2["`Agent 2
+    Investigator
+    tool-calling loop`"]
+    A3["`Agent 3
+    Reflection and Consolidation`"]
+    Dedupe["`Deterministic dedupe
+    exact + overlapping findings`"]
+    Reinvest{"`needsReinvestigation?
+    reinvestigationCount < 1`"}
 
-    subgraph "Context Tools — src/context/tools/"
-        T1[read_file]
-        T2[search_codebase]
-        T3[get_directory_structure]
-    end
-
-    subgraph "Publisher — src/publisher/"
-        Pub[GitLabPublisher]
-        Inline[postInlineComments]
-        Summary[postSummaryComment]
-    end
-
-    WH --> Router
-    Router -->|fire-and-forget| Pipeline
-    Pipeline --> A1
-
-    A1 -->|mrIntent\nchangeCategories\nriskAreas| A2
-
-    A2 <-->|tool calls| T1
-    A2 <-->|tool calls| T2
-    A2 <-->|tool calls| T3
+    A1 --> A2
     A2 -->|rawFindings JSON| A3
-
-    A3 --> Reinvest
+    A3 --> Dedupe
+    Dedupe --> Reinvest
     Reinvest -->|yes| A2
-    Reinvest -->|no| Pub
+  end
 
-    Pub --> Inline
+  subgraph context_tools [Context tools - src/context/tools/]
+    direction TB
+    T1[read_file]
+    T2[search_codebase]
+    T3[get_directory_structure]
+
+    T1 ~~~ T2
+    T2 ~~~ T3
+  end
+
+  subgraph publisher [Publisher - src/publisher/]
+    direction TB
+    Inline[postInlineComments]
+    Summary[postSummaryComment]
+    Pub[GitLabPublisher]
     Pub --> Summary
-    Inline -->|createInlineDiscussion| GitLab([GitLab API])
-    Summary -->|createMRNote| GitLab
+    PPad~~~Summary
+    Pub --> Inline
+  end
+
+  WH --> Router
+  Router -->|fire-and-forget| Lock
+  Lock --> MRMeta
+  MRMeta --> Range
+  Range -->|skip| Summary
+  Range -->|full or incremental| Repo
+  Repo --> Jira
+  Jira ---> A1
+
+  A2 <-->|tool calls| T1
+  A2 <-->|tool calls| T2
+  A2 <-->|tool calls| T3
+
+  Reinvest -->|no| Pub
+  Inline -->|createInlineDiscussion| GitLab
+  Summary -->|createMRNote| GitLab
+
+  classDef spacer fill:none,stroke:none,color:transparent;
+  class APad,TPad,PPad spacer;
 ```
 
 ---

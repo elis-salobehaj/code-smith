@@ -1,6 +1,9 @@
-import { mkdir, readdir, rm, stat } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, utimes } from "node:fs/promises";
 import { join } from "node:path";
 import { config } from "../config";
+import { getLogger } from "../logger";
+
+const logger = getLogger(["gandalf", "repo-manager"]);
 
 // ---------------------------------------------------------------------------
 // buildGitEnv — pure helper exported for unit testing
@@ -33,7 +36,12 @@ export class RepoManager {
    * `config.GITLAB_URL` to prevent an SSRF attack via a malicious
    * webhook-supplied URL exfiltrating the token to a third-party host.
    */
-  async cloneOrUpdate(projectUrl: string, branch: string, projectId: number): Promise<string> {
+  async cloneOrUpdate(
+    projectUrl: string,
+    branch: string,
+    projectId: number,
+    expectedHeadSha?: string,
+  ): Promise<string> {
     const repoPath = this.getRepoPath(projectId, branch);
     const authedUrl = this.injectToken(projectUrl);
 
@@ -55,6 +63,23 @@ export class RepoManager {
       await mkdir(config.REPO_CACHE_DIR, { recursive: true });
       await this.run(["git", "clone", "--depth", "1", "--branch", branch, authedUrl, repoPath]);
     }
+
+    const localHeadSha = (await this.run(["git", "rev-parse", "HEAD"], repoPath)).trim();
+    logger.debug("Prepared repo cache path", {
+      requestedBranch: branch,
+      expectedHeadSha,
+      localHeadSha,
+      cachePath: repoPath,
+    });
+
+    if (expectedHeadSha && localHeadSha !== expectedHeadSha) {
+      throw new Error(
+        `Local clone HEAD does not match GitLab MR head SHA: expected ${expectedHeadSha}, got ${localHeadSha}`,
+      );
+    }
+
+    const now = new Date();
+    await utimes(repoPath, now, now);
 
     return repoPath;
   }

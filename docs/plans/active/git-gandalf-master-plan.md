@@ -138,25 +138,66 @@ completion:
 ## High-Level Architecture
 
 ```mermaid
-graph TD
-    A["GitLab Webhook<br/>(MR Event / Comment)"] --> B["Hono Listener<br/>/api/v1/webhooks/gitlab"]
-    B --> C{"Event Router"}
-    C -->|MR Open/Update| D["Data Ingestion<br/>(Fetch Diff, Description, Tickets)"]
-    C -->|Comment /ai-review| D
-    D --> E["Repository Cloner<br/>(Shallow Clone via Bun.spawn)"]
-    E --> F["Agent Orchestrator"]
+---
+title: current high-level architecture
+config:
+  markdownAutoWrap: false
+  flowchart:
+    curve: stepBefore
+---
+flowchart TD
+  Webhook["`GitLab webhook
+  MR event or /ai-review note`"]
+  Listener["`Hono listener
+  /api/v1/webhooks/gitlab`"]
+  Router{"`Event router
+  validate and filter`"}
+  Dispatch{"`Dispatch mode
+  queue or fire-and-forget`"}
+  Response["`HTTP response
+  202 accepted or ignored`"]
+  Queue["`BullMQ review queue`"]
+  Worker["`Review worker`"]
+  Pipeline["`runPipeline()
+  lock -> fetch -> range -> repo -> Jira`"]
 
-    subgraph "Multi-Agent Pipeline"
-        F --> G["Agent 1: Context & Intent<br/>(Maps MR purpose)"]
-        G --> H["Agent 2: Socratic Investigator<br/>(Hypothesize → Tool-call → Verify)"]
-        H -->|tool calls| I["Tool Executor<br/>(read_file, search_codebase,<br/>get_directory_structure)"]
-        I --> H
-        H --> J["Agent 3: Reflection & Consolidation<br/>(Filter noise, verify evidence)"]
-        J -->|reject finding| H
-    end
+  subgraph agent_pipeline [Multi-Agent Pipeline]
+    direction TB
+    APad[ ]
+    A1["`Agent 1
+    Context and Intent`"]
+    A2["`Agent 2
+    Investigator tool loop`"]
+    Tools["`Tool executor
+    read_file
+    search_codebase
+    get_directory_structure`"]
+    A3["`Agent 3
+    Reflection`"]
+    Dedupe["`Deterministic dedupe`"]
+    Reinvest{"`needsReinvestigation?`"}
 
-    J --> K["GitLab API Publisher<br/>(@gitbeaker/rest)"]
-    K --> L["Inline MR Comments<br/>+ Summary Comment"]
+    APad ~~~ A1
+    A1 --> A2
+    A2 <-->|tool calls| Tools
+    A2 --> A3 --> Dedupe --> Reinvest
+    Reinvest -->|yes| A2
+  end
+
+  Publisher["`GitLab publisher
+  inline comments + summary`"]
+  GitLab([GitLab API])
+
+  Webhook --> Listener --> Router
+  Router -->|accepted| Dispatch
+  Router -->|ignored or invalid| Response
+  Dispatch -->|queue enabled| Queue --> Worker --> Pipeline
+  Dispatch -->|fire-and-forget| Pipeline
+  Pipeline --> A1
+  Reinvest -->|no| Publisher --> GitLab
+
+  classDef spacer fill:none,stroke:none,color:transparent;
+  class APad spacer;
 ```
 
 ---
@@ -659,14 +700,23 @@ export async function runReview(initialState: ReviewState): Promise<ReviewState>
 ```
 
 ```mermaid
-graph LR
-    START --> A1["contextAgent()"]
-    A1 --> A2["investigatorLoop()"]
-    A2 -->|tool call| TOOL["executeTool()"]
-    TOOL --> A2
-    A2 -->|stop_reason: end_turn| A3["reflectionAgent()"]
-    A3 -->|needsReinvestigation| A2
-    A3 -->|done| END["return ReviewState"]
+---
+title: orchestrator state machine
+config:
+  markdownAutoWrap: false
+  flowchart:
+    curve: stepBefore
+---
+flowchart LR
+  Start([Start]) --> A1["`contextAgent()`"]
+  A1 --> A2["`investigatorLoop()`"]
+  A2 <-->|tool calls| Tool["`executeTool()`"]
+  A2 -->|raw findings| A3["`reflectionAgent()`"]
+  A3 --> Dedupe["`deduplicateFindings()`"]
+  Dedupe --> Reinvest{"`needsReinvestigation
+  and count < 1?`"}
+  Reinvest -->|yes| A2
+  Reinvest -->|no| End([Return ReviewState])
 ```
 
 ---
@@ -815,7 +865,7 @@ volumes:
 > `src/api/router.ts`, `src/api/pipeline.ts`, `src/api/schemas.ts`,
 > `src/gitlab-client/client.ts`, and `src/agents/state.ts`. These phases must build
 > on the trigger/checkpoint/range-selection work in
-> `docs/plans/active/review-edge-cases-hardening.md` rather than proceeding in
+> `docs/plans/implemented/review-edge-cases-hardening.md` rather than proceeding in
 > parallel with conflicting changes.
 
 ---

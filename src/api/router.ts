@@ -10,6 +10,32 @@ import type { ReviewTriggerContext } from "./trigger";
 
 const logger = getLogger(["gandalf", "router"]);
 
+function isMetadataOnlyMergeRequestUpdate(event: WebhookPayload): boolean {
+  if (event.object_kind !== "merge_request") {
+    return false;
+  }
+
+  if (event.object_attributes.action !== "update") {
+    return false;
+  }
+
+  const previousHead = event.object_attributes.oldrev;
+  const lastCommit = event.object_attributes.last_commit;
+  const currentHead =
+    typeof lastCommit === "object" && lastCommit !== null && "id" in lastCommit && typeof lastCommit.id === "string"
+      ? lastCommit.id
+      : undefined;
+  return Boolean(previousHead && currentHead && previousHead === currentHead);
+}
+
+function isAutomaticDraftMergeRequest(event: WebhookPayload): boolean {
+  if (event.object_kind !== "merge_request") {
+    return false;
+  }
+
+  return Boolean(event.object_attributes.draft || event.object_attributes.work_in_progress);
+}
+
 // ---------------------------------------------------------------------------
 // Lazy-initialised BullMQ queue — only created when QUEUE_ENABLED=true so
 // the webhook server never connects to Valkey in fire-and-forget mode.
@@ -68,6 +94,29 @@ apiRouter.post("/webhooks/gitlab", async (c) => {
   })();
 
   if (!shouldProcess) {
+    return c.text("Ignored", 200);
+  }
+
+  if (isMetadataOnlyMergeRequestUpdate(event)) {
+    const lastCommit = event.object_attributes.last_commit;
+    const currentHead =
+      typeof lastCommit === "object" && lastCommit !== null && "id" in lastCommit && typeof lastCommit.id === "string"
+        ? lastCommit.id
+        : undefined;
+    logger.info("Ignoring metadata-only merge request update", {
+      projectId: event.project.id,
+      mrIid: event.object_attributes.iid,
+      oldrev: event.object_attributes.oldrev,
+      currentHead,
+    });
+    return c.text("Ignored", 200);
+  }
+
+  if (!config.REVIEW_DRAFT_MRS && isAutomaticDraftMergeRequest(event)) {
+    logger.info("Ignoring draft merge request event because REVIEW_DRAFT_MRS=false", {
+      projectId: event.project.id,
+      mrIid: event.object_attributes.iid,
+    });
     return c.text("Ignored", 200);
   }
 

@@ -73,6 +73,8 @@ bun run kind:down
 - 🛠️ **Repo-aware tools** — the investigator can read files, search the codebase, and inspect directory structure inside a sandboxed repo clone.
 - 🧠 **Multi-provider LLM fallback** — AWS Bedrock first, with optional OpenAI and Google Gemini fallback ordering.
 - 📨 **GitLab-native feedback** — publishes inline MR discussions when findings can be anchored and always posts a summary note.
+- 🔁 **Incremental review ledger** — machine-readable checkpoints let automatic runs review only unreviewed MR ranges while manual `/ai-review` reruns still force a full pass.
+- 🛡️ **Idempotent delivery handling** — same-head automatic reruns are skipped, metadata-only updates can be ignored, and same-branch runs serialize across the pipeline.
 - 🧵 **Queued review execution** — BullMQ + Valkey decouple webhook ingestion from long-running review jobs.
 - ⏱️ **Timeout and dead-letter handling** — bounded worker attempts with retry policy and terminal-failure routing to `review-dead-letter`.
 - ☸️ **Kubernetes-ready** — raw manifests for webhook, worker, service, config, secrets, and local Valkey validation on KinD.
@@ -87,13 +89,13 @@ bun run kind:down
 
 | Inline Finding 1 | Inline Finding 2 |
 |---|---|
-| ![Inline Review Comment 1](docs/images/readme/git-gandalf-comment-1.png) | ![Inline Review Comment 2](docs/images/readme/git-gandalf-comment-2.png) |
-| High-signal code review comment with concrete impact and a suggested diff. | Diff-anchored YAML issue surfaced directly in the merge request discussion. |
+| ![Inline Review Comment 1](docs/images/readme/git-gandalf-inline-comment-1.png) | ![Inline Review Comment 2](docs/images/readme/git-gandalf-inline-comment-2.png) |
+|  Off-by-one breaks TooMuchDataException boundary check and existing test. |  Inverted health check condition reports healthy as errored and vice versa. |
 
-| Inline Finding 3 | Review Summary |
-|---|---|
-| ![Inline Review Comment 3](docs/images/readme/git-gandalf-comment-3.png) | ![GitGandalf Review Summary](docs/images/readme/git-gandalf-review-summary.png) |
-| Shell-script defect caught with exact line targeting and actionable reasoning. | Final verdict summary with severity counts and linked findings back into the MR. |
+| Inline Finding 3 | Inline Finding 4 | Review Summary |
+|---|---|---|
+| ![Inline Review Comment 3](docs/images/readme/git-gandalf-inline-comment-3.png) | ![Inline Review Comment 3](docs/images/readme/git-gandalf-inline-comment-4.png) | ![GitGandalf Review Summary](docs/images/readme/git-gandalf-summary-review.png) |
+| Plaintext password echoed in login response — credential leak. | Wrong HTTP status 400 breaks API contract and two tests expecting 413. | Final verdict summary with severity counts and linked findings back into the MR. |
 
 ---
 

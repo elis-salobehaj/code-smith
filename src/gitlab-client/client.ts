@@ -6,7 +6,8 @@ import type {
 } from "@gitbeaker/core";
 import { Gitlab } from "@gitbeaker/rest";
 import { config } from "../config";
-import type { DiffFile, Discussion, MRDetails, Note, NotePosition } from "./types";
+import { type CheckpointRecord, findLatestSuccessfulCheckpoint } from "../publisher/checkpoint";
+import type { DiffFile, Discussion, MRCommit, MRDetails, MRVersion, Note, NotePosition } from "./types";
 
 export class GitLabClient {
   private api: InstanceType<typeof Gitlab>;
@@ -16,6 +17,22 @@ export class GitLabClient {
       host: config.GITLAB_URL,
       token: config.GITLAB_TOKEN,
     });
+  }
+
+  private async getAllPages<T>(loader: (page: number) => Promise<T[]>): Promise<T[]> {
+    const allItems: T[] = [];
+    let page = 1;
+
+    while (true) {
+      const items = await loader(page);
+      allItems.push(...items);
+
+      if (items.length < 100) {
+        return allItems;
+      }
+
+      page++;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -63,6 +80,61 @@ export class GitLabClient {
       deletedFile: c.deleted_file,
       renamedFile: c.renamed_file,
       diff: c.diff,
+    }));
+  }
+
+  async getRepositoryCompareDiff(projectId: number, from: string, to: string): Promise<DiffFile[]> {
+    const compare = (await this.api.Repositories.compare(projectId, from, to)) as {
+      diffs?: Array<{
+        old_path: string;
+        new_path: string;
+        new_file: boolean;
+        deleted_file: boolean;
+        renamed_file: boolean;
+        diff: string;
+      }>;
+    };
+
+    return (compare.diffs ?? []).map((diff) => ({
+      oldPath: diff.old_path,
+      newPath: diff.new_path,
+      newFile: diff.new_file,
+      deletedFile: diff.deleted_file,
+      renamedFile: diff.renamed_file,
+      diff: diff.diff,
+    }));
+  }
+
+  async getMRCommits(projectId: number, mrIid: number): Promise<MRCommit[]> {
+    const commits = await this.getAllPages((page) =>
+      this.api.MergeRequests.allCommits(projectId, mrIid, {
+        page,
+        perPage: 100,
+      }),
+    );
+
+    return commits.map((commit) => ({
+      id: String(commit.id),
+      shortId: String(commit.short_id),
+      title: String(commit.title),
+      authoredDate: String(commit.authored_date),
+      committedDate: String(commit.committed_date),
+      parentIds: Array.isArray(commit.parent_ids) ? commit.parent_ids.map((parentId) => String(parentId)) : [],
+    }));
+  }
+
+  async getMRVersions(projectId: number, mrIid: number): Promise<MRVersion[]> {
+    const versions = await this.getAllPages((page) =>
+      // biome-ignore lint/suspicious/noExplicitAny: GitBeaker's allDiffVersions typing is narrower than the runtime API options it accepts
+      this.api.MergeRequests.allDiffVersions(projectId, mrIid, { page, perPage: 100 } as any),
+    );
+
+    return versions.map((version) => ({
+      id: Number(version.id),
+      headCommitSha: String(version.head_commit_sha),
+      baseCommitSha: String(version.base_commit_sha),
+      startCommitSha: String(version.start_commit_sha),
+      createdAt: String(version.created_at),
     }));
   }
 
@@ -131,6 +203,11 @@ export class GitLabClient {
       id: Number(n.id),
       body: String(n.body),
     }));
+  }
+
+  async getCheckpointRecord(projectId: number, mrIid: number): Promise<CheckpointRecord | null> {
+    const notes = await this.getMRNotes(projectId, mrIid);
+    return findLatestSuccessfulCheckpoint(notes);
   }
 
   // ---------------------------------------------------------------------------

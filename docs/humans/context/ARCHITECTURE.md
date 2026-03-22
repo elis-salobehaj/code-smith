@@ -7,23 +7,81 @@ For the concise agent-optimized version, see [`docs/agents/context/ARCHITECTURE.
 ## Current Implemented Architecture
 
 ```mermaid
-graph TD
-	A[GitLab Webhook] --> B[Hono app in src/index.ts]
-	B --> C[apiRouter]
-	C --> D{Secret + Zod validation}
-	D -->|invalid| E[400 or 401 response]
-	D -->|ignored event| F[200 Ignored]
-	D -->|accepted event| G[runPipeline fire-and-forget]
-	G --> GA[withContext requestId + projectId + mrIid]
-	GA --> H[Fetch MR data + clone repo]
-	H --> HJ[fetchLinkedTickets — Jira REST API]
-	HJ --> I[runReview agents]
-	I --> IA[Agent 2 tool failures become error tool_result blocks]
-	IA --> J[publish inline comments + summary]
-	J --> K[LogTape JSON Lines to stdout]
+---
+title: implemented runtime architecture
+config:
+  look: "classic"
+  markdownAutoWrap: false
+  flowchart:
+    curve: ""
+    subGraphTitleMargin:
+      top: 20
+      bottom: 30
+---
+flowchart TD
+    Webhook["`GitLab webhook
+    MR event or /ai-review note`"]
+    Server["`Bun server
+    src/index.ts`"]
+    Router["`Hono apiRouter
+    src/api/router.ts`"]
+    Validate{"`Secret and Zod
+    payload validation`"}
+    Ignored["`Ignored response
+    200 / 400 / 401 / 503`"]
+    Dispatch{"`Dispatch mode
+    QUEUE_ENABLED?`"}
+    Queue["`BullMQ queue
+    review job`"]
+    Worker["`Review worker
+    restores requestId context`"]
+    Lock["`Branch lock
+    one pipeline per source branch`"]
+    GitLabFetch["`GitLab fetch
+    MR details, diff, notes,
+    discussions, versions, commits`"]
+    ReviewRange{"`Review range
+    full / incremental / skip`"}
+    Repo["`Repo cache
+    clone or update`"]
+    Jira["`Jira enrichment
+    linked tickets when enabled`"]
+    Review["`runReview()
+    context -> investigator -> reflection`"]
+    Publish["`GitLabPublisher
+    inline comments + summary`"]
+    Logs["`LogTape
+    JSON lines + correlated context`"]
+    GitLab([GitLab API])
 
-	L[src/logger.ts] --> M[configure LogTape JSON sink]
-	M --> N[LOG_LEVEL filter + AsyncLocalStorage ctx]
+    subgraph logging [Logging - src/logger.ts]
+        direction TB
+        Init["`initLogging()`"]
+        Ctx["`AsyncLocalStorage
+        requestId / projectId / mrIid`"]
+
+        Init --> Ctx
+    end
+
+    Webhook --> Server --> Router --> Validate
+    Validate -->|invalid or ignored| Ignored
+    Validate -->|accepted| Dispatch
+
+    Dispatch -->|queue enabled| Queue --> Worker --> Lock
+    Dispatch -->|fire-and-forget| Lock
+    Lock --> GitLabFetch --> ReviewRange
+    ReviewRange -->|skip| Publish
+    ReviewRange -->|full or incremental| Repo --> Jira --> Review --> Publish
+    Publish --> GitLab
+
+    Router --> Logs
+    Worker --> Logs
+    Review --> Logs
+    Publish --> Logs
+    Ctx --> Logs
+
+    classDef spacer fill:none,stroke:none,color:transparent;
+    class LogPad spacer;
 ```
 
 ## Directory Structure
@@ -38,47 +96,77 @@ git-gandalf/
 ├── tsconfig.json                   # TypeScript configuration
 ├── README.md
 ├── src/
-│   ├── index.ts                    # Hono app entrypoint + server bootstrap, calls initLogging()
-│   ├── logger.ts                   # LogTape configuration: initLogging(), getLogger/withContext re-exports
+│   ├── index.ts                    # Bun/Hono entrypoint + logging bootstrap
+│   ├── worker.ts                   # BullMQ worker process entrypoint
+│   ├── logger.ts                   # LogTape configuration and context helpers
 │   ├── config.ts                   # Env vars via Zod-validated process.env
 │   ├── api/
-│   │   ├── router.ts               # Webhook + health route definitions
-│   │   ├── schemas.ts              # Zod schemas for GitLab webhook payloads (required fields + permissive extras)
-│   │   └── pipeline.ts             # Full pipeline: fetch MR data, clone repo, run agents, publish findings
+│   │   ├── router.ts               # Webhook routing, validation, filtering, dispatch
+│   │   ├── schemas.ts              # Zod schemas for GitLab webhook payloads
+│   │   ├── trigger.ts              # Automatic vs manual review trigger context
+│   │   └── pipeline.ts             # Full pipeline: fetch MR state, range selection, repo, Jira, publish
 │   ├── gitlab-client/
-│   │   ├── client.ts               # @gitbeaker/rest wrapper (fetch MR, diff, discussions)
-│   │   └── types.ts                # TypeScript types for GitLab data (MRDetails, DiffFile, etc.)
+│   │   ├── client.ts               # @gitbeaker/rest wrapper (MR state, versions, commits, compare, publish)
+│   │   └── types.ts                # TypeScript types for GitLab data
 │   ├── context/
+│   │   ├── diff-parser.ts          # Diff hunk parsing for the review state
 │   │   ├── repo-manager.ts         # Clone/cache repos via Bun.spawn + git CLI
 │   │   └── tools/                  # Agent tools — one file per tool
-│   │       ├── index.ts            # Aggregates TOOL_DEFINITIONS[], exports executeTool()
-│   │       ├── shared.ts           # SearchResult type + assertInsideRepo() guard
-│   │       ├── read-file.ts        # read_file tool definition + implementation
-│   │       ├── search-codebase.ts  # search_codebase tool definition + implementation
-│   │       └── get-directory-structure.ts  # get_directory_structure tool definition + implementation
+│   │       ├── index.ts            # TOOL_DEFINITIONS + executeTool()
+│   │       ├── shared.ts           # SearchResult type + repo path guard helpers
+│   │       ├── read-file.ts        # read_file tool
+│   │       ├── search-codebase.ts  # search_codebase tool
+│   │       └── get-directory-structure.ts  # get_directory_structure tool
+│   ├── integrations/
+│   │   └── jira/
+│   │       └── client.ts           # Read-only Jira REST client and ticket normalization
 │   ├── agents/
-│   │   ├── orchestrator.ts         # Custom state-machine pipeline (runReview entrypoint)
-│   │   ├── state.ts                # ReviewState type + Finding type definitions
-│   │   ├── protocol.ts             # Internal GitGandalf message/tool contract
-	│   │   ├── llm-client.ts           # Bedrock Runtime Converse adapter behind the internal protocol
-	│   │   ├── context-agent.ts        # Agent 1: Context & Intent Mapper (uses linkedTickets when present)
-	│   │   ├── investigator-agent.ts   # Agent 2: Socratic Investigator (tool loop)
-	│   │   └── reflection-agent.ts     # Agent 3: Reflection & Consolidation
-	│   ├── integrations/
-	│   │   └── jira/
-	│   │       └── client.ts           # Read-only Jira REST client: key extraction, ticket fetch, ADF parsing
+│   │   ├── orchestrator.ts         # Review pipeline state machine + deterministic dedupe
+│   │   ├── review-range.ts         # full / incremental / skip selector
+│   │   ├── state.ts                # ReviewState and Finding definitions
+│   │   ├── protocol.ts             # Internal agent message/tool contract
+│   │   ├── llm-client.ts           # Provider fallback entrypoint for chatCompletion()
+│   │   ├── provider-fallback.ts    # Ordered fallback orchestration
+│   │   ├── providers/
+│   │   │   ├── bedrock.ts          # AWS Bedrock Runtime adapter
+│   │   │   ├── openai.ts           # OpenAI adapter
+│   │   │   └── google.ts           # Google Gemini adapter
+│   │   ├── context-agent.ts        # Agent 1: Context & Intent Mapper
+│   │   ├── investigator-agent.ts   # Agent 2: Socratic Investigator (tool loop)
+│   │   └── reflection-agent.ts     # Agent 3: Reflection & Consolidation
+│   ├── queue/
+│   │   ├── connection.ts           # Valkey/BullMQ connection parsing
+│   │   ├── review-queue.ts         # Queue factory + job builder
+│   │   ├── review-worker-core.ts   # Timeout-bound worker core
+│   │   ├── review-worker.ts        # Worker factory + dead-letter handling
+│   │   ├── dead-letter.ts          # Dead-letter queue helpers
+│   │   └── job-schemas.ts          # Zod validation for queued job payloads
 │   └── publisher/
-│       └── gitlab-publisher.ts     # Format findings → GitLab inline comments + summary
-	├── tests/
-		├── fixtures/
-		│   ├── sample_mr_event.json    # Sample MR open event payload
-		│   └── sample_note_event.json  # Sample /ai-review note event payload
-		├── webhook.test.ts             # Phase 1 tests
-		├── tools.test.ts               # Phase 2 tests
-		├── agents.test.ts              # Phase 3 tests
-		├── agents-entrypoints.test.ts  # Direct Phase 3 agent entrypoint tests with mocked LLM responses
-		├── publisher.test.ts           # Phase 4 tests
-		└── jira.test.ts                # Phase 4.5 Jira client unit tests
+│       ├── checkpoint.ts           # Machine-readable review-run checkpoint markers
+│       ├── gitlab-publisher.ts     # Format findings -> GitLab inline comments + summary
+│       ├── suggestion-normalizer.ts # Normalize suggestion ranges before publication
+│       └── summary-note.ts         # Summary marker helpers and head-SHA metadata
+└── tests/
+    ├── fixtures/
+    │   ├── sample_mr_event.json    # Sample MR event payload
+    │   ├── sample_note_event.json  # Sample /ai-review note payload
+    │   └── checkpoint-*.md         # Checkpoint marker parser fixtures
+    ├── webhook.test.ts             # Router filtering and webhook behavior
+    ├── tools.test.ts               # Tool sandboxing and output behavior
+    ├── agents.test.ts              # Prompt builders, parsers, and orchestrator control flow
+    ├── agents-entrypoints.test.ts  # Direct agent entrypoint tests with mocked LLM responses
+    ├── publisher.test.ts           # Summary/comment formatting and dedupe behavior
+    ├── pipeline.test.ts            # Branch serialization and pipeline concurrency
+    ├── pipeline-policy.test.ts     # Automatic/manual same-head skip policy
+    ├── review-range.test.ts        # full / incremental / skip selection
+    ├── gitlab-client.test.ts       # MR commit/version pagination helpers
+    ├── repo-manager.test.ts        # Cache, freshness, and SSRF guard behavior
+    ├── queue.test.ts               # Queue config and enqueue behavior
+    ├── review-worker-core.test.ts  # Worker timeout behavior
+    ├── llm-providers.test.ts       # Provider fallback behavior
+    ├── google-provider.test.ts     # Gemini adapter coverage
+    ├── logger.test.ts              # Log configuration behavior
+    └── jira.test.ts                # Jira ticket enrichment behavior
 ```
 
 ## Phase Ownership
@@ -127,6 +215,11 @@ git-gandalf/
 3. filters down to merge-request review triggers
 4. hands the event to `runPipeline(event, trigger)` without blocking the HTTP response
 
+It also applies two MR-lifecycle guards before dispatch:
+
+- metadata-only `update` deliveries are ignored when GitLab reports the same `oldrev` and current `last_commit.id`
+- automatic draft/WIP MR webhooks can be ignored when `REVIEW_DRAFT_MRS=false`; manual `/ai-review` note commands still run
+
 The filter rules are intentionally narrow:
 
 - merge request actions: `open`, `update`, `reopen`
@@ -163,7 +256,10 @@ The wrapper also handles gitbeaker's awkward snake_case response shapes and came
 - repo cache path: `<REPO_CACHE_DIR>/<projectId>-<url-encoded-branch>`
 - first-time path: `git clone --depth 1 --branch <branch>`
 - refresh path: `git fetch origin refs/heads/<branch>:refs/remotes/origin/<branch> --depth 1` + `git reset --hard origin/<branch>`
+- post-refresh validation: after clone/update, the manager runs `git rev-parse HEAD` and compares it to the expected MR head SHA from GitLab. A mismatch aborts the review instead of reviewing stale code.
+- active-repo touch: after clone/update, `utimes(repoPath, now, now)` refreshes the directory mtime so active repos are not evicted early by TTL cleanup on filesystems that do not update the directory mtime during git operations.
 - cleanup: TTL-based eviction using directory `mtime`
+- retention policy: clones are intentionally kept warm after review completion and reclaimed by TTL cleanup later, rather than deleted immediately after every run
 - TLS / custom CA (Phase 4.6): `buildGitEnv(config.GITLAB_CA_FILE)` is called inside `run()` before every `Bun.spawn()` call. When `GITLAB_CA_FILE` is set, `GIT_SSL_CAINFO` is added to the subprocess env so git trusts the custom CA bundle for HTTPS operations. The same file is set as `NODE_EXTRA_CA_CERTS` at startup in `src/index.ts` for the `@gitbeaker/rest` API client. `buildGitEnv()` is a pure exported function so it can be unit-tested without spawning real git processes.
 
 Security detail: the clone URL hostname must match `GITLAB_URL`. The manager refuses to inject the GitLab token into a different host, which blocks token exfiltration through a malicious webhook payload.
@@ -232,13 +328,12 @@ Set `JIRA_ENABLED=true` in `.env`. The integration is disabled by default so exi
 
 ## What Is Still Planned
 
-The target architecture in the master plan goes further than the current implementation.
+The current runtime already includes queueing, worker execution, Kubernetes manifests,
+and multi-provider fallback. The remaining planned work is narrower:
 
-### Phase 5+
-
-- task queue and worker split
-- Kubernetes deployment shape
-- provider fallback and LLM abstraction hardening
+- Gandalf Awakening: trigger aliases, immediate acknowledgement notes, and tone-aware summary behavior
+- Phase 5.5 optional adapter evaluation remains deferred by the master plan
+- Phase 6 Jira write actions remain deferred pending explicit scope and security review
 
 ## Why the Design Looks This Way
 

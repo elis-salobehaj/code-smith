@@ -133,6 +133,24 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
     expect(mockRunPipeline).toHaveBeenCalledTimes(1);
   });
 
+  it("ignores metadata-only MR update events when oldrev equals the current head", async () => {
+    const metadataOnlyEvent = {
+      ...mrOpenEvent,
+      object_attributes: {
+        ...mrOpenEvent.object_attributes,
+        action: "update",
+        oldrev: "a".repeat(40),
+        last_commit: {
+          id: "a".repeat(40),
+        },
+      },
+    };
+
+    const res = await app.fetch(makeRequest(metadataOnlyEvent));
+    expect(res.status).toBe(200);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
+  });
+
   it("accepts MR reopen action and returns 202", async () => {
     const res = await app.fetch(
       makeRequest({ ...mrOpenEvent, object_attributes: { ...mrOpenEvent.object_attributes, action: "reopen" } }),
@@ -190,6 +208,30 @@ describe("POST /api/v1/webhooks/gitlab — event filtering", () => {
     );
     expect(res.status).toBe(200);
     expect(mockRunPipeline).not.toHaveBeenCalled();
+  });
+
+  it("ignores automatic draft MR events when REVIEW_DRAFT_MRS=false", async () => {
+    const { config } = await import("../src/config");
+    const originalReviewDraftMrs = config.REVIEW_DRAFT_MRS;
+    // biome-ignore lint/suspicious/noExplicitAny: intentional test override
+    (config as any).REVIEW_DRAFT_MRS = false;
+
+    try {
+      const res = await app.fetch(
+        makeRequest({
+          ...mrOpenEvent,
+          object_attributes: {
+            ...mrOpenEvent.object_attributes,
+            draft: true,
+          },
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(mockRunPipeline).not.toHaveBeenCalled();
+    } finally {
+      // biome-ignore lint/suspicious/noExplicitAny: intentional test override
+      (config as any).REVIEW_DRAFT_MRS = originalReviewDraftMrs;
+    }
   });
 });
 

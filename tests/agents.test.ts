@@ -95,6 +95,14 @@ function makeBaseState(): ReviewState {
     changeCategories: ["billing", "API"],
     riskAreas: ["Check if webhook signature validation is implemented."],
     linkedTickets: [],
+    discussions: [],
+    summaryNotes: [],
+    checkpoint: null,
+    reviewRange: {
+      rangeStart: "abc123",
+      rangeEnd: "abc123",
+      mode: "full",
+    },
     rawFindings: [],
     verifiedFindings: [],
     summaryVerdict: "APPROVE",
@@ -213,6 +221,20 @@ describe("buildInvestigatorPrompt", () => {
   it("includes MR intent", () => {
     const prompt = buildInvestigatorPrompt(makeBaseState());
     expect(prompt).toContain("Add Stripe payment integration for subscriptions.");
+  });
+
+  it("includes the review range and mode", () => {
+    const prompt = buildInvestigatorPrompt({
+      ...makeBaseState(),
+      reviewRange: {
+        rangeStart: "1111111111111111111111111111111111111111",
+        rangeEnd: "2222222222222222222222222222222222222222",
+        mode: "incremental",
+      },
+    });
+    expect(prompt).toContain("## Review Range");
+    expect(prompt).toContain("Mode: incremental");
+    expect(prompt).toContain("1111111111111111111111111111111111111111..2222222222222222222222222222222222222222");
   });
 
   it("includes numbered risk hypotheses", () => {

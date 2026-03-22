@@ -4,9 +4,9 @@ This directory contains concise, token-optimized documentation intended for agen
 
 ## Context References
 
-- [Architecture](./context/ARCHITECTURE.md) — current runtime surface, webhook flow, repo manager, tool system, internal protocol boundary, and planned boundaries
+- [Architecture](./context/ARCHITECTURE.md) — current runtime surface, webhook flow, repo manager, tool system, internal protocol boundary, and implemented publishing behavior
 - [Configuration](./context/CONFIGURATION.md) — compact env var table sourced from `src/config.ts`
-- [Workflows](./context/WORKFLOWS.md) — implemented request flow, repo cache workflow, tool dispatch, tool-failure recovery, logging/observability, and future handoff points
+- [Workflows](./context/WORKFLOWS.md) — implemented request flow, repo cache workflow, tool dispatch, incremental review behavior, tool-failure recovery, and logging/observability
 
 ## Design References
 

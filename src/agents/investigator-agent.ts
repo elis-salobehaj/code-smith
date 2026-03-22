@@ -41,6 +41,15 @@ export function buildInvestigatorPrompt(state: ReviewState): string {
     : "(none — do a general review)";
 
   return [
+    `## Review Range`,
+    `Mode: ${state.reviewRange.mode}`,
+    `Range: ${state.reviewRange.rangeStart}..${state.reviewRange.rangeEnd}`,
+    state.reviewRange.mode === "incremental"
+      ? "Focus on changes introduced in this unreveiwed commit range. Use current-head repository context to evaluate impact, but do not raise findings based solely on older already-reviewed code outside this range."
+      : state.reviewRange.mode === "full"
+        ? "Review the full current MR state."
+        : "No new code delta exists in the current automatic review range.",
+    ``,
     `## MR Intent`,
     state.mrIntent,
     ``,

@@ -20,11 +20,13 @@ Implemented in `src/api/router.ts`.
 5. build `ReviewTriggerContext` carrying trigger semantics into the pipeline:
    - merge request events → `mode: "automatic"`, `source: "merge_request_event"`
    - `/ai-review` note events → `mode: "manual"`, `source: "mr_note_command"`, plus `noteId` and `rawCommand`
-6. generate `requestId` via `Bun.randomUUIDv7()` and propagate via LogTape `withContext()`
-7. dispatch on `QUEUE_ENABLED`:
+6. for merge-request `update` events, ignore metadata-only deliveries when GitLab reports the same `oldrev` and current `last_commit.id`
+7. when `REVIEW_DRAFT_MRS=false`, ignore automatic draft/WIP MR events but still allow manual `/ai-review` note commands
+8. generate `requestId` via `Bun.randomUUIDv7()` and propagate via LogTape `withContext()`
+9. dispatch on `QUEUE_ENABLED`:
    - `true`: add job to BullMQ `review` queue; a worker process calls `runPipeline()` asynchronously
    - `false` (default): call `runPipeline(event, trigger)` without awaiting (fire-and-forget, original behaviour)
-8. return `202 Accepted`
+10. return `202 Accepted`
 
 HTTP request/response logging is handled automatically by `@logtape/hono` middleware and emits structured JSON Lines to stdout. Health check requests are excluded from logging.
 
@@ -42,7 +44,10 @@ Implemented in `src/context/repo-manager.ts`.
 - cache location: `config.REPO_CACHE_DIR/<projectId>-<url-encoded-branch>`
 - first fetch path: shallow clone
 - refresh path: shallow fetch with explicit refspec + hard reset to `origin/<branch>`
+- post-refresh verification: `git rev-parse HEAD` must equal the expected GitLab MR head SHA or the pipeline throws before review runs
+- cache freshness touch: after clone/update, `utimes(repoPath, now, now)` bumps the directory mtime so active clones survive TTL cleanup on filesystems where git internals do not update the directory mtime consistently
 - cleanup path: delete cached directories older than TTL
+- retention policy: completed reviews keep the warmed clone on disk; eviction remains TTL-based rather than eager post-review deletion
 - security gate: clone URL hostname must match `config.GITLAB_URL`
 - TLS / custom CA: `buildGitEnv(config.GITLAB_CA_FILE)` is called inside every git subprocess spawn; when `GITLAB_CA_FILE` is set it adds `GIT_SSL_CAINFO` to the subprocess env so git trusts the configured CA bundle. `NODE_EXTRA_CA_CERTS` is set from the same value at startup (`src/index.ts`) for the `@gitbeaker/rest` API client
 - clone auth: GitLab token injected as `oauth2:<token>` HTTP basic credentials in the clone URL; no SSH key setup required
@@ -67,10 +72,28 @@ If a specific tool call throws, Agent 2 catches the failure and sends the error 
 
 ## 4. Full Pipeline
 
-`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → clone repo → fetch Jira context → run agents → publish findings.
-The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging. Future phases will use the trigger mode to branch automatic vs manual behavior (checkpoint skipping, publication policy).
-Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if an existing GitGandalf summary note already embeds the current `headSha`, the pipeline logs the skip and returns before fetching diffs, cloning the repo, or invoking agents. Manual `/ai-review` triggers bypass this guard and always run.
+`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → load current review ledger surfaces → clone repo → fetch Jira context → run agents → publish findings.
+The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging.
+Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if a cached top-level GitGandalf summary note already embeds the current `headSha`, the pipeline logs the skip and returns before repo refresh or agent execution. Manual `/ai-review` triggers bypass this guard and always run.
+The pipeline also caches MR discussions, top-level MR notes, and MR diff versions once per run. Top-level notes are used for summary/head-sha guards and checkpoint parsing; discussions are reused for inline duplicate detection.
+Runs are serialized per `{projectId}-{branch}` across the full pipeline, starting before `getMRDetails()`. This ensures a later same-branch delivery re-reads MR state after any earlier run writes its summary/checkpoint.
 All pipeline logs emit structured JSON under `["gandalf", "pipeline"]` and carry the implicit `requestId`, `projectId`, and `mrIid` context set by the router and pipeline entry.
+
+### Checkpoint write/read flow
+
+- Summary publication embeds a `git-gandalf:review-run` block inside the summary note body before the footer.
+- The marker includes `format_version=1`, status, trigger mode, reviewed range start/end SHAs, MR version id, publish flags, run id, and timestamp.
+- `src/publisher/checkpoint.ts` parses those markers with Zod and selects the latest successful checkpoint.
+- Failed or partial runs may still write markers for auditability, but they are excluded when determining the next automatic review checkpoint.
+
+### Incremental review flow
+
+- Pipeline loads MR commits and MR diff versions alongside the current MR diff, discussions, and top-level notes.
+- `selectReviewRange()` chooses `full`, `incremental`, or `skip` mode for automatic runs from the last successful checkpoint and the current MR commit list.
+- When the checkpoint head SHA is missing from the current MR commit list, GitGandalf treats the branch as rewritten and falls back to a full current-MR review.
+- When the checkpoint end SHA already equals the current head, the automatic run is skipped before repo refresh or agent execution.
+- For `incremental` mode, the analysis diff comes from GitLab repository compare (`from=lastReviewedHeadSha`, `to=currentHeadSha`); publisher anchoring continues to use the current MR diff refs unchanged.
+- This same-head skip, combined with per-branch serialization, keeps duplicate or out-of-order automatic webhook deliveries idempotent for the current head.
 
 When queue mode is enabled, each worker attempt is bounded by `REVIEW_JOB_TIMEOUT_MS`. If an attempt exceeds that boundary, the worker fails the attempt, BullMQ retries according to the queue policy, and terminal failures are copied into the `review-dead-letter` queue for operator inspection.
 
@@ -118,7 +141,10 @@ Current publishing behavior after review:
 
 - inline discussions are created only for findings that can be anchored to diff positions
 - non-diff findings are skipped for inline publication and summarized instead of crashing publication
-- summary notes are always posted for completed review runs; automatic same-head duplicate prevention now happens earlier in `src/api/pipeline.ts`, before diff fetch, repo refresh, or agent execution
+- automatic same-head duplicate prevention happens in `src/api/pipeline.ts` before diff fetch, repo refresh, or agent execution; unchanged-head automatic reruns do not reach the publisher
+- completed manual reruns always post a visible summary note, even when the current head was already reviewed
+- inline duplicate suppression is head-aware: notes from an older `position.headSha` never suppress findings on a newer head
+- manual inline duplicate suppression is narrower than automatic suppression: only same-head findings with the same marker and overlapping anchored line are skipped on manual reruns
 
 The agent subsystem is implemented and invoked from the API pipeline.
 

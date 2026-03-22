@@ -115,8 +115,13 @@ Current tests:
 - `tests/publisher.test.ts`: inline publication, duplicate detection, anchoring, and summary-note behavior
 - `tests/logger.test.ts`: LogTape configuration, filtering, and structured logging behavior
 - `tests/jira.test.ts`: `extractTicketKeys` pure function, `fetchJiraTicket` with mocked fetch, and `fetchLinkedTickets` integration covering disabled guard, key extraction, allow-list filtering, per-run cap, dedup, and ADF description parsing
+- `tests/gitlab-client.test.ts`: paginated MR commit and diff-version loading helpers
+- `tests/review-range.test.ts`: `full` / `incremental` / `skip` review-range selection
+- `tests/pipeline.test.ts`: same-branch serialization and state re-read behavior across concurrent deliveries
+- `tests/pipeline-policy.test.ts`: automatic same-head skip and manual rerun policy coverage
 - `tests/queue.test.ts`: `REVIEW_QUEUE_NAME` constant, `buildReviewJobData()`, and `reviewJobDataSchema` Zod validation
 - `tests/llm-providers.test.ts`: `tryProvidersInOrder()` fallback logic — single provider, pass-through args, two-provider fallback, all-fail re-throw, three-provider success, empty list
+- `tests/google-provider.test.ts`: Google Gemini adapter request/response coverage
 - `tests/review-worker-core.test.ts`: worker timeout boundary and dead-letter queue helper behavior without a real Valkey/BullMQ instance
 
 Use the repository's actual `bun test` output as the source of truth for suite size. The count changes as the implementation evolves.

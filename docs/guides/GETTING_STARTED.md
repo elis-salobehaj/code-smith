@@ -479,6 +479,12 @@ Implemented now:
 - recoverable Agent 2 tool errors, returned to the model as error tool results
 - structured logging via LogTape: JSON Lines to stdout, `LOG_LEVEL` filtering, request correlation
 - Jira read-only ticket enrichment: key extraction from MR title/description, REST API fetch, ADF description parsing, acceptance-criteria custom-field support, graceful degradation
+- BullMQ + Valkey queueing with a separate worker process, retry policy, timeout boundary, and dead-letter handling
+- multi-provider LLM fallback via `LLM_PROVIDER_ORDER` with Bedrock, OpenAI, and Google adapters
+- KinD and Kubernetes manifests for local cluster validation and deployment parity
+- review checkpoint ledger persisted in GitLab summary notes
+- incremental automatic review scope selection (`full`, `incremental`, `skip`) with compare-diff analysis for unreviewed ranges
+- metadata-only update skipping, explicit automatic-draft policy, and same-branch serialization for idempotent automatic delivery handling
 
 Every accepted webhook emits logs with a unique `requestId` plus `projectId` and `mrIid` for end-to-end traceability.
 
@@ -486,7 +492,9 @@ Set `LOG_LEVEL=debug` for verbose per-agent output, or `LOG_LEVEL=warn` for quie
 
 Still planned:
 
-- Phase 5 production hardening (task queue, Kubernetes, provider fallback)
+- Gandalf Awakening trigger aliases, acknowledgement notes, and tone-aware summary behavior
+- Phase 5.5 optional adapter evaluation remains deferred by the master plan
+- Phase 6 Jira write actions remain deferred pending explicit scope and security review
 
 ## Useful next commands
 

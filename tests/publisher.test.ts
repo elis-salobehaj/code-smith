@@ -2,6 +2,11 @@ import { describe, expect, it, mock } from "bun:test";
 import type { Finding } from "../src/agents/state";
 import type { GitLabClient } from "../src/gitlab-client/client";
 import type { DiffFile, Discussion, Note } from "../src/gitlab-client/types";
+import {
+  buildCheckpointMarker,
+  findLatestSuccessfulCheckpoint,
+  parseCheckpointMarker,
+} from "../src/publisher/checkpoint";
 import { formatFindingComment, formatSummaryComment, GitLabPublisher } from "../src/publisher/gitlab-publisher";
 import { normalizeSuggestionCodeForRange } from "../src/publisher/suggestion-normalizer";
 
@@ -32,6 +37,11 @@ const lowFinding: Finding = {
 };
 
 const diffRefs = { baseSha: "base123", headSha: "head456", startSha: "start789" };
+const validCheckpointFixture = await Bun.file("tests/fixtures/checkpoint-valid.md").text();
+const missingFieldsCheckpointFixture = await Bun.file("tests/fixtures/checkpoint-missing-fields.md").text();
+const invalidShaCheckpointFixture = await Bun.file("tests/fixtures/checkpoint-invalid-sha.md").text();
+const wrongVersionCheckpointFixture = await Bun.file("tests/fixtures/checkpoint-wrong-format-version.md").text();
+const failedCheckpointFixture = await Bun.file("tests/fixtures/checkpoint-failed.md").text();
 const diffFiles: DiffFile[] = [
   {
     oldPath: "src/auth/middleware.ts",
@@ -224,6 +234,83 @@ describe("formatSummaryComment", () => {
     const body = formatSummaryComment("APPROVE", []);
     expect(body).not.toContain("<!-- git-gandalf:head sha=");
   });
+
+  it("embeds a checkpoint marker before the footer when checkpoint metadata is provided", () => {
+    const body = formatSummaryComment("APPROVE", [], "a".repeat(40), {
+      status: "success",
+      trigger: "automatic",
+      rangeStartSha: "b".repeat(40),
+      rangeEndSha: "a".repeat(40),
+      mrVersionId: 42,
+      publishedInline: false,
+      publishedSummary: true,
+      runId: "run-123",
+      timestamp: "2026-03-20T00:00:00.000Z",
+      source: "merge_request_event",
+    });
+
+    expect(body).toContain("<!-- git-gandalf:review-run");
+    expect(body).toContain("format_version=1");
+    const markerIdx = body.indexOf("<!-- git-gandalf:review-run");
+    const footerIdx = body.indexOf("\n---\n");
+    expect(markerIdx).toBeLessThan(footerIdx);
+  });
+});
+
+describe("checkpoint markers", () => {
+  it("parses a valid checkpoint marker", () => {
+    const parsed = parseCheckpointMarker(validCheckpointFixture);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.status).toBe("success");
+    expect(parsed?.mrVersionId).toBe(99);
+    expect(parsed?.rangeEndSha).toBe("b".repeat(40));
+  });
+
+  it("ignores markers with missing required fields", () => {
+    expect(parseCheckpointMarker(missingFieldsCheckpointFixture)).toBeNull();
+  });
+
+  it("ignores markers with invalid SHA formats", () => {
+    expect(parseCheckpointMarker(invalidShaCheckpointFixture)).toBeNull();
+  });
+
+  it("ignores markers with the wrong format version", () => {
+    expect(parseCheckpointMarker(wrongVersionCheckpointFixture)).toBeNull();
+  });
+
+  it("selects the most recent successful checkpoint and ignores failed ones", () => {
+    const olderSuccess = {
+      body: buildCheckpointMarker({
+        status: "success",
+        trigger: "automatic",
+        rangeStartSha: "a".repeat(40),
+        rangeEndSha: "b".repeat(40),
+        mrVersionId: 1,
+        publishedInline: true,
+        publishedSummary: true,
+        runId: "run-1",
+        timestamp: "2026-03-20T00:00:00.000Z",
+      }),
+    };
+    const failed = { body: failedCheckpointFixture };
+    const newerSuccess = {
+      body: buildCheckpointMarker({
+        status: "success",
+        trigger: "manual",
+        rangeStartSha: "c".repeat(40),
+        rangeEndSha: "d".repeat(40),
+        mrVersionId: 3,
+        publishedInline: false,
+        publishedSummary: true,
+        runId: "run-3",
+        timestamp: "2026-03-22T00:00:00.000Z",
+      }),
+    };
+
+    const checkpoint = findLatestSuccessfulCheckpoint([olderSuccess, failed, newerSuccess]);
+    expect(checkpoint?.mrVersionId).toBe(3);
+    expect(checkpoint?.status).toBe("success");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -251,7 +338,7 @@ function makeDiscussion(filePath: string, line: number): Discussion {
   return { id: "disc-1", notes: [note] };
 }
 
-function makeBotDiscussion(filePath: string, line: number, finding: Finding): Discussion {
+function makeBotDiscussion(filePath: string, line: number, finding: Finding, headSha = "head"): Discussion {
   const note: Note = {
     id: 2,
     body: formatFindingComment(finding),
@@ -261,7 +348,7 @@ function makeBotDiscussion(filePath: string, line: number, finding: Finding): Di
     position: {
       baseSha: "base",
       startSha: "start",
-      headSha: "head",
+      headSha,
       positionType: "text",
       newPath: filePath,
       newLine: line,
@@ -325,7 +412,12 @@ describe("GitLabPublisher.postInlineComments", () => {
   });
 
   it("skips a finding when the same GitGandalf marker already exists", async () => {
-    const existing = makeBotDiscussion(criticalFinding.file, criticalFinding.lineStart, criticalFinding);
+    const existing = makeBotDiscussion(
+      criticalFinding.file,
+      criticalFinding.lineStart,
+      criticalFinding,
+      diffRefs.headSha,
+    );
     const client = makeMockClient([existing]);
     const pub = new GitLabPublisher(client);
     await pub.postInlineComments(1, 2, [criticalFinding, lowFinding], diffRefs, diffFiles);
@@ -359,6 +451,50 @@ describe("GitLabPublisher.postInlineComments", () => {
     const pub = new GitLabPublisher(client);
     await pub.postInlineComments(1, 2, [criticalFinding, lowFinding], diffRefs, diffFiles);
     expect(client.createInlineDiscussion).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not suppress a valid finding when the prior GitGandalf note belongs to an older head", async () => {
+    const existing = makeBotDiscussion(
+      criticalFinding.file,
+      criticalFinding.lineStart,
+      criticalFinding,
+      "older-head-sha",
+    );
+    const client = makeMockClient([existing]);
+    const pub = new GitLabPublisher(client);
+    await pub.postInlineComments(1, 2, [criticalFinding], diffRefs, diffFiles);
+    expect(client.createInlineDiscussion).toHaveBeenCalledTimes(1);
+  });
+
+  it("manual reruns suppress only exact same-head duplicates", async () => {
+    const existing = makeBotDiscussion(
+      criticalFinding.file,
+      criticalFinding.lineStart,
+      criticalFinding,
+      diffRefs.headSha,
+    );
+    const client = makeMockClient([existing]);
+    const pub = new GitLabPublisher(client);
+    await pub.postInlineComments(1, 2, [criticalFinding], diffRefs, diffFiles, "manual");
+    expect(client.createInlineDiscussion).not.toHaveBeenCalled();
+  });
+
+  it("manual reruns still post when the prior note matches the head but not the exact line range", async () => {
+    const shiftedFinding: Finding = {
+      ...criticalFinding,
+      lineStart: 44,
+      lineEnd: 45,
+    };
+    const existing = makeBotDiscussion(
+      criticalFinding.file,
+      criticalFinding.lineStart,
+      shiftedFinding,
+      diffRefs.headSha,
+    );
+    const client = makeMockClient([existing]);
+    const pub = new GitLabPublisher(client);
+    await pub.postInlineComments(1, 2, [criticalFinding], diffRefs, diffFiles, "manual");
+    expect(client.createInlineDiscussion).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -401,5 +537,24 @@ describe("GitLabPublisher.postSummaryComment", () => {
     await pub.postSummaryComment(1, 2, "APPROVE", [], "dupesha");
     expect(client.getMRNotes).not.toHaveBeenCalled();
     expect(client.createMRNote).toHaveBeenCalledTimes(1);
+  });
+
+  it("embeds checkpoint metadata in the posted summary body", async () => {
+    const client = makeMockClient();
+    const pub = new GitLabPublisher(client);
+    await pub.postSummaryComment(1, 2, "APPROVE", [], "a".repeat(40), {
+      status: "success",
+      trigger: "automatic",
+      rangeStartSha: "b".repeat(40),
+      rangeEndSha: "a".repeat(40),
+      mrVersionId: 77,
+      publishedInline: false,
+      publishedSummary: true,
+      runId: "run-77",
+      timestamp: "2026-03-20T00:00:00.000Z",
+    });
+    const [, , body] = (client.createMRNote as ReturnType<typeof mock>).mock.calls[0] as [number, number, string];
+    expect(body).toContain("format_version=1");
+    expect(body).toContain("mr_version_id=77");
   });
 });

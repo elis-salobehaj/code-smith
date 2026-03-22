@@ -72,3 +72,20 @@ export interface Discussion {
   id: string;
   notes: Note[];
 }
+
+export interface MRVersion {
+  id: number;
+  headCommitSha: string;
+  baseCommitSha: string;
+  startCommitSha: string;
+  createdAt: string;
+}
+
+export interface MRCommit {
+  id: string;
+  shortId: string;
+  title: string;
+  authoredDate: string;
+  committedDate: string;
+  parentIds: string[];
+}

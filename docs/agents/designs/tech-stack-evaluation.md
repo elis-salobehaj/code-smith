@@ -13,7 +13,7 @@
 
 ## Tooling
 - **Linting/Formatting**: Biome (replaces ESLint/Prettier).
-- **Task Queue**: BullMQ + Valkey (Phase 5+).
+- **Task Queue**: BullMQ + Valkey (implemented in Phase 5).
 
 ## Decisions
 - Avoid python-based AI orchestration in favor of native TS, maintaining end-to-end type safety.

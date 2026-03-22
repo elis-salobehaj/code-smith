@@ -4,9 +4,12 @@
 
 import { z } from "zod";
 import type { ReviewTriggerContext } from "../api/trigger";
-import type { DiffFile, MRDetails, ParsedHunk } from "../gitlab-client/types";
+import type { DiffFile, Discussion, MRDetails, ParsedHunk } from "../gitlab-client/types";
 import type { JiraTicket } from "../integrations/jira/client";
+import type { CheckpointRecord } from "../publisher/checkpoint";
+import type { SummaryNoteRecord } from "../publisher/summary-note";
 import type { AgentMessage } from "./protocol";
+import type { ReviewRange } from "./review-range";
 
 // ---------------------------------------------------------------------------
 // Finding — one concrete code-review finding produced by Agent 2 and
@@ -42,6 +45,10 @@ export interface ReviewState {
   triggerContext: ReviewTriggerContext;
   /** Jira tickets linked from the MR title/description (Phase 4.5). Empty when Jira is disabled. */
   linkedTickets: JiraTicket[];
+  discussions: Discussion[];
+  summaryNotes: SummaryNoteRecord[];
+  checkpoint: CheckpointRecord | null;
+  reviewRange: ReviewRange;
 
   // --- Agent 1 output ---
   mrIntent: string;

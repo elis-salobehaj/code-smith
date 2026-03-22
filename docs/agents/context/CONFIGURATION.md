@@ -29,6 +29,7 @@ Compact reference for all environment variables accepted by `src/config.ts`.
 | `VALKEY_URL` | no | URL string | `redis://localhost:6379` | Connection URL for the Valkey (or Redis-compatible) instance backing the BullMQ queue. Parsed at runtime into `{ host, port }` options — no standalone `ioredis` package needed. |
 | `WORKER_CONCURRENCY` | no | positive integer | `2` | Number of concurrent review jobs each worker process handles. Tune based on available memory and LLM rate limits. |
 | `REVIEW_JOB_TIMEOUT_MS` | no | positive integer | `600000` | Hard timeout per review-job attempt in the worker, in milliseconds. When exceeded, the attempt fails with a timeout error and BullMQ retry/dead-letter logic takes over. |
+| `REVIEW_DRAFT_MRS` | no | boolean string | `true` | Controls whether automatic merge-request webhooks for draft/WIP MRs should trigger reviews. When set to `false`, draft MR webhooks return `200 Ignored`; manual `/ai-review` note commands still run. |
 | `LLM_PROVIDER_ORDER` | no | comma-separated string | `bedrock` | Ordered list of LLM provider names to attempt. Supported values: `bedrock`, `openai`, `google`. On failure, the next provider is tried. E.g. `bedrock,openai` uses OpenAI as an automatic fallback. |
 | `OPENAI_API_KEY` | no | string | none | OpenAI API key. Required when `openai` appears in `LLM_PROVIDER_ORDER`. |
 | `OPENAI_MODEL` | no | string | `gpt-4o` | OpenAI model ID to use for chat completions. |

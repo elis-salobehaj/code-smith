@@ -1,12 +1,12 @@
 ---
 title: "Review Edge Cases Hardening"
-status: active
+status: implemented
 priority: high
 estimated_hours: 24-40
 dependencies:
   - docs/plans/active/git-gandalf-master-plan.md
 created: 2026-03-17
-date_updated: 2026-03-18
+date_updated: 2026-03-21
 
 related_files:
   - src/api/router.ts
@@ -42,33 +42,38 @@ completion:
   - [x] E1.4 Add tests for auto vs manual trigger behavior
   - [x] Remediation complete — see `docs/plans/review-reports/phase-E1-review-2026-03-18-t7q2.md`
   - "# Phase E2 — Review Checkpointing"
-  - [ ] E2.1 Persist review-run metadata in GitLab notes using a machine-readable marker
-  - [ ] E2.2 Record last successful reviewed head SHA and reviewed range start SHA
-  - [ ] E2.3 Ignore failed or partial runs when computing the next automatic review range
-  - [ ] E2.4 Add parsers and fixtures for existing/stale review notes
+  - [x] E2.1 Persist review-run metadata in GitLab notes using a machine-readable marker
+  - [x] E2.2 Record last successful reviewed head SHA and reviewed range start SHA
+  - [x] E2.3 Ignore failed or partial runs when computing the next automatic review range
+  - [x] E2.4 Add parsers and fixtures for existing/stale review notes
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E2-review-2026-03-20-k9v4.md`
   - "# Phase E3 — Incremental Multi-Commit Review"
-  - [ ] E3.1 Fetch MR commits and MR versions from GitLab
-  - [ ] E3.2 Default automatic review scope to the aggregate unreveiwed commit range from last successful reviewed head to current head
-  - [ ] E3.3 Fall back to full current MR review when no prior successful review exists
-  - [ ] E3.4 Fall back safely when history was rewritten by force-push or rebase
-  - [ ] E3.5 Skip automatic review when no new code delta exists
+  - [x] E3.1 Fetch MR commits and MR versions from GitLab
+  - [x] E3.2 Default automatic review scope to the aggregate unreviewed commit range from last successful reviewed head to current head
+  - [x] E3.3 Fall back to full current MR review when no prior successful review exists
+  - [x] E3.4 Fall back safely when history was rewritten by force-push or rebase
+  - [x] E3.5 Skip automatic review when no new code delta exists
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E3-review-2026-03-20-r4m2.md`
   - "# Phase E4 — Publication And Dedupe Semantics"
-  - [ ] E4.1 Separate “run the review” from “post duplicate findings” behavior
-  - [ ] E4.2 Prevent automatic duplicate summary notes for the same reviewed head
-  - [ ] E4.3 Define manual rerun publication behavior for inline findings and summary notes
-  - [ ] E4.4 Add stale-review detection so older findings do not block newer valid findings
+  - [x] E4.1 Separate “run the review” from “post duplicate findings” behavior
+  - [x] E4.2 Prevent automatic duplicate summary notes for the same reviewed head
+  - [x] E4.3 Define manual rerun publication behavior for inline findings and summary notes
+  - [x] E4.4 Add stale-review detection so older findings do not block newer valid findings
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E4-review-2026-03-21-p6n3.md`
   - "# Phase E5 — Repo Freshness And Concurrency"
-  - [ ] E5.1 Confirm same-branch cache updates always fetch/reset to latest head before review
-  - [ ] E5.2 Add per-project+branch locking to prevent concurrent runs from racing on one cached clone
-  - [ ] E5.3 Add logging for requested branch, fetched head, reviewed range, and cache path
-  - [ ] E5.4 Add tests for same-branch concurrent trigger behavior
-  - [ ] E5.5 Decide and implement repo-retention policy after review completion
+  - [x] E5.1 Confirm same-branch cache updates always fetch/reset to latest head before review
+  - [x] E5.2 Add per-project+branch locking to prevent concurrent runs from racing on one cached clone
+  - [x] E5.3 Add logging for requested branch, fetched head, reviewed range, and cache path
+  - [x] E5.4 Add tests for same-branch concurrent trigger behavior
+  - [x] E5.5 Decide and implement repo-retention policy after review completion
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E5-review-2026-03-21-f2m8.md`
   - "# Phase E6 — Edge Cases, Docs, And Audit"
-  - [ ] E6.1 Handle metadata-only MR updates without redundant reviews
-  - [ ] E6.2 Handle out-of-order webhooks and duplicate delivery safely
-  - [ ] E6.3 Handle draft/WIP policy explicitly
-  - [ ] E6.4 Update docs for incremental review semantics and manual override behavior
-  - [ ] E6.5 Run review-quality validation and plan-phase audit
+  - [x] E6.1 Handle metadata-only MR updates without redundant reviews
+  - [x] E6.2 Handle out-of-order webhooks and duplicate delivery safely
+  - [x] E6.3 Handle draft/WIP policy explicitly
+  - [x] E6.4 Update docs for incremental review semantics and manual override behavior
+  - [x] E6.5 Run review-quality validation and plan-phase audit
+  - [x] Remediation complete — see `docs/plans/review-reports/phase-E6-review-2026-03-21-h7q4.md`
 ---
 
 # Review Edge Cases Hardening
@@ -102,7 +107,7 @@ That means:
 - if no prior successful review exists for the MR, review the full current MR
 - if prior successful reviews exist, review from the last successfully reviewed
   head commit forward to the latest MR head commit
-- review the aggregate unreveiwed range up to latest head, not each intermediate
+- review the aggregate unreviewed range up to latest head, not each intermediate
   commit as an isolated snapshot
 
 ### Manual behavior
@@ -236,7 +241,7 @@ The plan treats the following as the intended product direction.
 
 ### Review scope model
 
-- automatic MR events review only the aggregate unreveiwed code range
+- automatic MR events review only the aggregate unreviewed code range
 - the review target is the current head state, not each intermediate commit state
 - if no trusted prior review checkpoint exists, fall back to full current MR review
 
@@ -350,7 +355,7 @@ Implementation options to evaluate:
 ### Option A: MR versions as primary range boundary
 
 Use the previous successful reviewed head SHA and the current version’s head SHA to
-select the unreveiwed range.
+select the unreviewed range.
 
 Pros:
 
@@ -406,7 +411,7 @@ We need two separate decisions:
 
 ### A. Should a review run execute?
 
-- automatic: only if a new unreveiwed code range exists
+- automatic: only if a new unreviewed code range exists
 - manual: always yes
 
 ### B. What should be published?
@@ -547,7 +552,7 @@ If some inline notes fail but others succeed:
 
 ### 8. Empty diff range
 
-If the computed automatic unreveiwed range has no code changes:
+If the computed automatic unreviewed range has no code changes:
 
 - skip review cleanly
 - optionally log a no-op event rather than posting anything
@@ -693,7 +698,7 @@ Docs to update: `docs/agents/context/ARCHITECTURE.md` (add "Review Ledger" subse
 
 ## Phase E3 — Incremental multi-commit review
 
-Teach GitGandalf how to review only the unreveiwed aggregate delta.
+Teach GitGandalf how to review only the unreviewed aggregate delta.
 
 **Prerequisite**: E3.1 must be complete before E3.2–E3.5 can begin. Implement and test
 E3.1 with real API calls before starting E3.2 (O4 finding).
@@ -839,7 +844,7 @@ Add a more explicit test matrix by subsystem.
 
 - one-commit MR with no prior checkpoint -> full review
 - multi-commit MR with one prior checkpoint -> review from last reviewed head to current head
-- multi-commit MR with several unreveiwed commits -> single aggregate range to latest head
+- multi-commit MR with several unreviewed commits -> single aggregate range to latest head
 - no net-new code delta -> skip automatic review
 - metadata-only update with unchanged head -> skip automatic review
 
@@ -1047,7 +1052,7 @@ Should draft MRs be reviewed automatically, or only manually?
 
 This plan is complete when GitGandalf can:
 
-- automatically review only unreveiwed commit ranges on multi-commit MRs
+- automatically review only unreviewed commit ranges on multi-commit MRs
 - always rerun on `/ai-review`
 - avoid redundant automatic reruns for the same head
 - survive duplicate and out-of-order webhooks

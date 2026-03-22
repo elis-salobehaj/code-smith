@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, mock } from "bun:test";
 import { mkdir, rm, stat, utimes } from "node:fs/promises";
 import { join } from "node:path";
 import { config } from "../src/config";
@@ -135,6 +135,55 @@ describe("RepoManager.cloneOrUpdate SSRF guard", () => {
     const manager = new RepoManager();
     const expected = new URL(config.GITLAB_URL).hostname;
     await expect(manager.cloneOrUpdate("https://evil.attacker.com/org/repo.git", "main", 1)).rejects.toThrow(expected);
+  });
+});
+
+describe("RepoManager.cloneOrUpdate freshness checks", () => {
+  it("bumps the cache directory mtime after a successful refresh and validates the fetched head", async () => {
+    const manager = new RepoManager();
+    const branch = "main";
+    const expectedHeadSha = "a".repeat(40);
+    const repoPath = manager.getRepoPath(77, branch);
+    await mkdir(join(repoPath, ".git"), { recursive: true });
+
+    const oldTime = new Date(Date.now() - 2 * 3600 * 1000);
+    await utimes(repoPath, oldTime, oldTime);
+    const before = (await stat(repoPath)).mtimeMs;
+
+    const runMock = mock(async (cmd: string[]) => {
+      if (cmd[1] === "rev-parse") {
+        return `${expectedHeadSha}\n`;
+      }
+      return "";
+    });
+    // biome-ignore lint/suspicious/noExplicitAny: test-only override of a private helper
+    (manager as any).run = runMock;
+
+    await manager.cloneOrUpdate(`${config.GITLAB_URL}/alice/my-project.git`, branch, 77, expectedHeadSha);
+
+    const after = (await stat(repoPath)).mtimeMs;
+    expect(after).toBeGreaterThan(before);
+    expect(runMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("throws when the fetched local HEAD does not match the expected MR head", async () => {
+    const manager = new RepoManager();
+    const branch = "main";
+    const repoPath = manager.getRepoPath(78, branch);
+    await mkdir(join(repoPath, ".git"), { recursive: true });
+
+    const runMock = mock(async (cmd: string[]) => {
+      if (cmd[1] === "rev-parse") {
+        return `${"b".repeat(40)}\n`;
+      }
+      return "";
+    });
+    // biome-ignore lint/suspicious/noExplicitAny: test-only override of a private helper
+    (manager as any).run = runMock;
+
+    await expect(
+      manager.cloneOrUpdate(`${config.GITLAB_URL}/alice/my-project.git`, branch, 78, "a".repeat(40)),
+    ).rejects.toThrow("Local clone HEAD does not match GitLab MR head SHA");
   });
 });
 

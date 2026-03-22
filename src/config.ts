@@ -62,6 +62,10 @@ const envSchema = z
       .int()
       .positive()
       .default(10 * 60 * 1_000),
+    REVIEW_DRAFT_MRS: z
+      .string()
+      .default("true")
+      .transform((v) => v === "true"),
 
     // ---------------------------------------------------------------------------
     // LLM provider fallback (Phase 5.3 — OpenAI / Google Gemini)
