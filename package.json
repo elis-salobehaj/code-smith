@@ -17,9 +17,10 @@
     "ci": "biome ci . && tsc --noEmit && bun test"
   },
   "devDependencies": {
+    "@biomejs/biome": "latest",
     "@types/bun": "latest",
-    "typescript": "^5.9.3",
-    "@biomejs/biome": "latest"
+    "@types/picomatch": "^4.0.2",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -33,6 +34,7 @@
     "bullmq": "^5.71.0",
     "hono": "^4.12.8",
     "openai": "^6.32.0",
+    "picomatch": "^4.0.4",
     "zod": "latest"
   }
 }

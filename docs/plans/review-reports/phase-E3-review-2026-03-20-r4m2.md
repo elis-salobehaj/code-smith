@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E3
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 
 ### Summary

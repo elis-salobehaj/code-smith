@@ -18,9 +18,9 @@ related_files:
   - src/publisher/gitlab-publisher.ts
   - src/analytics/store.ts
   - src/analytics/sqlite-store.ts
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
   - docs/README.md
 
 tags:
@@ -135,7 +135,7 @@ Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a 
 - Install `prom-client` in a throwaway branch and write a minimal test script (`scripts/prom-client-bun-spike.ts`)
 - Verify: register a `Counter`, `Histogram`, and `Gauge`; call `registry.metrics()` and confirm valid Prometheus exposition format
 - Test `collectDefaultMetrics()` under Bun — document which default collectors work (expected gaps: `perf_hooks` event-loop lag, `/proc/self/fd` file descriptor count, `process.cpuUsage()` results)
-- **Decision gate**: if Counter/Histogram/Gauge work and `registry.metrics()` emits valid output, proceed with `prom-client`. If core metric types fail, evaluate a minimal hand-rolled registry (Counter/Histogram/Gauge → exposition string) as a fallback. Document the decision in a `docs/agents/designs/prom-client-bun-compat.md` ADR.
+- **Decision gate**: if Counter/Histogram/Gauge work and `registry.metrics()` emits valid output, proceed with `prom-client`. If core metric types fail, evaluate a minimal hand-rolled registry (Counter/Histogram/Gauge → exposition string) as a fallback. Document the decision in a `docs/designs/prom-client-bun-compat.md` ADR.
 
 **A1.1** — Add `prom-client` to dependencies:
 - `bun add prom-client`

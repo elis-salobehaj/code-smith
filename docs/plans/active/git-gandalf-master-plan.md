@@ -107,7 +107,7 @@ completion:
 >
 > This is the definitive implementation plan for GitGandalf (GG) — a self-hosted, multi-agent code review service that intercepts GitLab MR events, deeply reasons about code changes using LLM-powered agents with tool-calling capabilities, and posts high-signal, inline review comments back to the MR.
 >
-> **Reference**: See [docs/humans/designs/tech-stack-evaluation.md](../../humans/designs/tech-stack-evaluation.md) for the broader stack decision record.
+> **Reference**: See [docs/designs/tech-stack-evaluation.md](../../designs/tech-stack-evaluation.md) for the broader stack decision record.
 
 ---
 

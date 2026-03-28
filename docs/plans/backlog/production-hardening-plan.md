@@ -18,9 +18,9 @@ related_files:
   - src/agents/llm-client.ts
   - src/queue/review-worker.ts
   - src/worker.ts
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
   - docs/guides/GETTING_STARTED.md
   - docs/guides/DEVELOPMENT.md
   - docs/README.md
@@ -438,7 +438,7 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
 
 **PH6.1** — Create `CONTRIBUTING.md` at repo root:
 - Development setup (one-command: `bun install && cp .env.example .env && bun run dev`)
-- Architecture overview (link to docs/agents/context/ARCHITECTURE.md)
+- Architecture overview (link to docs/context/ARCHITECTURE.md)
 - Code organization guide (modules, where to add new features)
 - PR process (branch naming, commit conventions via conventional-commits skill, review expectations)
 - Code style (Biome, strict TypeScript, Zod boundaries)

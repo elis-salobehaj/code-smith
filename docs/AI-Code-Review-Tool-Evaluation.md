@@ -1,6 +1,6 @@
 # AI Code Review Tool Evaluation for GitLab Integration
 
-**Author:** Elis Salobehaj | **Date:** March 21, 2026 | **Audience:** VP of Technology
+**Author:** Elis Salobehaj | **Date:** March 28, 2026 | **Audience:** VP of Technology
 
 ---
 
@@ -23,6 +23,8 @@ The trade-offs are not symmetrical:
 **Recommendation framing:** if leadership wants the fastest low-risk adoption path, GitLab Duo is the pragmatic default. If leadership wants the strongest commercial review product and is comfortable with third-party vendor review processing, CodeRabbit is the strongest buy option. If leadership views data sovereignty and internal control as strategic rather than tactical, Git Gandalf remains the most controllable option but requires deliberate production hardening.
 
 This revision prioritizes claims that are explicitly supported by vendor documentation. Where public documentation is ambiguous, inconsistent, or incomplete, the document flags that ambiguity instead of presenting it as settled fact.
+
+It also reflects Git Gandalf's newly implemented `.gitgandalf.yaml` repo-review-config foundation, but only credits shipped behavior today: repo-root discovery, YAML parsing, strict validation, documented schema, and safe fallback defaults. Planned downstream consumers such as diff filtering, prompt injection, and output shaping are not scored as delivered yet.
 
 ---
 
@@ -108,6 +110,7 @@ Git Gandalf implements a **3-stage agentic pipeline** purpose-built for deep cod
 - Incremental review via checkpoint system: machine-readable markers track reviewed SHA ranges; subsequent pushes review only new commits unless rebase/force-push is detected.
 - Branch-scoped pipeline serialization prevents race conditions on rapid pushes.
 - Jira integration pulls ticket context (summary, status, acceptance criteria) for richer analysis.
+- Repo-owned review configuration now has a first-class foundation via `.gitgandalf.yaml`, giving teams a documented YAML contract for exclusions, review instructions, severity defaults, feature flags, linter-profile references, and output preferences without editing deployment env vars.
 - Full source code access means prompts, agent behavior, and review logic can be modified without vendor dependencies.
 - Strongest data sovereignty posture — no third-party review platform is involved, and the organization controls all LLM provider relationships directly.
 - Lowest direct cost of any option (LLM tokens only, no per-seat licensing).
@@ -116,6 +119,7 @@ Git Gandalf implements a **3-stage agentic pipeline** purpose-built for deep cod
 - **Pre-production maturity.** Git Gandalf is a well-engineered prototype, not a battle-tested product. There is no production deployment history, no performance telemetry, no SLA documentation, and no operational runbook.
 - **No built-in linter or SAST integration.** Review quality relies entirely on LLM reasoning. CodeRabbit's 40+ linter integrations and GitLab's separate SAST features provide additional coverage layers.
 - **No organizational learning.** There is no feedback mechanism to improve reviews over time. CodeRabbit's "Learnings" system is a genuine competitive advantage here.
+- **Repo config is only partially realized.** `.gitgandalf.yaml` is now loaded, validated, and documented, but most config-driven behavior is still planned rather than fully enforced in the live review pipeline.
 - **No PR summary, walkthrough, or architecture diagram generation.** Git Gandalf outputs findings + a summary verdict only.
 - **No analytics dashboard.** No way to measure review trends, finding rates, or team-level metrics without building custom reporting on structured logs.
 - **Bus factor risk.** Currently a single-contributor project. While documentation is thorough, there is no secondary maintainer or contributor community.
@@ -253,6 +257,7 @@ This is a critical evaluation axis for any organization handling sensitive sourc
 | Custom review instructions | Yes (YAML, per-file patterns, language-specific) | Yes (YAML + AST + path-based + Learnings) | Yes (system prompts, source code) |
 | Linter integration | Separate GitLab SAST pipeline | 40+ built-in linters + SAST | None |
 | Custom agents/flows | Yes (Agent Platform) | No | Full control (source code) |
+| Repo-owned review config | Yes (`.gitlab/duo/mr-review-instructions.yaml`) | Yes (`.coderabbit.yaml`) | Partial today (`.gitgandalf.yaml` foundation shipped; most runtime consumers still in progress) |
 | Prompt engineering access | Not exposed | Not exposed | Full access |
 | Integration extensibility | Agent Platform ecosystem | MCP servers, Jira, Linear | Any (source code) |
 | Organizational learning | No (feature requested) | Yes (Learnings) | No |
@@ -295,6 +300,7 @@ This is a critical evaluation axis for any organization handling sensitive sourc
 | Lowest direct cost | No linter/SAST integration |
 | Deep agentic review (3-stage + full repo access + reinvestigation) | No analytics dashboard |
 | Multi-provider LLM fallback (no vendor lock-in) | Single contributor — bus factor risk |
+| Repo-owned `.gitgandalf.yaml` contract for per-repo review instructions, exclusions, and future output controls | Most `.gitgandalf.yaml` fields are not yet enforced end-to-end in review execution |
 | Full source code control and prompt customization | No organizational learning / feedback loop |
 | Incremental review via checkpoint ledger | No PR summary/walkthrough/diagram generation |
 | Jira ticket context enrichment | No one-click fix |
@@ -333,9 +339,9 @@ This rubric is intended for decision support, not mathematical certainty. Scores
 | Cost efficiency | 15% | Public pricing, published billing mechanics, and estimated internal operating cost assumptions | Medium | 7/10 | 5/10 | 8/10 |
 | Ease of setup & operations | 10% | Required infrastructure, rollout steps, and day-2 operational burden | High | 9/10 | 8/10 | 5/10 |
 | GitLab integration depth | 10% | Native workflow support, rollout controls, supported versions, and MR interaction patterns | Medium | 9/10 | 7/10 | 7/10 |
-| Customization & extensibility | 5% | Review instructions, model/path configurability, source access, and extensibility model | Medium | 6/10 | 7/10 | 9/10 |
+| Customization & extensibility | 5% | Review instructions, model/path configurability, source access, extensibility model, and shipped repo-owned configuration surface | Medium | 6/10 | 7/10 | 10/10 |
 | Vendor risk / sustainability | 5% | Vendor posture, support model, ownership profile, and internal bus-factor risk | Medium | 9/10 | 6/10 | 5/10 |
-| **Weighted Score** | **100%** | Weighted aggregate of the above rows | **Medium** | **7.4** | **6.9** | **7.3** |
+| **Weighted Score** | **100%** | Weighted aggregate of the above rows | **Medium** | **7.4** | **6.9** | **7.4** |
 
 ### Score Notes
 
@@ -347,10 +353,10 @@ This rubric is intended for decision support, not mathematical certainty. Scores
 | Cost efficiency | GitLab Duo improves relative to the prior draft because the public GitLab Credits model is now better understood. Git Gandalf remains strong on direct cost, but not dominant enough to score higher than 8/10 because support and maintenance obligations sit entirely with us. |
 | Ease of setup & operations | GitLab Duo leads because it is native. CodeRabbit is close behind because installation is lightweight in SaaS mode. Git Gandalf remains materially heavier because the organization owns deployment, queueing, monitoring, and long-term support. |
 | GitLab integration depth | GitLab Duo leads as the native platform feature with cascading settings, draft handling, and description/commit message generation. CodeRabbit and Git Gandalf both integrate via webhook and inline commenting but neither has the same level of native workflow embedding. |
-| Customization & extensibility | Git Gandalf leads because full source code access gives unrestricted modification capability. CodeRabbit's YAML + AST configuration plus Learnings system is richer than GitLab Duo's YAML-only custom review instructions, but neither exposes internal LLM prompts. |
+| Customization & extensibility | Git Gandalf now combines unrestricted source access with a shipped repo-owned `.gitgandalf.yaml` configuration contract. That closes part of the ergonomics gap with GitLab Duo and CodeRabbit, which both already expose repo-level YAML customization. The increase reflects the delivered configuration surface only; prompt injection, diff filtering, and output consumers are still planned. |
 | Vendor risk / sustainability | GitLab Duo leads as a public-company incumbent already embedded in our infrastructure. CodeRabbit is a private vendor requiring additional diligence. Git Gandalf carries bus-factor risk from single-contributor ownership. |
 
-**Interpretation:** the weighted scores are close — GitLab Duo and Git Gandalf are separated by 0.1 points — because the tools optimize for different executive priorities. GitLab Duo takes a narrow lead on aggregate because its production readiness, platform integration, and ease of operations carry significant rubric weight. Git Gandalf closes the gap almost entirely through data sovereignty and customization. The practical takeaway is that Git Gandalf wins only if leadership gives disproportionate weight to sovereignty and control while accepting internal ownership risk. If leadership instead prioritizes speed, predictability, and vendor accountability, GitLab Duo is the strongest overall position.
+**Interpretation:** on the rounded aggregate, GitLab Duo and Git Gandalf are now tied at 7.4. That tie should not be over-read: GitLab Duo still leads materially on maturity, rollout simplicity, and vendor accountability, while Git Gandalf leads on sovereignty and now has a more credible repo-level customization path. The practical takeaway remains the same: Git Gandalf wins only if leadership gives disproportionate weight to sovereignty and control while accepting internal ownership risk. If leadership instead prioritizes speed, predictability, and vendor accountability, GitLab Duo is still the stronger default operating choice.
 
 ---
 
@@ -455,4 +461,4 @@ The following questions should be answered before any approval to buy, build, or
 
 ---
 
-*This evaluation is based on publicly available vendor documentation and internal codebase analysis as of March 21, 2026. Vendor features, pricing, and capabilities are subject to change. Cost estimates should be validated with vendor quotes before any procurement decision.*
+*This evaluation is based on publicly available vendor documentation and internal codebase analysis as of March 28, 2026. Vendor features, pricing, and capabilities are subject to change. Cost estimates should be validated with vendor quotes before any procurement decision.*

@@ -1,7 +1,7 @@
 ## Plan Review: GitGandalf Master Plan — Phase 4.6 (GitLab Deployment Hardening) — Re-review
 
 **Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/ARCHITECTURE.md, docs/agents/context/WORKFLOWS.md, docs/agents/context/CONFIGURATION.md, docs/guides/GETTING_STARTED.md, docs/README.md
+**Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, docs/context/CONFIGURATION.md, docs/guides/GETTING_STARTED.md, docs/README.md
 **Supersedes**: `docs/plans/review-reports/phase-4.6-review-2026-03-20-r7n1.md`
 **Verdict**: 🟡 CONDITIONAL — 0 BLOCKERs · 2 RISKs · 2 OPTIMIZATIONs
 
@@ -64,12 +64,12 @@ All findings are `[agent]` remediable — no human decisions are required.
 
 ---
 
-#### O1: `docs/humans/context/ARCHITECTURE.md` Phase Ownership table missing Phase 4.6
+#### O1: `docs/context/ARCHITECTURE.md` Phase Ownership table missing Phase 4.6
 
 - **Severity**: OPTIMIZATION
 - **Dimension**: Docs
-- **Finding**: The Phase Ownership table in `docs/humans/context/ARCHITECTURE.md` has no entry for Phase 4.6. The `src/context/repo-manager.ts` row still says "Phase 2 | Shallow clone/update cache manager with TTL cleanup and host validation" without mentioning `buildGitEnv()`, `GITLAB_CA_FILE`, or the custom CA/TLS support added in Phase 4.6. This is not required by the plan's explicit obligations (the plan only mandated setup examples in GETTING_STARTED.md), but the human architecture doc is factually incomplete.
-- **Impact**: A developer consulting the human architecture doc would not find Phase 4.6 changes documented there. Low impact — the agent architecture doc (`docs/agents/context/ARCHITECTURE.md`) is accurate and is the recommended read target.
+- **Finding**: The Phase Ownership table in `docs/context/ARCHITECTURE.md` has no entry for Phase 4.6. The `src/context/repo-manager.ts` row still says "Phase 2 | Shallow clone/update cache manager with TTL cleanup and host validation" without mentioning `buildGitEnv()`, `GITLAB_CA_FILE`, or the custom CA/TLS support added in Phase 4.6. This is not required by the plan's explicit obligations (the plan only mandated setup examples in GETTING_STARTED.md), but the human architecture doc is factually incomplete.
+- **Impact**: A developer consulting the human architecture doc would not find Phase 4.6 changes documented there. Low impact — the agent architecture doc (`docs/context/ARCHITECTURE.md`) is accurate and is the recommended read target.
 - **Alternative**: Add a Phase 4.6 entry to the Phase Ownership table for `src/context/repo-manager.ts` (noting `buildGitEnv()`, `GITLAB_CA_FILE`, and TLS support), add a Phase 4.6 entry for `src/config.ts`, and update the "Repo cache manager" component section to mention the TLS/CA additions.
 
 ---
@@ -90,7 +90,7 @@ All findings are `[agent]` remediable — no human decisions are required.
 - **No spurious deployment flag**: `GITLAB_SELF_HOSTED` was not added — consistent with plan guidance.
 - **Startup ordering correct**: `NODE_EXTRA_CA_CERTS` set before `initLogging()` and before any TLS connections.
 - **`buildGitEnv()` pure and testable**: 5 unit tests cover all branches including empty-string edge case.
-- **Agent docs accurate**: `docs/agents/context/ARCHITECTURE.md`, `WORKFLOWS.md`, `CONFIGURATION.md` all correctly document the Phase 4.6 additions.
+- **Agent docs accurate**: `docs/context/ARCHITECTURE.md`, `WORKFLOWS.md`, `CONFIGURATION.md` all correctly document the Phase 4.6 additions.
 - **`docs/README.md` status table**: Phase 4.6 row correctly shows ✅ Complete with accurate description.
 - **`docs/guides/GETTING_STARTED.md` Phase 4.6 section**: Deployment matrix, token mechanics, subpath handling, and Docker CA mount example are all accurate.
 - **`bun test` passes 198/198**: No functional regressions.
@@ -111,7 +111,7 @@ No human decisions are required for any finding. Proceeding with auto-remediatio
 2. `[agent]` **R1b** — Update `docs/README.md` "Planned next" section: remove Phase 4.6 bullet; add a Phase 4.6 bullet to "Implemented today".
 3. `[agent]` **R2a** — Update `docs/guides/GETTING_STARTED.md` line 100: remove "until the planned Phase 4.6 compatibility work is complete" clause.
 4. `[agent]` **R2b** — Update `docs/guides/GETTING_STARTED.md` "Still planned" section: remove Phase 4.6 bullet.
-5. `[agent]` **O1 (optional)** — Update `docs/humans/context/ARCHITECTURE.md` Phase Ownership table and repo manager section to mention Phase 4.6 TLS/CA additions.
+5. `[agent]` **O1 (optional)** — Update `docs/context/ARCHITECTURE.md` Phase Ownership table and repo manager section to mention Phase 4.6 TLS/CA additions.
 6. `[agent]` **O2 (deferred)** — Address `agents-entrypoints.test.ts` mock fragility in a dedicated hardening session.
 
 ---

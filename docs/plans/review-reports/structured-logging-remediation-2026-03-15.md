@@ -16,9 +16,9 @@ Bring the structured logging plan to actual completion by adding a root-level de
 
 - [x] **[agent] Add debug-mode file logging**: Update `src/logger.ts` so debug-mode runs also write JSON Lines logs to `logs/gg-dev.log` under the project root, creating `logs/` automatically if it does not exist. Preserve the existing stdout sink, keep the implementation Bun-native, and ensure test runs do not write production-style logs to that file. Objective: give local development a stable, predictable place to inspect detailed logs.
 
-- [x] **[agent] Repair agent architecture docs**: Update `docs/agents/context/ARCHITECTURE.md` so it reflects the implemented runtime surface. Remove stale claims that `src/api/pipeline.ts` is a Phase 1 stub, that the agent subsystem is not wired into the API pipeline, and that the publisher/full pipeline wiring are still pending. Objective: make agent-facing architecture docs trustworthy again for future implementation agents.
+- [x] **[agent] Repair agent architecture docs**: Update `docs/context/ARCHITECTURE.md` so it reflects the implemented runtime surface. Remove stale claims that `src/api/pipeline.ts` is a Phase 1 stub, that the agent subsystem is not wired into the API pipeline, and that the publisher/full pipeline wiring are still pending. Objective: make agent-facing architecture docs trustworthy again for future implementation agents.
 
-- [x] **[agent] Repair human architecture docs**: Update `docs/humans/context/ARCHITECTURE.md` to reflect the actual Phase 4-complete state. Fix the opening summary, directory descriptions, phase-ownership table, publisher/test status, and any remaining wording that says pipeline wiring, publishing, Docker, or README work are still pending. Objective: align human-facing architecture docs with the implemented system.
+- [x] **[agent] Repair human architecture docs**: Update `docs/context/ARCHITECTURE.md` to reflect the actual Phase 4-complete state. Fix the opening summary, directory descriptions, phase-ownership table, publisher/test status, and any remaining wording that says pipeline wiring, publishing, Docker, or README work are still pending. Objective: align human-facing architecture docs with the implemented system.
 
 - [x] **[agent] Repair onboarding and development guides**: Update `docs/guides/GETTING_STARTED.md` and `docs/guides/DEVELOPMENT.md` so they no longer describe the pipeline as log-only or list implemented features as not implemented. Also update the stale test-count statement to reflect the current suite size. Objective: ensure contributor-facing guidance matches the repository state.
 
@@ -45,8 +45,8 @@ Bring the structured logging plan to actual completion by adding a root-level de
 ## 5. Documentation and Plan Updates
 
 - [x] Update `src/logger.ts`
-- [x] Update `docs/agents/context/ARCHITECTURE.md`
-- [x] Update `docs/humans/context/ARCHITECTURE.md`
+- [x] Update `docs/context/ARCHITECTURE.md`
+- [x] Update `docs/context/ARCHITECTURE.md`
 - [x] Update `docs/guides/GETTING_STARTED.md`
 - [x] Update `docs/guides/DEVELOPMENT.md`
 - [x] Update `docs/plans/implemented/structured-logging-plan.md`

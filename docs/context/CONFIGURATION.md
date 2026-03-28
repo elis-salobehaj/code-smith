@@ -1,6 +1,6 @@
-# Configuration (Agent Reference)
+# Configuration
 
-Compact reference for all environment variables accepted by `src/config.ts`.
+Unified reference for the environment variables accepted by `src/config.ts` and the repo-level review configuration loaded from `.gitgandalf.yaml`.
 
 | Variable | Required | Type | Default | Notes |
 |---|---|---|---|---|
@@ -49,6 +49,57 @@ Compact reference for all environment variables accepted by `src/config.ts`.
 - `.env.test` points `REPO_CACHE_DIR` at an isolated test path so repo-manager tests do not touch the production default cache
 - fake Bedrock credentials are committed in `.env.test` because the schema requires those fields before modules import
 
+## Repo Review Config Files
+
+Phase C1 of CP1 adds repo-config parsing primitives alongside env config:
+
+For a repo-author guide with examples, authoring standards, and troubleshooting, see [`docs/guides/REPO_REVIEW_CONFIG.md`](../guides/REPO_REVIEW_CONFIG.md).
+
+- `src/config/repo-config.ts` defines the strict Zod schema for `.gitgandalf.yaml` or `.gitgandalf.yml`
+- `src/config/repo-config-loader.ts` discovers repo config files at repo root in this order: `.gitgandalf.yaml`, then `.gitgandalf.yml`
+- missing repo config falls back to `DEFAULT_REPO_CONFIG`
+- malformed YAML or schema validation failures also fall back to defaults and log a warning instead of blocking the review pipeline
+- supported top-level sections are `version`, `review_instructions`, `file_rules`, `exclude`, `severity`, `features`, `linters`, and `output`
+- unknown keys are rejected with strict parsing so typoed config does not silently noop
+- glob patterns are validated at parse time; Bun.Glob remains the default matcher, with a narrow `picomatch` fallback for trailing-slash directory patterns like `dist/` that Bun.Glob does not match against diff file paths
+
+This loader is implemented in Phase C1 only. Pipeline attachment and config-driven behavior land in later CP1 phases.
+
+### `.gitgandalf.yaml` schema reference
+
+- `version`: required literal `1`
+- `review_instructions`: optional non-empty string; global review guidance for later prompt-injection phases
+- `file_rules`: optional array, default `[]`
+	- `pattern`: required glob string
+	- `severity_threshold`: optional enum `low | medium | high | critical`
+	- `instructions`: optional non-empty string
+	- `skip`: optional boolean
+- `exclude`: optional array of glob strings, default `[]`
+- `severity`: optional object
+	- `minimum`: optional enum, defaults to `low`
+	- `block_on`: optional enum, defaults to `high`
+- `features`: optional object
+	- `linter_integration`: optional boolean, defaults to `false`
+	- `enhanced_summary`: optional boolean, defaults to `false`
+	- `learning`: optional boolean, defaults to `false`
+- `linters`: optional object
+	- `enabled`: optional boolean, defaults to `false`
+	- `profile`: optional non-empty string naming an instance-owned profile
+	- `severity_threshold`: optional enum, defaults to `medium`
+	- executable-command fields are not accepted; the object is strict and only named profile selection is allowed
+- `output`: optional object
+	- `max_findings`: optional positive integer, defaults to `6`
+	- `include_walkthrough`: optional enum `auto | always | never`, defaults to `auto`
+	- `collapsible_details`: optional boolean, defaults to `true`
+
+### Validation semantics
+
+- all fields other than `version` are optional; `version: 1` alone is valid
+- top-level and nested objects use strict parsing, so unknown keys are rejected everywhere
+- malformed YAML and schema-validation failures both degrade to defaults with a warning log
+- glob validation happens at load time rather than later during review execution
+- trailing-slash directory patterns such as `dist/` are normalized for matching because Bun.Glob does not match that form against diff file paths
+
 ## Planned Crown Configuration Additions
 
 These variables are planned by CP3, CP5, CP6, and CP7, but they are not accepted by `src/config.ts` yet.
@@ -70,4 +121,4 @@ These variables are planned by CP3, CP5, CP6, and CP7, but they are not accepted
 - Shared RWX or generic network-filesystem mounts are out of scope for the SQLite database file.
 - Valkey remains queue and cache infrastructure only; future PostgreSQL settings do not replace it for BullMQ.
 
-Source of truth remains [`src/config.ts`](../../../src/config.ts).
+Current env-config source of truth remains [`src/config.ts`](../../src/config.ts). Repo-review config source of truth is [`src/config/repo-config.ts`](../../src/config/repo-config.ts).

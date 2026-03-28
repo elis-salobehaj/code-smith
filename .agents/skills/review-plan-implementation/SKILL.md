@@ -60,8 +60,8 @@ If a plan file is specified, use it directly.
 
 1. Read [AGENTS.md](../../../AGENTS.md) in full.
 2. Read the target plan file in full.
-3. Read [docs/agents/context/ARCHITECTURE.md](../../../docs/agents/context/ARCHITECTURE.md)
-   and [docs/agents/context/WORKFLOWS.md](../../../docs/agents/context/WORKFLOWS.md) to
+3. Read [docs/context/ARCHITECTURE.md](../../../docs/context/ARCHITECTURE.md)
+  and [docs/context/WORKFLOWS.md](../../../docs/context/WORKFLOWS.md) to
    understand the current system the plan builds on.
 4. Read active plans under `docs/plans/active/` to identify conflicts or coordination gaps.
 5. If the plan references existing source files, read them to verify the plan's assumptions
@@ -227,7 +227,7 @@ Categorize every finding using **exactly** these severity levels:
 ## Plan Review: [Plan Title]
 
 **Plan file**: `docs/plans/...`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🔴 NOT READY / 🟡 CONDITIONAL / 🟢 READY
 
 ### Summary

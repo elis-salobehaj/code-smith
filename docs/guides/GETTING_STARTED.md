@@ -35,6 +35,8 @@ Important:
 - `REPO_CACHE_DIR` is where shallow clones will be cached
 - `GITLAB_URL` must be the GitLab base URL, for example `https://gitlab.example.com`, not the webhook settings page URL
 
+If you want to author repo-owned review config, see [`docs/guides/REPO_REVIEW_CONFIG.md`](./REPO_REVIEW_CONFIG.md). That guide explains what `.gitgandalf.yaml` is, how to structure it, and which parts of the contract are already active versus still planned.
+
 ## GitLab personal access token (GLPAT)
 
 This service uses `GITLAB_TOKEN` in two places:

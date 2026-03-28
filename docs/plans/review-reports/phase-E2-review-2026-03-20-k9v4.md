@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E2
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 
 ### Summary
@@ -50,4 +50,4 @@ None.
 - `src/publisher/gitlab-publisher.ts` — summary embedding of checkpoint blocks and partial/failure summary messaging
 - `src/gitlab-client/client.ts` — checkpoint lookup plus MR version access needed for persisted marker metadata
 - `tests/publisher.test.ts` and `tests/fixtures/checkpoint-*.md` — parser, fixture, and embedding coverage
-- `docs/agents/context/ARCHITECTURE.md` and `docs/agents/context/WORKFLOWS.md` — review-ledger documentation updates
+- `docs/context/ARCHITECTURE.md` and `docs/context/WORKFLOWS.md` — review-ledger documentation updates

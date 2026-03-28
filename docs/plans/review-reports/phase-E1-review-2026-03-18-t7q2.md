@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E1
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟡 CONDITIONAL
 
 ### Summary
@@ -22,15 +22,15 @@ Phase E1 delivers the trigger-context plumbing correctly: new type file, router 
 
 #### R2: ARCHITECTURE.md runtime surface is stale
 - **Dimension**: Docs
-- **Finding**: `docs/agents/context/ARCHITECTURE.md` line 30 still says `runPipeline(event)` (single-arg). The Runtime Surface section does not list `src/api/trigger.ts`. The plan's E1 deliverables section specified "Docs to update: `docs/agents/context/WORKFLOWS.md`" but ARCHITECTURE.md documents the same webhook flow and is now inconsistent with the actual code signature `runPipeline(event, trigger)`.
+- **Finding**: `docs/context/ARCHITECTURE.md` line 30 still says `runPipeline(event)` (single-arg). The Runtime Surface section does not list `src/api/trigger.ts`. The plan's E1 deliverables section specified "Docs to update: `docs/context/WORKFLOWS.md`" but ARCHITECTURE.md documents the same webhook flow and is now inconsistent with the actual code signature `runPipeline(event, trigger)`.
 - **Impact**: Agents reading ARCHITECTURE.md will have a stale mental model of the router→pipeline interface. This will cause confusion when implementing E2+ which threads trigger context further.
 - **Alternative**: Update ARCHITECTURE.md: (1) add `src/api/trigger.ts` to Runtime Surface, (2) update webhook flow step 6 to `runPipeline(event, trigger)`.
 
 #### R3: Human ARCHITECTURE.md contains stale `runPipeline(event)` reference
 - **Dimension**: Docs
-- **Finding**: `docs/humans/context/ARCHITECTURE.md` line 120 references `runPipeline(event)` without the trigger parameter.
+- **Finding**: `docs/context/ARCHITECTURE.md` line 120 references `runPipeline(event)` without the trigger parameter.
 - **Impact**: Human documentation is inconsistent with actual code.
-- **Alternative**: Update `docs/humans/context/ARCHITECTURE.md` line 120 to reference `runPipeline(event, trigger)`.
+- **Alternative**: Update `docs/context/ARCHITECTURE.md` line 120 to reference `runPipeline(event, trigger)`.
 
 ---
 
@@ -60,8 +60,8 @@ Phase E1 delivers the trigger-context plumbing correctly: new type file, router 
 ### Ordered Remediation Steps
 
 - [ ] **[agent] R1: Uncheck E1.2 and E1.3 in plan frontmatter**: Revert E1.2 and E1.3 checkboxes to unchecked in `docs/plans/implemented/review-edge-cases-hardening.md`. These are not E1 deliverables — they describe behavioral enforcement that arrives in E2+.
-- [ ] **[agent] R2: Update ARCHITECTURE.md runtime surface and webhook flow**: In `docs/agents/context/ARCHITECTURE.md`: (1) add `src/api/trigger.ts: typed review trigger context (automatic vs manual, source event, optional note id)` to the Runtime Surface list after the `schemas.ts` entry, (2) update webhook flow step 6 from `runPipeline(event)` to `runPipeline(event, trigger)` and add a step between 4 and 5 noting trigger context construction.
-- [ ] **[agent] R3: Fix stale human docs reference**: In `docs/humans/context/ARCHITECTURE.md` line 120, update `runPipeline(event)` to `runPipeline(event, trigger)`.
+- [ ] **[agent] R2: Update ARCHITECTURE.md runtime surface and webhook flow**: In `docs/context/ARCHITECTURE.md`: (1) add `src/api/trigger.ts: typed review trigger context (automatic vs manual, source event, optional note id)` to the Runtime Surface list after the `schemas.ts` entry, (2) update webhook flow step 6 from `runPipeline(event)` to `runPipeline(event, trigger)` and add a step between 4 and 5 noting trigger context construction.
+- [ ] **[agent] R3: Fix stale human docs reference**: In `docs/context/ARCHITECTURE.md` line 120, update `runPipeline(event)` to `runPipeline(event, trigger)`.
 - [ ] **[agent] Add E1 remediation line to plan**: Add `- [x] Remediation complete — see docs/plans/review-reports/phase-E1-review-2026-03-18-t7q2.md` after E1.4 in the plan frontmatter.
 
 ### Required Validations

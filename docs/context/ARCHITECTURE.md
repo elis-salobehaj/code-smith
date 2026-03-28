@@ -2,7 +2,7 @@
 
 GitGandalf is a Bun-native webhook service built in phases. The current repository includes the complete webhook-to-review-to-publish path: webhook ingestion, typed GitLab access, repo cache management, modular tool execution, the multi-agent review subsystem, GitLab publishing, deployment packaging, and structured logging with request correlation.
 
-For the concise agent-optimized version, see [`docs/agents/context/ARCHITECTURE.md`](../../agents/context/ARCHITECTURE.md).
+This is the unified architecture reference for both engineers and agents. It favors the more explanatory, human-readable style while still documenting the precise runtime surfaces and behavior that implementation work depends on.
 
 ## Current Implemented Architecture
 
@@ -100,6 +100,9 @@ git-gandalf/
 │   ├── worker.ts                   # BullMQ worker process entrypoint
 │   ├── logger.ts                   # LogTape configuration and context helpers
 │   ├── config.ts                   # Env vars via Zod-validated process.env
+│   ├── config/
+│   │   ├── repo-config.ts          # Repo-level .gitgandalf.yaml schema, defaults, and glob helpers
+│   │   └── repo-config-loader.ts   # Repo config discovery, parsing, and fallback behavior
 │   ├── api/
 │   │   ├── router.ts               # Webhook routing, validation, filtering, dispatch
 │   │   ├── schemas.ts              # Zod schemas for GitLab webhook payloads
@@ -264,6 +267,18 @@ The wrapper also handles gitbeaker's awkward snake_case response shapes and came
 
 Security detail: the clone URL hostname must match `GITLAB_URL`. The manager refuses to inject the GitLab token into a different host, which blocks token exfiltration through a malicious webhook payload.
 
+### Repo review config
+
+Phase C1 of CP1 adds repo-level review configuration parsing under `src/config/`.
+
+- discovery order: `.gitgandalf.yaml`, then `.gitgandalf.yml`
+- parsing: `Bun.file(...).text()` + `Bun.YAML.parse()`
+- validation: strict Zod schema in `src/config/repo-config.ts`
+- failure mode: missing, malformed, or invalid config falls back to defaults and logs at `info` or `warn`
+- matching: `Bun.Glob` is the default matcher, with a narrow `picomatch` fallback for trailing-slash directory patterns like `dist/`
+
+This work is currently limited to schema and loader behavior. Later CP1 phases attach repo config to `ReviewState`, apply diff filtering, and inject prompt-level review rules.
+
 ### Modular tool system
 
 Phase 2.5 split the original monolithic `src/context/tools.ts` into per-tool modules under `src/context/tools/`.
@@ -322,7 +337,7 @@ Another current behavior worth knowing: only findings that can be anchored to th
 
 **Enabling the integration:**
 
-Set `JIRA_ENABLED=true` in `.env`. The integration is disabled by default so existing deployments are unaffected. See [Getting Started](../../guides/GETTING_STARTED.md) for the full setup procedure including API token creation.
+Set `JIRA_ENABLED=true` in `.env`. The integration is disabled by default so existing deployments are unaffected. See [Getting Started](../guides/GETTING_STARTED.md) for the full setup procedure including API token creation.
 
 **Important:** paste `JIRA_API_TOKEN` as a single unbroken line in `.env`. A token that wraps across two lines is read as two separate values by dotenv, and Jira will return `401`.
 

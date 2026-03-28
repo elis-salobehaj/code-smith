@@ -8,7 +8,7 @@
 - `docs/plans/backlog/enhanced-review-output-plan.md`
 - `docs/plans/backlog/analytics-observability-plan.md`
 - `docs/plans/backlog/production-hardening-plan.md`
-**Reviewed against**: `AGENTS.md`, `docs/agents/context/ARCHITECTURE.md`, `docs/agents/context/WORKFLOWS.md`, active plans, `src/config.ts`, `src/api/pipeline.ts`, `src/agents/state.ts`, `src/index.ts`, `src/worker.ts`, `src/queue/connection.ts`, `src/queue/review-queue.ts`, `package.json`
+**Reviewed against**: `AGENTS.md`, `docs/context/ARCHITECTURE.md`, `docs/context/WORKFLOWS.md`, active plans, `src/config.ts`, `src/api/pipeline.ts`, `src/agents/state.ts`, `src/index.ts`, `src/worker.ts`, `src/queue/connection.ts`, `src/queue/review-queue.ts`, `package.json`
 **Verdict**: 🟡 CONDITIONAL
 
 ### Summary

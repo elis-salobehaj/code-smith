@@ -9,7 +9,7 @@
 - `docs/plans/backlog/analytics-observability-plan.md`
 - `docs/plans/backlog/production-hardening-plan.md`
 
-**Reviewed against**: `AGENTS.md`, `docs/agents/context/ARCHITECTURE.md`, `docs/agents/context/WORKFLOWS.md`, `docs/README.md`, `package.json`, `src/api/router.ts`, `src/api/pipeline.ts`, `src/config.ts`, `src/gitlab-client/client.ts`
+**Reviewed against**: `AGENTS.md`, `docs/context/ARCHITECTURE.md`, `docs/context/WORKFLOWS.md`, `docs/README.md`, `package.json`, `src/api/router.ts`, `src/api/pipeline.ts`, `src/config.ts`, `src/gitlab-client/client.ts`
 
 **Verdict**: 🟡 CONDITIONAL
 

@@ -22,9 +22,9 @@ related_files:
   - tests/webhook.test.ts
   - tests/publisher.test.ts
   - docs/README.md
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/WORKFLOWS.md
-  - docs/humans/context/ARCHITECTURE.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
 tags:
   - review-hardening
   - gitlab
@@ -619,7 +619,7 @@ Deliverables:
 - Update `WORKFLOWS.md` to note that duplicate-prevention now happens at pipeline
   start for automatic triggers, while completed review runs still post a summary.
 
-Docs to update: `docs/agents/context/WORKFLOWS.md`
+Docs to update: `docs/context/WORKFLOWS.md`
 
 ## Phase E1 — Review trigger model
 
@@ -642,7 +642,7 @@ Deliverables:
   pipeline is still called in both cases.
 - Update `WORKFLOWS.md` webhook flow section to document the trigger context.
 
-Docs to update: `docs/agents/context/WORKFLOWS.md`
+Docs to update: `docs/context/WORKFLOWS.md`
 
 ## Phase E2 — Review checkpointing
 
@@ -693,8 +693,8 @@ Deliverables:
   The next automatic trigger falls back to full review. Document this in a comment
   inside `checkpoint.ts`.
 
-Docs to update: `docs/agents/context/ARCHITECTURE.md` (add "Review Ledger" subsection),
-`docs/agents/context/WORKFLOWS.md` (checkpoint write/read flow)
+Docs to update: `docs/context/ARCHITECTURE.md` (add "Review Ledger" subsection),
+`docs/context/WORKFLOWS.md` (checkpoint write/read flow)
 
 ## Phase E3 — Incremental multi-commit review
 
@@ -730,8 +730,8 @@ Deliverables:
 - Tests using MR-16-like version histories (4 commits, incremental range selection) and
   MR-15-like histories (same head, skip detection).
 
-Docs to update: `docs/agents/context/ARCHITECTURE.md` (review range selector),
-`docs/agents/context/WORKFLOWS.md` (incremental review flow)
+Docs to update: `docs/context/ARCHITECTURE.md` (review range selector),
+`docs/context/WORKFLOWS.md` (incremental review flow)
 
 ## Phase E4 — Publication and dedupe semantics
 
@@ -758,7 +758,7 @@ Deliverables:
   repeated manual `/ai-review` on same head — summary always posted; stale finding
   from old head does not suppress valid finding on new head.
 
-Docs to update: `docs/agents/context/WORKFLOWS.md` (publication policy)
+Docs to update: `docs/context/WORKFLOWS.md` (publication policy)
 
 ## Phase E5 — Repo freshness and concurrency
 
@@ -782,8 +782,8 @@ Deliverables:
 - Race-condition tests: two simulated pipeline calls for the same branch resolve
   sequentially, not concurrently.
 
-Docs to update: `docs/agents/context/ARCHITECTURE.md` (concurrency model, mtime fix),
-`docs/agents/context/WORKFLOWS.md` (concurrency note)
+Docs to update: `docs/context/ARCHITECTURE.md` (concurrency model, mtime fix),
+`docs/context/WORKFLOWS.md` (concurrency note)
 
 ## Phase E6 — Edge cases, docs, and audit
 

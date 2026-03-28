@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E0
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/ARCHITECTURE.md, docs/agents/context/WORKFLOWS.md, active plans
+**Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, active plans
 **Verdict**: 🟢 READY
 
 ### Summary

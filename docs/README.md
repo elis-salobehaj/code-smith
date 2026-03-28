@@ -1,33 +1,30 @@
 # GitGandalf Documentation
 
-## 🤖 Agent Documentation (`docs/agents/`)
+## Core Context (`docs/context/`)
 
-Concise, token-optimized reference for LLM agents. Prefer these over human docs to minimize context window usage.
+Unified reference documentation for both humans and agents. These docs lean toward the more explanatory human style while remaining precise enough for implementation work.
 
-- [Architecture](./agents/context/ARCHITECTURE.md) — Current runtime surface, webhook flow, repo manager, tool system, internal protocol boundary, and implemented publishing behavior
-- [Configuration](./agents/context/CONFIGURATION.md) — Environment variables, defaults, required fields, and test-env notes
-- [Workflows](./agents/context/WORKFLOWS.md) — Implemented webhook flow, repo cache workflow, tool execution, full review workflow, and logging/observability behavior
-- [Tech Stack Design](./agents/designs/tech-stack-evaluation.md) — Stack decisions and rationale summary
+- [Architecture](./context/ARCHITECTURE.md) — Current implemented architecture, runtime surfaces, operational behavior, planned boundaries, and rationale
+- [Configuration](./context/CONFIGURATION.md) — Environment variables, repo-level `.gitgandalf.yaml` config, defaults, validation, and test-env notes
+- [Workflows](./context/WORKFLOWS.md) — Implemented webhook flow, repo cache workflow, tool execution, full review workflow, and logging/observability behavior
 
-## 👥 Human Documentation (`docs/humans/`)
+## Design Docs (`docs/designs/`)
 
-Detailed, visual documentation with Mermaid diagrams and full rationale.
-
-- [Architecture](./humans/context/ARCHITECTURE.md) — Current implemented architecture, internal protocol boundary, operational behavior, planned phases, and ELI5 explanation
-- [Multi-Agent Architecture](./humans/designs/multi-agent-architecture.md) — Agent pipeline diagram, per-agent inputs/outputs, data flow, known issues (duplicate findings, overlapping line ranges), and proposed improvements
-- [Tech Stack Design](./humans/designs/tech-stack-evaluation.md) — Complete ecosystem analysis and technology decisions
+- [Multi-Agent Architecture](./designs/multi-agent-architecture.md) — Agent pipeline diagram, per-agent inputs/outputs, data flow, known issues, and proposed improvements
+- [Tech Stack Design](./designs/tech-stack-evaluation.md) — Current stack decision record and provider-boundary rationale
 
 ## 📚 Guides (`docs/guides/`)
 
 - [Getting Started](./guides/GETTING_STARTED.md) — Local setup, env configuration, GitLab token/webhook secret creation, webhook reachability, Jira prep, queue and provider fallback setup, KinD bootstrap, health check, and sample webhook flow
 - [Development](./guides/DEVELOPMENT.md) — Bun commands, KinD helper scripts, testing strategy, logging conventions, plan-driven workflow, and tool-module conventions
+- [Repo Review Config](./guides/REPO_REVIEW_CONFIG.md) — What `.gitgandalf.yaml` is, how to author it, current support status, schema reference, examples, and troubleshooting
 
 ## 📋 Implementation Plans (`docs/plans/`)
 
 - **Active**: [GitGandalf Master Plan](./plans/active/git-gandalf-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
 - **Active**: [Gandalf Awakening Personality Plan](./plans/active/Gandalf-awakening-personality-plan.md) — Trigger alias expansion, Gandalf-mode acknowledgements, and tone-aware top-level summary behavior
 - **Active**: [The Crown Plan](./plans/active/git-gandalf-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 primary child plans plus a threshold-driven PostgreSQL/pgvector migration path
-- **Backlog**: [CP1 — Repo-Based Review Configuration](./plans/backlog/repo-review-config-plan.md) — `.gitgandalf.yaml` repo-level config with per-file-pattern rules, severity overrides, file exclusions, and feature flags
+- **Backlog**: [CP1 — Repo-Based Review Configuration](./plans/backlog/repo-review-config-plan.md) — `.gitgandalf.yaml` repo-level config plan. Phase C1 is implemented today (schema, loader, defaults, validation, tests) and the repo-author guide now exists; pipeline integration and prompt injection remain pending.
 - **Backlog**: [CP2 — Linter & SAST Integration](./plans/backlog/linter-sast-integration-plan.md) — Auto-detect and run Biome plus instance-owned standalone analysis profiles against changed files, with explicit subprocess sandbox controls, normalized findings, and agent/publisher integration
 - **Backlog**: [CP3 — Organizational Learning](./plans/backlog/organizational-learning-plan.md) — Feedback capture (reactions, applied suggestions), singleton ops-owned SQLite learning DB, persisted sync cursors, durable write jobs, and prompt injection for future reviews
 - **Backlog**: [CP4 — Enhanced Review Output](./plans/backlog/enhanced-review-output-plan.md) — Smart MR summaries, file-by-file walkthroughs, improved suggestion formatting and one-click fix UX
@@ -78,8 +75,10 @@ Implemented today:
 - Incremental review scope: automatic runs now compute `full`, `incremental`, or `skip` mode from GitLab commit history and use repository-compare diffs for unreviewed ranges while preserving current MR diff refs for inline publishing
 - Version-aware publication semantics: automatic same-head reruns are skipped before publication, manual reruns always post a visible summary, and inline duplicate suppression now keys on trigger mode plus discussion `headSha`
 - Repo freshness and delivery hardening: same-branch runs are serialized across the full pipeline, cached clones verify local HEAD against GitLab before review, active cache mtimes are refreshed after clone/update, metadata-only MR updates are ignored, and automatic draft reviews are configurable with `REVIEW_DRAFT_MRS`
+- Repo review config foundation: `.gitgandalf.yaml` / `.gitgandalf.yml` discovery, strict Zod schema validation, safe default fallback behavior, and glob-matching helpers are implemented under `src/config/`; config-driven pipeline behavior remains future CP1 work
+- Repo review config guide: repo authors now have a dedicated guide for `.gitgandalf.yaml` structure, examples, standards, and troubleshooting under `docs/guides/REPO_REVIEW_CONFIG.md`
 
 Planned next:
 
 - Gandalf trigger and personality awakening for note-triggered reviews
-- Crown Plan: repo-based review configuration (`.gitgandalf.yaml`), linter/SAST integration, organizational learning system, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector
+- Crown Plan: finish CP1 beyond the implemented schema/loader foundation (`.gitgandalf.yaml` pipeline integration, prompt injection, docs/examples), then deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector

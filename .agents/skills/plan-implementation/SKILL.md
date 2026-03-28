@@ -68,17 +68,16 @@ repository by reading primary sources in this order:
    This file maps every documentation area and lists the current implementation status
    of all plan phases. Use it as a navigation guide for what to read next.
 
-3. Read agent-oriented documentation under `docs/agents/context/`:
-   - [ARCHITECTURE.md](../../../docs/agents/context/ARCHITECTURE.md) — current runtime surface,
+3. Read the unified context documentation under `docs/context/`:
+   - [ARCHITECTURE.md](../../../docs/context/ARCHITECTURE.md) — current runtime surface,
      webhook flow, repo manager, tool system, internal protocol boundary, publisher behavior
-   - [CONFIGURATION.md](../../../docs/agents/context/CONFIGURATION.md) — environment variables,
+   - [CONFIGURATION.md](../../../docs/context/CONFIGURATION.md) — environment variables,
      defaults, required fields
-   - [WORKFLOWS.md](../../../docs/agents/context/WORKFLOWS.md) — implemented webhook flow,
+   - [WORKFLOWS.md](../../../docs/context/WORKFLOWS.md) — implemented webhook flow,
      repo cache workflow, tool execution, full review workflow, logging/observability
 
 4. Read relevant design documents if the feature touches areas with existing design decisions:
-   - `docs/agents/designs/` for compact design summaries
-   - `docs/humans/designs/` for full design rationale with diagrams
+   - `docs/designs/` for design rationale and diagrams
 
 5. Read active plans under `docs/plans/active/` to understand in-flight work and avoid conflicts.
 
@@ -90,8 +89,8 @@ repository by reading primary sources in this order:
    their compatibility with the GitGandalf stack (Bun runtime, TypeScript strict mode,
    Hono framework, Zod validation patterns).
 
-> **Token budget awareness**: Prefer `docs/agents/*` over `docs/humans/*` when both cover
-> the same topic. Only read human-oriented docs when agent docs lack the needed detail.
+> **Documentation rule**: The repo now uses unified docs under `docs/context/*` and `docs/designs/*`.
+> Start with `docs/context/*` and read deeper design docs only when the task needs that extra rationale.
 
 ### Phase 2 — Feature Analysis and Scoping
 
@@ -257,12 +256,12 @@ Every phase **must** include a documentation overhaul step as one of its final t
 Documentation must never fall out of date — keeping it current requires surgical precision.
 
 The documentation step must:
-- Update all affected docs under `docs/agents/context/` (ARCHITECTURE.md, CONFIGURATION.md,
+- Update all affected docs under `docs/context/` (ARCHITECTURE.md, CONFIGURATION.md,
   WORKFLOWS.md) to reflect the changes introduced in the phase
 - Update `docs/README.md` when implementation status, plan status, or current state changes
-- Update `docs/humans/context/` and `docs/guides/` when the phase introduces user-visible
+- Update `docs/guides/` when the phase introduces user-visible
   changes, new configuration, or new operational behavior
-- Update design docs when architecture or tech stack decisions are modified
+- Update `docs/designs/` when architecture or tech stack decisions are modified
 - Verify that no documentation references stale behavior, removed files, or outdated
   configuration after the phase is applied
 

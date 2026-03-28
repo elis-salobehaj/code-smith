@@ -19,9 +19,9 @@ related_files:
   - src/config.ts
   - src/learning/store.ts
   - src/learning/sqlite-store.ts
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
   - docs/README.md
 
 tags:

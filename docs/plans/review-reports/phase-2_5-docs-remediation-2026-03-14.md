@@ -10,9 +10,9 @@ Bring the repository to true Phase 2.5 completion by making documentation reflec
 
 ### 3. Ordered Remediation Steps
 - [x] **[agent] Re-anchor on the current implementation**: Read the router, config, pipeline stub, GitLab client, repo manager, tool barrel, and tests to ensure docs reflect actual code rather than plan intent.
-- [x] **[agent] Replace placeholder agent reference docs**: Rewrite `docs/agents/context/ARCHITECTURE.md`, `docs/agents/context/CONFIGURATION.md`, and `docs/agents/context/WORKFLOWS.md` with concise, token-efficient references.
-- [x] **[agent] Replace placeholder human docs and guides**: Rewrite `docs/humans/context/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md`, and `docs/guides/DEVELOPMENT.md` with implementation-accurate guidance.
-- [x] **[agent] Improve docs entry points**: Expand `docs/agents/README.md`, `docs/humans/README.md`, and `docs/README.md` so they point to real content and reflect Phase 2.5 completion.
+- [x] **[agent] Replace placeholder agent reference docs**: Rewrite `docs/context/ARCHITECTURE.md`, `docs/context/CONFIGURATION.md`, and `docs/context/WORKFLOWS.md` with concise, token-efficient references.
+- [x] **[agent] Replace placeholder human docs and guides**: Rewrite `docs/context/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md`, and `docs/guides/DEVELOPMENT.md` with implementation-accurate guidance.
+- [x] **[agent] Improve docs entry points**: Expand `docs/README.md`, `docs/README.md`, and `docs/README.md` so they point to real content and reflect Phase 2.5 completion.
 - [x] **[agent] Fix plan bookkeeping**: Update `docs/plans/active/git-gandalf-master-plan.md` `related_files` to reference the new `src/context/tools/` layout instead of the removed monolith.
 - [x] **[agent] Validate closure**: Run `bunx biome ci .`, `bun run typecheck`, and `bun test` to confirm docs and code remain clean.
 
@@ -23,9 +23,9 @@ Bring the repository to true Phase 2.5 completion by making documentation reflec
 - Manual verification that no `Coming in Phase 1` placeholders remain in the active docs set.
 
 ### 5. Documentation and Plan Updates
-- [x] Replace all remaining Phase 1 placeholder docs under `docs/agents/context/`, `docs/humans/context/`, and `docs/guides/`.
+- [x] Replace all remaining Phase 1 placeholder docs under `docs/context/`, `docs/context/`, and `docs/guides/`.
 - [x] Update `docs/README.md` implementation status and remove stale placeholder note.
-- [x] Update `docs/agents/README.md` and `docs/humans/README.md` to reflect the real docs structure.
+- [x] Update `docs/README.md` and `docs/README.md` to reflect the real docs structure.
 - [x] Update `docs/plans/active/git-gandalf-master-plan.md` `related_files` to match the modular tool layout.
 - [x] Save this remediation plan under `docs/plans/review-reports/`.
 

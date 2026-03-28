@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E4
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 
 ### Summary
@@ -48,4 +48,4 @@ None.
 - `src/api/pipeline.ts` — automatic same-head summary suppression remains an early pipeline guard
 - `src/publisher/gitlab-publisher.ts` — manual summary publication remains unconditional and inline dedupe is now head-aware and trigger-aware
 - `tests/publisher.test.ts` — stale-head, manual rerun, and same-head duplicate publication coverage
-- `docs/agents/context/WORKFLOWS.md` — publication policy documented explicitly for automatic and manual reruns
+- `docs/context/WORKFLOWS.md` — publication policy documented explicitly for automatic and manual reruns

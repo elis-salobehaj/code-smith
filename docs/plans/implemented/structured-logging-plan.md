@@ -15,12 +15,12 @@ related_files:
   - src/agents/orchestrator.ts
   - src/publisher/gitlab-publisher.ts
   - docs/README.md
-  - docs/agents/README.md
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
-  - docs/humans/README.md
-  - docs/humans/context/ARCHITECTURE.md
+  - docs/README.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
+  - docs/README.md
+  - docs/context/ARCHITECTURE.md
   - docs/guides/GETTING_STARTED.md
   - docs/guides/DEVELOPMENT.md
 
@@ -35,9 +35,9 @@ completion:
   - [x] L1.2 Create `src/logger.ts` with `initLogging()`, `resetLogging()`, re-exports
   - [x] L1.3 Call `initLogging()` in `src/index.ts` before app creation
   - [x] L1.4 Verify server starts without errors
-  - [x] L1.5 Update `docs/agents/context/CONFIGURATION.md` — LOG_LEVEL wired
-  - [x] L1.6 Update `docs/agents/context/ARCHITECTURE.md` — add `src/logger.ts`
-  - [x] L1.7 Update `docs/humans/context/ARCHITECTURE.md` — directory tree + structured logging section
+  - [x] L1.5 Update `docs/context/CONFIGURATION.md` — LOG_LEVEL wired
+  - [x] L1.6 Update `docs/context/ARCHITECTURE.md` — add `src/logger.ts`
+  - [x] L1.7 Update `docs/context/ARCHITECTURE.md` — directory tree + structured logging section
   - [x] L1.8 Update `docs/guides/GETTING_STARTED.md` — add logging to scope
   - [x] L1.9 Update `docs/guides/DEVELOPMENT.md` — add logging conventions section
   - [x] L1.10 Update `docs/README.md` — add logging to implemented list
@@ -45,9 +45,9 @@ completion:
   - [x] L2.1 Replace `hono/logger` with `@logtape/hono` in `src/index.ts`
   - [x] L2.2 Verify structured JSON output (curl test)
   - [x] L2.3 Run `bun test` — all existing tests pass
-  - [x] L2.4 Update `docs/agents/context/ARCHITECTURE.md` — structured HTTP middleware
-  - [x] L2.5 Update `docs/humans/context/ARCHITECTURE.md` — Mermaid diagram + Hono section
-  - [x] L2.6 Update `docs/agents/context/WORKFLOWS.md` — http logging note
+  - [x] L2.4 Update `docs/context/ARCHITECTURE.md` — structured HTTP middleware
+  - [x] L2.5 Update `docs/context/ARCHITECTURE.md` — Mermaid diagram + Hono section
+  - [x] L2.6 Update `docs/context/WORKFLOWS.md` — http logging note
   - "# Phase L3 — Module-by-Module Console Migration"
   - [x] L3.1 Migrate `src/api/router.ts` (2 calls)
   - [x] L3.2 Migrate `src/api/pipeline.ts` (2 calls)
@@ -56,20 +56,20 @@ completion:
   - [x] L3.5 Grep confirms zero remaining `console.` in `src/`
   - [x] L3.6 Convention documented (no Biome rule needed)
   - [x] L3.7 Run `bun run check && bun run typecheck && bun test`
-  - [x] L3.8 Update `docs/agents/context/ARCHITECTURE.md` — webhook flow + logger refs
-  - [x] L3.9 Update `docs/agents/context/WORKFLOWS.md` — pipeline stub section replaced
-  - [x] L3.10 Update `docs/humans/context/ARCHITECTURE.md` — Mermaid diagram, phase table
+  - [x] L3.8 Update `docs/context/ARCHITECTURE.md` — webhook flow + logger refs
+  - [x] L3.9 Update `docs/context/WORKFLOWS.md` — pipeline stub section replaced
+  - [x] L3.10 Update `docs/context/ARCHITECTURE.md` — Mermaid diagram, phase table
   - [x] L3.11 Update `docs/guides/DEVELOPMENT.md` — expand logging conventions with examples
-  - [x] L3.12 Update `docs/agents/README.md` — logging convention bullet
+  - [x] L3.12 Update `docs/README.md` — logging convention bullet
   - "# Phase L4 — Request Correlation & Context Propagation"
   - [x] L4.1 Generate `requestId = Bun.randomUUIDv7()` in router handler
   - [x] L4.2 Wrap `runPipeline()` call in `withContext({ requestId })`
   - [x] L4.3 Wrap pipeline body in `withContext({ projectId, mrIid })`
   - [x] L4.4 Verify context fields appear in every downstream log line
   - [x] L4.5 Run `bun run check && bun run typecheck && bun test`
-  - [x] L4.6 Update `docs/agents/context/ARCHITECTURE.md` — request correlation section
-  - [x] L4.7 Update `docs/agents/context/WORKFLOWS.md` — requestId step in webhook flow
-  - [x] L4.8 Update `docs/humans/context/ARCHITECTURE.md` — implicit context propagation
+  - [x] L4.6 Update `docs/context/ARCHITECTURE.md` — request correlation section
+  - [x] L4.7 Update `docs/context/WORKFLOWS.md` — requestId step in webhook flow
+  - [x] L4.8 Update `docs/context/ARCHITECTURE.md` — implicit context propagation
   - [x] L4.9 Update `docs/guides/DEVELOPMENT.md` — withContext guide
   - [x] L4.10 Update `docs/guides/GETTING_STARTED.md` — requestId traceability note
   - "# Phase L5 — Test Infrastructure & Final Validation"
@@ -79,8 +79,8 @@ completion:
   - [x] L5.4 `bun run check` — Biome clean
   - [x] L5.5 `bun run typecheck` — clean
   - [x] L5.6 Update `docs/README.md` — logging in implemented list + plan index
-  - [x] L5.7 Update `docs/agents/README.md` — logging convention reference verified
-  - [x] L5.8 Update `docs/humans/README.md` — Architecture description mentions logging
+  - [x] L5.7 Update `docs/README.md` — logging convention reference verified
+  - [x] L5.8 Update `docs/README.md` — Architecture description mentions logging
   - [x] L5.9 Final grep pass — no stale legacy console-logging, `hono/logger`, or outdated unwired-logging references
   - [x] L5.10 Plan moved to `docs/plans/implemented/`, status set to 'implemented'
 ---
@@ -240,15 +240,15 @@ and wire `config.LOG_LEVEL` so it actually controls log output.
 
 #### Docs Overhaul — Phase L1
 
-- [x] **L1.5** — Update `docs/agents/context/CONFIGURATION.md`:
+- [x] **L1.5** — Update `docs/context/CONFIGURATION.md`:
   - Change the `LOG_LEVEL` row from "Parsed today but not yet connected to a
     structured logger" to "Wired to LogTape via `src/logger.ts`. Controls the
     `lowestLevel` of the root `["gandalf"]` logger category."
-- [x] **L1.6** — Update `docs/agents/context/ARCHITECTURE.md`:
+- [x] **L1.6** — Update `docs/context/ARCHITECTURE.md`:
   - Add `src/logger.ts` to the "Current Runtime Surface" list with description:
     "LogTape configuration, `initLogging()` setup, re-exports `getLogger` and
     `withContext` for the codebase."
-- [x] **L1.7** — Update `docs/humans/context/ARCHITECTURE.md`:
+- [x] **L1.7** — Update `docs/context/ARCHITECTURE.md`:
   - Add `src/logger.ts` to the directory structure tree
   - Add a new subsection under "Implemented Components" titled
     "Structured logging" explaining LogTape, hierarchical categories, the
@@ -298,16 +298,16 @@ request/response logging is structured JSON rather than plain text.
 
 #### Docs Overhaul — Phase L2
 
-- [x] **L2.4** — Update `docs/agents/context/ARCHITECTURE.md`:
+- [x] **L2.4** — Update `docs/context/ARCHITECTURE.md`:
   - Change the `src/index.ts` description from "enables request logging" to
     "enables structured HTTP request logging via `@logtape/hono` middleware
     (JSON Lines output, health check excluded)"
-- [x] **L2.5** — Update `docs/humans/context/ARCHITECTURE.md`:
+- [x] **L2.5** — Update `docs/context/ARCHITECTURE.md`:
   - Update the "Hono server" section under "Implemented Components" to mention
     `@logtape/hono` structured middleware replacing the built-in `hono/logger`
   - Update the Mermaid diagram: change `H[console log only]` to reflect the
     new structured logging path
-- [x] **L2.6** — Update `docs/agents/context/WORKFLOWS.md`:
+- [x] **L2.6** — Update `docs/context/WORKFLOWS.md`:
   - In section "1. Webhook Ingestion", add a note that HTTP request/response
     logging is handled automatically by `@logtape/hono` middleware and
     emits structured JSON to stdout
@@ -377,12 +377,12 @@ calls remain in production source code.
 
 #### Docs Overhaul — Phase L3
 
-- [x] **L3.8** — Update `docs/agents/context/ARCHITECTURE.md`:
+- [x] **L3.8** — Update `docs/context/ARCHITECTURE.md`:
   - In the "Webhook Flow" section, replace any mention of console logging
     with "logged via LogTape structured logger"
   - Update the line "Called fire-and-forget by the router; errors are logged
     at the call site" to reference LogTape categories
-- [x] **L3.9** — Update `docs/agents/context/WORKFLOWS.md`:
+- [x] **L3.9** — Update `docs/context/WORKFLOWS.md`:
   - In section "4. Current Pipeline Boundary", remove or update the text
     "`src/api/pipeline.ts` is still a stub. The current workflow ends at
     logging" — this description is stale (Phase 4 is complete) and the
@@ -390,7 +390,7 @@ calls remain in production source code.
   - In section "5. Standalone Agent Review Workflow", note that each agent
     stage emits structured logs under `["gandalf", "orchestrator"]` /
     `["gandalf", "agent", "*"]` categories
-- [x] **L3.10** — Update `docs/humans/context/ARCHITECTURE.md`:
+- [x] **L3.10** — Update `docs/context/ARCHITECTURE.md`:
   - Refresh the Mermaid diagram to remove `H[console log only]` and show
     the structured logging flow
   - Update the Phase Ownership table if necessary (logging is now an
@@ -399,7 +399,7 @@ calls remain in production source code.
   - Expand the "Logging conventions" section (added in L1.9) with concrete
     examples of the migrated patterns: structured properties, error handling,
     and how to add a logger to a new module
-- [x] **L3.12** — Update `docs/agents/README.md`:
+- [x] **L3.12** — Update `docs/README.md`:
   - Add a bullet point referencing the logging convention documentation
 
 ---
@@ -454,18 +454,18 @@ orchestrator → agents → publisher flow is traceable.
 
 #### Docs Overhaul — Phase L4
 
-- [x] **L4.6** — Update `docs/agents/context/ARCHITECTURE.md`:
+- [x] **L4.6** — Update `docs/context/ARCHITECTURE.md`:
   - Add a new subsection "Request Correlation" under the webhook flow or as a
     standalone section. Explain: `requestId` generated in router, propagated
     via `withContext()`, all downstream logs carry `requestId`, `projectId`,
     and `mrIid` automatically.
-- [x] **L4.7** — Update `docs/agents/context/WORKFLOWS.md`:
+- [x] **L4.7** — Update `docs/context/WORKFLOWS.md`:
   - In "1. Webhook Ingestion", add step between token verification and
     pipeline dispatch: "generate `requestId` via `crypto.randomUUID()` and
     propagate via LogTape `withContext()`"
   - In "5. Standalone Agent Review Workflow" (or the full pipeline workflow),
     note that all log output carries request correlation fields
-- [x] **L4.8** — Update `docs/humans/context/ARCHITECTURE.md`:
+- [x] **L4.8** — Update `docs/context/ARCHITECTURE.md`:
   - Expand the "Structured logging" section (added in L1.7) with a
     description of implicit context propagation and the fields carried
   - Update the Mermaid diagram to show `requestId` flow if it adds clarity
@@ -520,21 +520,21 @@ pass.
     includes structured logging as a line item
   - Review the "Planned next" list — remove any logging-related items if they
     were listed there
-- [x] **L5.7** — Update `docs/agents/README.md`:
+- [x] **L5.7** — Update `docs/README.md`:
   - Confirm the logging convention reference (added in L3.12) is accurate
     and points to the right development guide section
-- [x] **L5.8** — Update `docs/humans/README.md`:
+- [x] **L5.8** — Update `docs/README.md`:
   - If the humans/ docs now cover logging in ARCHITECTURE.md, ensure the
     README's "Available Docs" section's Architecture description mentions
     logging/observability
 - [x] **L5.9** — Final review pass across **all** docs under `docs/`:
   - `docs/README.md`
-  - `docs/agents/README.md`
-  - `docs/agents/context/ARCHITECTURE.md`
-  - `docs/agents/context/CONFIGURATION.md`
-  - `docs/agents/context/WORKFLOWS.md`
-  - `docs/humans/README.md`
-  - `docs/humans/context/ARCHITECTURE.md`
+  - `docs/README.md`
+  - `docs/context/ARCHITECTURE.md`
+  - `docs/context/CONFIGURATION.md`
+  - `docs/context/WORKFLOWS.md`
+  - `docs/README.md`
+  - `docs/context/ARCHITECTURE.md`
   - `docs/guides/GETTING_STARTED.md`
   - `docs/guides/DEVELOPMENT.md`
   Confirm no stale references to `console.log`, `hono/logger`, or "not yet
@@ -558,11 +558,11 @@ pass.
 | `src/publisher/gitlab-publisher.ts` | Replace 3 console calls | L3 |
 | `tests/logger.test.ts` | **New** — LogTape level filtering and context tests | L5 |
 | `docs/README.md` | Add logging to implemented features list | L1, L5 |
-| `docs/agents/README.md` | Add logging convention reference | L3, L5 |
-| `docs/agents/context/ARCHITECTURE.md` | Add logger.ts, structured logging, request correlation | L1, L2, L3, L4 |
-| `docs/agents/context/CONFIGURATION.md` | Mark LOG_LEVEL as wired to LogTape | L1 |
-| `docs/agents/context/WORKFLOWS.md` | Update webhook flow & pipeline workflow with logging details | L2, L3, L4 |
-| `docs/humans/README.md` | Update Architecture description | L5 |
-| `docs/humans/context/ARCHITECTURE.md` | Add logging section, update Mermaid diagram, directory tree | L1, L2, L3, L4 |
+| `docs/README.md` | Add logging convention reference | L3, L5 |
+| `docs/context/ARCHITECTURE.md` | Add logger.ts, structured logging, request correlation | L1, L2, L3, L4 |
+| `docs/context/CONFIGURATION.md` | Mark LOG_LEVEL as wired to LogTape | L1 |
+| `docs/context/WORKFLOWS.md` | Update webhook flow & pipeline workflow with logging details | L2, L3, L4 |
+| `docs/README.md` | Update Architecture description | L5 |
+| `docs/context/ARCHITECTURE.md` | Add logging section, update Mermaid diagram, directory tree | L1, L2, L3, L4 |
 | `docs/guides/GETTING_STARTED.md` | Update scope description, note structured logging | L1, L4 |
 | `docs/guides/DEVELOPMENT.md` | Add logging conventions section, context propagation guide | L1, L3, L4 |

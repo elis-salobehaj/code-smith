@@ -32,21 +32,19 @@ high-signal inline review comments.
 
 ## 📖 Guides
 
-- **Architecture**: [`docs/agents/context/ARCHITECTURE.md`](docs/agents/context/ARCHITECTURE.md)
-- **Configuration**: [`docs/agents/context/CONFIGURATION.md`](docs/agents/context/CONFIGURATION.md)
-- **Workflows**: [`docs/agents/context/WORKFLOWS.md`](docs/agents/context/WORKFLOWS.md)
+- **Architecture**: [`docs/context/ARCHITECTURE.md`](docs/context/ARCHITECTURE.md)
+- **Configuration**: [`docs/context/CONFIGURATION.md`](docs/context/CONFIGURATION.md)
+- **Workflows**: [`docs/context/WORKFLOWS.md`](docs/context/WORKFLOWS.md)
 
 ## 🧭 Documentation Structure
 
-- **Agent docs** (concise, token-optimized):
-  - `docs/agents/context/*` — Architecture, config, workflow rules
-  - `docs/agents/designs/*` — Compact design decision summaries
-- **Human docs** (detailed, visual):
-  - `docs/humans/context/*` — Full rationale, diagrams, onboarding
-  - `docs/humans/designs/*` — Full design docs with mermaid and ELI5
+- **Core context**:
+   - `docs/context/*` — Architecture, configuration, and workflow references used by both humans and agents
+- **Design docs**:
+   - `docs/designs/*` — Deeper design records, diagrams, and rationale
 - **Plans**: `docs/plans/{active,backlog,implemented}/*`
 
-Agents MUST default to `docs/agents/*` to minimize context window usage.
+Agents MUST default to `docs/context/*` and then read `docs/designs/*` only when implementation or review work needs deeper rationale.
 
 ## 🔧 Agent Skills
 

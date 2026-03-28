@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E5
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 
 ### Summary
@@ -49,4 +49,4 @@ None.
 - `src/context/repo-manager.ts` — post-refresh HEAD verification, mtime bump, and explicit retention policy alignment with TTL cleanup
 - `tests/pipeline.test.ts` — same-branch concurrent automatic deliveries serialize and the second run re-reads state after the first summary write
 - `tests/repo-manager.test.ts` — local-head validation and mtime refresh coverage
-- `docs/agents/context/ARCHITECTURE.md` and `docs/agents/context/WORKFLOWS.md` — concurrency, freshness, and retention policy documentation
+- `docs/context/ARCHITECTURE.md` and `docs/context/WORKFLOWS.md` — concurrency, freshness, and retention policy documentation

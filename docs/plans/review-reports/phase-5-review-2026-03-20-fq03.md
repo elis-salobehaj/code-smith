@@ -1,7 +1,7 @@
 ## Plan Review: GitGandalf Master Plan — Phase 5 (Production Hardening)
 
 **Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 
 ### Summary

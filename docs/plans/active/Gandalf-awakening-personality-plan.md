@@ -21,9 +21,9 @@ related_files:
   - README.md
   - docs/README.md
   - docs/guides/GETTING_STARTED.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
-  - docs/humans/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
 tags:
   - personality
   - product

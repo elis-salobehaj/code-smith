@@ -6,7 +6,7 @@
 - `docs/plans/backlog/analytics-observability-plan.md`
 - `docs/plans/backlog/production-hardening-plan.md`
 - `docs/plans/backlog/postgresql-pgvector-migration-plan.md`
-**Reviewed against**: `AGENTS.md`, `docs/agents/context/ARCHITECTURE.md`, `docs/agents/context/WORKFLOWS.md`, `docs/agents/context/CONFIGURATION.md`, active plans, current source code
+**Reviewed against**: `AGENTS.md`, `docs/context/ARCHITECTURE.md`, `docs/context/WORKFLOWS.md`, `docs/context/CONFIGURATION.md`, active plans, current source code
 **Verdict**: 🟢 READY
 
 ## Summary

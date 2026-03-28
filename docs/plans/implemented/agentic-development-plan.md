@@ -13,14 +13,14 @@ related_files:
   - .agents/skills/bun-project-conventions/SKILL.md
   - src/agents/prompts/system-prompt.md
   - docs/README.md
-  - docs/agents/README.md
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
-  - docs/agents/designs/tech-stack-evaluation.md
-  - docs/humans/README.md
-  - docs/humans/context/ARCHITECTURE.md
-  - docs/humans/designs/tech-stack-evaluation.md
+  - docs/README.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
+  - docs/designs/tech-stack-evaluation.md
+  - docs/README.md
+  - docs/context/ARCHITECTURE.md
+  - docs/designs/tech-stack-evaluation.md
   - docs/plans/active/git-gandalf-master-plan.md
   - docs/guides/GETTING_STARTED.md
   - docs/guides/DEVELOPMENT.md
@@ -50,8 +50,8 @@ completion:
   - [x] 5.3 Set Zod Strict Usage Policy
   - "# 6. File Movement Plan"
   - [x] 6.1 Move `git-gandalf-master-plan.md` to `docs/plans/active/git-gandalf-master-plan.md`
-  - [x] 6.2 Move `tech-stack-evaluation-design-choices.md` to `docs/humans/designs/tech-stack-evaluation.md`
-  - [x] 6.3 Create `docs/agents/designs/tech-stack-evaluation.md`
+  - [x] 6.2 Move `tech-stack-evaluation-design-choices.md` to `docs/designs/tech-stack-evaluation.md`
+  - [x] 6.3 Create `docs/designs/tech-stack-evaluation.md`
   - [x] 6.4 Move `gg-system-prompt.md` to `src/agents/prompts/system-prompt.md`
   - "# 7. Master Plan Updates Required"
   - [x] 7.1 Add Biome configuration
@@ -124,14 +124,13 @@ git-gandalf/
 
 ### Key Design Decisions
 
-#### Split `designs/` per Track (NOT shared)
+#### Unified `designs/`
 
-| Track | Audience | Content Style | Why |
-|-------|----------|---------------|-----|
-| `docs/agents/designs/` | LLM agents | Compact tables, decision summaries, no mermaid | **~30-50% fewer tokens** |
-| `docs/humans/designs/` | Humans | Full mermaid diagrams, ELI5 explanations | Comprehensive onboarding |
+| Path | Audience | Content Style | Why |
+|------|----------|---------------|-----|
+| `docs/designs/` | Humans and agents | Human-readable primary docs with diagrams where they add value | Single source of truth after the documentation merge |
 
-**Rule**: Write the full version in `docs/humans/designs/`, then create a compact summary in `docs/agents/designs/`.
+**Rule**: Keep `docs/designs/` as the single design-doc surface and rely on `docs/context/` for the lighter-weight operational reference.
 
 #### System Prompt → `src/agents/prompts/system-prompt.md`
 
@@ -271,21 +270,19 @@ high-signal inline review comments.
 
 ## 📖 Guides
 
-- **Architecture**: [`docs/agents/context/ARCHITECTURE.md`](docs/agents/context/ARCHITECTURE.md)
-- **Configuration**: [`docs/agents/context/CONFIGURATION.md`](docs/agents/context/CONFIGURATION.md)
-- **Workflows**: [`docs/agents/context/WORKFLOWS.md`](docs/agents/context/WORKFLOWS.md)
+- **Architecture**: [`docs/context/ARCHITECTURE.md`](docs/context/ARCHITECTURE.md)
+- **Configuration**: [`docs/context/CONFIGURATION.md`](docs/context/CONFIGURATION.md)
+- **Workflows**: [`docs/context/WORKFLOWS.md`](docs/context/WORKFLOWS.md)
 
 ## 🧭 Documentation Structure
 
-- **Agent docs** (concise, token-optimized):
-  - `docs/agents/context/*` — Architecture, config, workflow rules
-  - `docs/agents/designs/*` — Compact design decision summaries
-- **Human docs** (detailed, visual):
-  - `docs/humans/context/*` — Full rationale, diagrams, onboarding
-  - `docs/humans/designs/*` — Full design docs with mermaid and ELI5
+- **Core context**:
+  - `docs/context/*` — Architecture, config, and workflow rules used by both humans and agents
+- **Design docs**:
+  - `docs/designs/*` — Deeper design records, rationale, and diagrams
 - **Plans**: `docs/plans/{active,backlog,implemented}/*`
 
-Agents MUST default to `docs/agents/*` to minimize context window usage.
+Agents MUST default to `docs/context/*` and use `docs/designs/*` when implementation work needs deeper rationale.
 
 ## 🔧 Agent Skills
 
@@ -370,8 +367,8 @@ Bun's "all-in-one" covers runtime, package manager, bundler, and test runner —
 | Current Location | New Location | Notes |
 |-----------------|-------------|-------|
 | `git-gandalf-master-plan.md` | `docs/plans/active/git-gandalf-master-plan.md` | Move |
-| `tech-stack-evaluation-design-choices.md` | `docs/humans/designs/tech-stack-evaluation.md` | Full version (humans) |
-| *(create new)* | `docs/agents/designs/tech-stack-evaluation.md` | Compact summary (agents) |
+| `tech-stack-evaluation-design-choices.md` | `docs/designs/tech-stack-evaluation.md` | Full version (humans) |
+| *(create new)* | `docs/designs/tech-stack-evaluation.md` | Compact summary (agents) |
 | `gg-system-prompt.md` | `src/agents/prompts/system-prompt.md` | Runtime asset |
 
 ---
@@ -394,7 +391,7 @@ Add to Phase 1 of `git-gandalf-master-plan.md`:
 | 1 | Workflows | ❌ **Removed** — skills cover the same use cases with better cross-IDE portability |
 | 2 | Skills | ✅ `.agents/skills/` — follows the [Agent Skills open standard](https://agentskills.io). Starter: `bun-project-conventions` |
 | 3 | Skills path | ✅ `.agents/skills/` (not `_agents/`) — universal auto-discovery across all IDEs |
-| 4 | Split designs | ✅ `agents/designs/` (compact) + `humans/designs/` (full) — token optimization |
+| 4 | Split designs | ✅ Later superseded by a unified `docs/designs/` structure — one canonical design surface |
 | 5 | System prompt | ✅ `src/agents/prompts/system-prompt.md` — runtime asset, not docs |
 | 6 | Biome | ✅ Confirmed. **Bun has no built-in linter/formatter** — Biome is the only all-in-one option |
-| 7 | Cross-IDE | ✅ `.agents/skills/` is universally discovered. `AGENTS.md` + `docs/agents/` works everywhere |
+| 7 | Cross-IDE | ✅ `.agents/skills/` is universally discovered. `AGENTS.md` + unified `docs/context/` works everywhere |

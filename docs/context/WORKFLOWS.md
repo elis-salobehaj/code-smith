@@ -1,6 +1,6 @@
-# Workflows (Agent Reference)
+# Workflows
 
-Operational reference for the workflows implemented today and the next planned handoff points.
+Operational walkthrough of the workflows implemented today and the next planned handoff points.
 
 ## 1. Webhook Ingestion
 

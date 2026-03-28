@@ -19,8 +19,8 @@ related_files:
   - src/publisher/gitlab-publisher.ts
   - src/publisher/suggestion-normalizer.ts
   - src/api/pipeline.ts
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/WORKFLOWS.md
   - docs/README.md
 
 tags:
@@ -55,7 +55,7 @@ completion:
   - [ ] RO3.6 Update ARCHITECTURE.md
   - "# Phase RO4 — Output Config, Docs & Audit"
   - [ ] RO4.1 Respect .gitgandalf.yaml output settings (summary depth, walkthrough, max findings)
-  - [ ] RO4.2 Add output customization section to REPO_CONFIG.md
+  - [ ] RO4.2 Add output customization section to REPO_REVIEW_CONFIG.md
   - [ ] RO4.3 Update docs/README.md
   - [ ] RO4.4 Run review-plan-phase audit
 ---
@@ -294,7 +294,7 @@ flowchart TD
 - `output.collapsible_details` → toggle collapsible sections
 - `features.enhanced_summary` → toggle smart summary (fall back to current format when false)
 
-**RO4.2** — Add output customization section to `docs/guides/REPO_CONFIG.md`.
+**RO4.2** — Add output customization section to `docs/guides/REPO_REVIEW_CONFIG.md`.
 
 **RO4.3** — Update `docs/README.md`.
 

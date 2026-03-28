@@ -27,12 +27,11 @@ related_files:
   - tests/tools.test.ts
   - tests/agents.test.ts
   - tests/publisher.test.ts
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
-  - docs/humans/context/ARCHITECTURE.md
-  - docs/humans/designs/multi-agent-architecture.md
-  - docs/humans/designs/tech-stack-evaluation.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
+  - docs/designs/multi-agent-architecture.md
+  - docs/designs/tech-stack-evaluation.md
 tags:
   - deno
   - runtime-migration

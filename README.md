@@ -211,7 +211,7 @@ cp .env.example .env
 | `JIRA_PROJECT_KEYS` | Optional project-key allow-list |
 | `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID` | Optional acceptance-criteria custom field |
 
-Full configuration reference: [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) and [docs/agents/context/CONFIGURATION.md](docs/agents/context/CONFIGURATION.md)
+Full configuration reference: [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md), [docs/context/CONFIGURATION.md](docs/context/CONFIGURATION.md), and [docs/guides/REPO_REVIEW_CONFIG.md](docs/guides/REPO_REVIEW_CONFIG.md)
 
 ---
 
@@ -277,8 +277,10 @@ Use `ssh -R`, not `ssh -L`, when the goal is to expose your local GitGandalf pro
 | [docs/README.md](docs/README.md) | Main documentation index and phase status |
 | [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | Setup, env config, queueing, provider fallback, and KinD bootstrap |
 | [docs/guides/DEVELOPMENT.md](docs/guides/DEVELOPMENT.md) | Bun commands, testing strategy, and development workflow |
-| [docs/agents/context/ARCHITECTURE.md](docs/agents/context/ARCHITECTURE.md) | Concise implementation architecture |
-| [docs/humans/context/ARCHITECTURE.md](docs/humans/context/ARCHITECTURE.md) | Expanded architecture walkthrough |
+| [docs/guides/REPO_REVIEW_CONFIG.md](docs/guides/REPO_REVIEW_CONFIG.md) | Repo-author guide for `.gitgandalf.yaml`, including examples and troubleshooting |
+| [docs/context/ARCHITECTURE.md](docs/context/ARCHITECTURE.md) | Unified architecture walkthrough |
+| [docs/context/CONFIGURATION.md](docs/context/CONFIGURATION.md) | Environment variables and `.gitgandalf.yaml` reference |
+| [docs/context/WORKFLOWS.md](docs/context/WORKFLOWS.md) | End-to-end operational workflows |
 
 ---
 

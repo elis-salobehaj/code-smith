@@ -16,8 +16,8 @@ related_files:
   - src/publisher/gitlab-publisher.ts
   - src/context/tools/index.ts
   - src/config.ts
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/WORKFLOWS.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/WORKFLOWS.md
   - docs/README.md
 
 tags:
@@ -54,7 +54,7 @@ completion:
   - "# Phase L4 — Instance Profiles, Deferred ESLint, Docs & Audit"
   - [ ] L4.1 Define instance-owned linter profile format and deployment configuration
   - [ ] L4.2 Document ESLint as explicitly deferred pending a separate dependency-hydration and sandbox plan
-  - [ ] L4.3 Add linter integration section to REPO_CONFIG.md
+  - [ ] L4.3 Add linter integration section to REPO_REVIEW_CONFIG.md
   - [ ] L4.4 Update GETTING_STARTED.md with linter setup
   - [ ] L4.5 Update docs/README.md
   - [ ] L4.6 Run review-plan-phase audit
@@ -287,7 +287,7 @@ type LinterFinding = z.infer<typeof linterFindingSchema>;
 - Document ESLint as a separate future plan that must solve dependency hydration, plugin resolution, sandboxing, and Bun-compatible execution
 - State explicitly that CP2 will not invoke `npm`, `npx`, `yarn`, or install repo dependencies
 
-**L4.3** — Add linter integration section to `docs/guides/REPO_CONFIG.md`:
+**L4.3** — Add linter integration section to `docs/guides/REPO_REVIEW_CONFIG.md`:
 - How to enable linter integration
 - Supported linters and detection logic
 - Instance-owned profile selection

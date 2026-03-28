@@ -1,7 +1,7 @@
 ## Plan Review: Review Edge Cases Hardening — Phase E6
 
 **Plan file**: `docs/plans/implemented/review-edge-cases-hardening.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 
 ### Summary
@@ -46,7 +46,7 @@ None.
 ### Evidence Reviewed
 
 - `src/api/router.ts` and `src/api/schemas.ts` — metadata-only update skipping and explicit automatic-draft policy gate
-- `src/config.ts` and `docs/agents/context/CONFIGURATION.md` — `REVIEW_DRAFT_MRS` configuration surface and default behavior
+- `src/config.ts` and `docs/context/CONFIGURATION.md` — `REVIEW_DRAFT_MRS` configuration surface and default behavior
 - `src/api/pipeline.ts` — duplicate and out-of-order automatic delivery safety via same-head skip plus branch serialization
 - `tests/webhook.test.ts` — metadata-only update and configurable draft-policy coverage
-- `docs/agents/context/ARCHITECTURE.md`, `docs/agents/context/WORKFLOWS.md`, `docs/humans/context/ARCHITECTURE.md`, and `docs/README.md` — final docs audit for incremental review semantics, manual override behavior, concurrency model, and edge-case policy
+- `docs/context/ARCHITECTURE.md`, `docs/context/WORKFLOWS.md`, `docs/context/ARCHITECTURE.md`, and `docs/README.md` — final docs audit for incremental review semantics, manual override behavior, concurrency model, and edge-case policy

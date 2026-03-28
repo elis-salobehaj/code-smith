@@ -5,7 +5,7 @@ priority: high
 estimated_hours: 24-36
 dependencies: []
 created: 2026-03-21
-date_updated: 2026-03-21
+date_updated: 2026-03-28
 
 related_files:
   - src/config.ts
@@ -17,9 +17,10 @@ related_files:
   - src/agents/prompts/system-prompts.yaml
   - src/context/repo-manager.ts
   - .env.example
-  - docs/agents/context/ARCHITECTURE.md
-  - docs/agents/context/CONFIGURATION.md
-  - docs/agents/context/WORKFLOWS.md
+  - docs/guides/REPO_REVIEW_CONFIG.md
+  - docs/context/ARCHITECTURE.md
+  - docs/context/CONFIGURATION.md
+  - docs/context/WORKFLOWS.md
   - docs/README.md
 
 tags:
@@ -30,12 +31,14 @@ tags:
 
 completion:
   - "# Phase C1 — Config Schema & Parser"
-  - [ ] C1.1 Define `.gitgandalf.yaml` Zod schema with all supported sections
-  - [ ] C1.2 Implement config discovery and loading from cloned repo path
-  - [ ] C1.3 Add fallback defaults when no config file exists
-  - [ ] C1.4 Add Zod validation with helpful error messages for invalid configs
-  - [ ] C1.5 Unit tests for schema validation, missing file, malformed YAML, partial configs
-  - [ ] C1.6 Update CONFIGURATION.md and ARCHITECTURE.md
+  - [x] C1.1 Define `.gitgandalf.yaml` Zod schema with all supported sections
+  - [x] C1.2 Implement config discovery and loading from cloned repo path
+  - [x] C1.3 Add fallback defaults when no config file exists
+  - [x] C1.4 Add Zod validation with helpful error messages for invalid configs
+  - [x] C1.5 Unit tests for schema validation, missing file, malformed YAML, partial configs
+  - [x] C1.6 Update CONFIGURATION.md and ARCHITECTURE.md
+  - [x] Remediation complete — see `docs/plans/review-reports/c1-review-2026-03-28-q7m2.md`
+  - [x] Re-review remediation complete — see `docs/plans/review-reports/c1-review-2026-03-28-v4n8.md`
   - "# Phase C2 — Pipeline Integration"
   - [ ] C2.1 Load repo config after clone/update in pipeline.ts
   - [ ] C2.2 Attach parsed config to ReviewState
@@ -51,7 +54,7 @@ completion:
   - [ ] C3.5 Unit tests for prompt injection with various config combinations
   - [ ] C3.6 Update ARCHITECTURE.md prompt-loading section
   - "# Phase C4 — Docs, Validation & Audit"
-  - [ ] C4.1 Create .gitgandalf.yaml reference documentation with examples
+  - [x] C4.1 Create .gitgandalf.yaml reference documentation with examples
   - [ ] C4.2 Add sample .gitgandalf.yaml to repo root as a dogfooding example
   - [ ] C4.3 Update GETTING_STARTED.md with config setup instructions
   - [ ] C4.4 Update docs/README.md
@@ -280,7 +283,7 @@ The config will be validated with Zod at load time. Key design decisions:
 
 **Goal:** Complete documentation and validate the full config system.
 
-**C4.1** — Create `docs/guides/REPO_CONFIG.md`:
+**C4.1** — Create `docs/guides/REPO_REVIEW_CONFIG.md`:
 - Full reference for `.gitgandalf.yaml`
 - Example configs for common scenarios (monorepo, Go service, TypeScript library, Python data pipeline)
 - Field-by-field documentation
@@ -293,7 +296,7 @@ The config will be validated with Zod at load time. Key design decisions:
 
 **C4.3** — Update `docs/guides/GETTING_STARTED.md`:
 - Add config section after webhook setup
-- Link to REPO_CONFIG.md reference
+- Link to REPO_REVIEW_CONFIG.md reference
 
 **C4.4** — Update `docs/README.md`:
 - Add plan status entry

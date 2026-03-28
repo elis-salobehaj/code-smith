@@ -88,8 +88,8 @@ Before reading plan items, determine what was implemented:
 Read these before judging any implementation:
 1. The target plan file in full
 2. [AGENTS.md](../../../AGENTS.md)
-3. [docs/agents/context/ARCHITECTURE.md](../../../docs/agents/context/ARCHITECTURE.md)
-4. [docs/agents/context/WORKFLOWS.md](../../../docs/agents/context/WORKFLOWS.md)
+3. [docs/context/ARCHITECTURE.md](../../../docs/context/ARCHITECTURE.md)
+4. [docs/context/WORKFLOWS.md](../../../docs/context/WORKFLOWS.md)
 5. Active plans under `docs/plans/active/` to check for coordination conflicts
 
 ### Step 2 — Extract Concrete Obligations
@@ -136,7 +136,7 @@ Review all plan and documentation touchpoints:
 - The source plan file (checkboxes, status)
 - `docs/plans/active/`, `docs/plans/implemented/`, backlog moves
 - `docs/README.md`
-- Related READMEs in `docs/agents/`, `docs/humans/`, or top-level docs
+- Related documentation indexes or READMEs in `docs/`, `docs/context/`, `docs/designs/`, or top-level docs
 
 If a phase is claimed complete but these updates are missing or stale, report
 incomplete completion hygiene.
@@ -212,7 +212,7 @@ The saved report file must follow this structure exactly:
 ## Plan Review: [Plan Title — Phase N]
 
 **Plan file**: `docs/plans/.../plan-file.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🔴 NOT READY / 🟡 CONDITIONAL / 🟢 READY
 
 ### Human Decisions

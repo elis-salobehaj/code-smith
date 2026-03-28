@@ -1,7 +1,7 @@
 ## Plan Review: GitGandalf — Master Implementation Plan
 
 **Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/*, active plans
+**Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🔴 NOT READY
 
 ### Summary

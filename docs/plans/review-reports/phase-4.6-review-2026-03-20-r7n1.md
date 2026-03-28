@@ -1,7 +1,7 @@
 ## Plan Review: GitGandalf Master Plan — Phase 4.6 (GitLab Deployment Hardening)
 
 **Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
-**Reviewed against**: AGENTS.md, docs/agents/context/ARCHITECTURE.md, docs/agents/context/WORKFLOWS.md, docs/agents/context/CONFIGURATION.md
+**Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, docs/context/CONFIGURATION.md
 **Verdict**: 🟢 READY — 0 BLOCKERs · 0 RISKs · 1 OPTIMIZATION
 
 ---
