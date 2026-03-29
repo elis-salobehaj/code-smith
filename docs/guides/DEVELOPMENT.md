@@ -6,14 +6,14 @@ This repository is plan-driven and Bun-first. Use the active plan and AGENTS.md 
 
 All source modules use LogTape via `src/logger.ts`. Never use bare `console.*` in `src/` — log output must route through LogTape so `LOG_LEVEL` filtering and request correlation work correctly.
 
-When `LOG_LEVEL=debug` outside tests, the application also appends JSON Lines logs to `logs/gg-dev.log` in the project root. This is the primary place to inspect a noisy local review run after the terminal scrollback becomes unwieldy.
+When `LOG_LEVEL=debug` outside tests, the application also appends JSON Lines logs to `logs/codesmith-dev.log` in the project root. This is the primary place to inspect a noisy local review run after the terminal scrollback becomes unwieldy.
 
 ### Adding a logger to a new module
 
 ```typescript
 import { getLogger } from "../logger"; // adjust relative path as needed
 
-const logger = getLogger(["gandalf", "<module>"]);
+const logger = getLogger(["codesmith", "<module>"]);
 
 // Simple message
 logger.info("Thing happened");
@@ -27,17 +27,17 @@ logger.error("Failed to post comment", { error: err instanceof Error ? err.messa
 
 ### Category naming
 
-All loggers root at `"gandalf"`. Sub-categories follow the module hierarchy:
+All loggers root at `"codesmith"`. Sub-categories follow the module hierarchy:
 
 | Module | Category |
 |---|---|
-| `src/api/router.ts` | `["gandalf", "router"]` |
-| `src/api/pipeline.ts` | `["gandalf", "pipeline"]` |
-| `src/agents/orchestrator.ts` | `["gandalf", "orchestrator"]` |
-| `src/agents/llm-client.ts` | `["gandalf", "llm"]` |
-| `src/integrations/jira/client.ts` | `["gandalf", "jira"]` |
-| `src/publisher/gitlab-publisher.ts` | `["gandalf", "publisher"]` |
-| `src/worker.ts` | `["gandalf", "worker"]` |
+| `src/api/router.ts` | `["codesmith", "router"]` |
+| `src/api/pipeline.ts` | `["codesmith", "pipeline"]` |
+| `src/agents/orchestrator.ts` | `["codesmith", "orchestrator"]` |
+| `src/agents/llm-client.ts` | `["codesmith", "llm"]` |
+| `src/integrations/jira/client.ts` | `["codesmith", "jira"]` |
+| `src/publisher/gitlab-publisher.ts` | `["codesmith", "publisher"]` |
+| `src/worker.ts` | `["codesmith", "worker"]` |
 
 ### Request correlation
 
@@ -80,7 +80,7 @@ bunx biome ci .
 
 ### 1. Work from the active plan
 
-- use `docs/plans/active/git-gandalf-master-plan.md` as the implementation backlog
+- use `docs/plans/active/code-smith-master-plan.md` as the implementation backlog
 - update plan checkboxes as work completes
 - update `docs/README.md` when a phase status changes
 
@@ -139,7 +139,7 @@ Pattern for a new tool:
 3. register the tool in `src/context/tools/index.ts`
 4. add tool behavior tests to `tests/tools.test.ts`
 
-Tool definitions are part of GitGandalf's internal protocol boundary. Keep provider SDK types out of `src/context/tools/`.
+Tool definitions are part of CodeSmith's internal protocol boundary. Keep provider SDK types out of `src/context/tools/`.
 
 ## Security expectations
 

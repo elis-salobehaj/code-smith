@@ -1,6 +1,6 @@
 # Architecture
 
-GitGandalf is a Bun-native webhook service built in phases. The current repository includes the complete webhook-to-review-to-publish path: webhook ingestion, typed GitLab access, repo cache management, modular tool execution, the multi-agent review subsystem, GitLab publishing, deployment packaging, and structured logging with request correlation.
+CodeSmith is a Bun-native webhook service built in phases. The current repository includes the complete webhook-to-review-to-publish path: webhook ingestion, typed GitLab access, repo cache management, modular tool execution, the multi-agent review subsystem, GitLab publishing, deployment packaging, and structured logging with request correlation.
 
 This is the unified architecture reference for both engineers and agents. It favors the more explanatory, human-readable style while still documenting the precise runtime surfaces and behavior that implementation work depends on.
 
@@ -87,7 +87,7 @@ flowchart TD
 ## Directory Structure
 
 ```text
-git-gandalf/
+code-smith/
 ├── .env.example                    # Template for secrets & config
 ├── .gitignore
 ├── docker-compose.yml
@@ -101,7 +101,7 @@ git-gandalf/
 │   ├── logger.ts                   # LogTape configuration and context helpers
 │   ├── config.ts                   # Env vars via Zod-validated process.env
 │   ├── config/
-│   │   ├── repo-config.ts          # Repo-level .gitgandalf.yaml schema, defaults, and glob helpers
+│   │   ├── repo-config.ts          # Repo-level .codesmith.yaml schema, defaults, and glob helpers
 │   │   └── repo-config-loader.ts   # Repo config discovery, parsing, and fallback behavior
 │   ├── api/
 │   │   ├── router.ts               # Webhook routing, validation, filtering, dispatch
@@ -204,8 +204,8 @@ git-gandalf/
 `src/logger.ts` is the single logging configuration module.
 
 - **Library**: LogTape (`@logtape/logtape` + `@logtape/hono`) — zero dependencies, Bun-native Web APIs, first-party Hono middleware.
-- **Output**: JSON Lines to stdout via `getConsoleSink({ formatter: jsonLinesFormatter })`. When `LOG_LEVEL=debug` outside tests, the same records are also appended to `logs/gg-dev.log` in the project root.
-- **Level control**: `config.LOG_LEVEL` maps to LogTape's `lowestLevel` on the root `["gandalf"]` category. All child categories (`["gandalf", "router"]`, `["gandalf", "orchestrator"]`, etc.) inherit it automatically.
+- **Output**: JSON Lines to stdout via `getConsoleSink({ formatter: jsonLinesFormatter })`. When `LOG_LEVEL=debug` outside tests, the same records are also appended to `logs/codesmith-dev.log` in the project root.
+- **Level control**: `config.LOG_LEVEL` maps to LogTape's `lowestLevel` on the root `["codesmith"]` category. All child categories (`["codesmith", "router"]`, `["codesmith", "orchestrator"]`, etc.) inherit it automatically.
 - **Request correlation**: `requestId` is generated in the router via `Bun.randomUUIDv7()`. Both the router and pipeline call `withContext()` to set `requestId`, `projectId`, and `mrIid` as implicit context via `AsyncLocalStorage`. Every log line emitted anywhere in the pipeline carries these fields without explicit passing.
 - **Future sinks**: Adding `@logtape/otel` or `@logtape/sentry` only requires adding a new sink to `initLogging()` — no call-site changes.
 
@@ -214,7 +214,7 @@ git-gandalf/
 `src/api/router.ts` does four real jobs today:
 
 1. verifies the GitLab shared secret
-2. validates webhook payloads with Zod schemas that require the fields GitGandalf uses while tolerating additional GitLab webhook keys
+2. validates webhook payloads with Zod schemas that require the fields CodeSmith uses while tolerating additional GitLab webhook keys
 3. filters down to merge-request review triggers
 4. hands the event to `runPipeline(event, trigger)` without blocking the HTTP response
 
@@ -271,7 +271,7 @@ Security detail: the clone URL hostname must match `GITLAB_URL`. The manager ref
 
 Phase C1 of CP1 adds repo-level review configuration parsing under `src/config/`.
 
-- discovery order: `.gitgandalf.yaml`, then `.gitgandalf.yml`
+- discovery order: `.codesmith.yaml`, then `.codesmith.yml`
 - parsing: `Bun.file(...).text()` + `Bun.YAML.parse()`
 - validation: strict Zod schema in `src/config/repo-config.ts`
 - failure mode: missing, malformed, or invalid config falls back to defaults and logs at `info` or `warn`
@@ -291,7 +291,7 @@ Phase 2.5 split the original monolithic `src/context/tools.ts` into per-tool mod
 
 This keeps each tool independently testable and makes the public API surface explicit in one place.
 
-The public contract is now fully internal to GitGandalf:
+The public contract is now fully internal to CodeSmith:
 
 - each tool module exports `toolDefinition`, `inputSchema`, and its implementation
 - `src/context/tools/index.ts` assembles `TOOL_DEFINITIONS` using the internal `AgentToolDefinition` type
@@ -329,7 +329,7 @@ Another current behavior worth knowing: only findings that can be anchored to th
 - Normalizes each ticket into a `JiraTicket` value with `key`, `summary`, `status`, `issueType`, `priority`, `assignee`, `description`, and `acceptanceCriteria`.
 - Handles Atlassian Document Format (ADF) descriptions by extracting plain text from paragraph nodes.
 - Supports a custom acceptance-criteria field via `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID`.
-- Returns `null` on any per-ticket failure and logs a `warn` through `["gandalf", "jira"]`. The pipeline always receives an array — never a thrown error.
+- Returns `null` on any per-ticket failure and logs a `warn` through `["codesmith", "jira"]`. The pipeline always receives an array — never a thrown error.
 
 **How Agent 1 uses it:**
 
@@ -346,7 +346,7 @@ Set `JIRA_ENABLED=true` in `.env`. The integration is disabled by default so exi
 The current runtime already includes queueing, worker execution, Kubernetes manifests,
 and multi-provider fallback. The remaining planned work is narrower:
 
-- Gandalf Awakening: trigger aliases, immediate acknowledgement notes, and tone-aware summary behavior
+- CodeSmith Awakening: trigger aliases, immediate acknowledgement notes, and tone-aware summary behavior
 - Crown storage evolution: a dedicated ops role, singleton-owned SQLite for phase-one learning and analytics, and a threshold-driven migration seam to PostgreSQL later
 - Phase 5.5 optional adapter evaluation remains deferred by the master plan
 - Phase 6 Jira write actions remain deferred pending explicit scope and security review
@@ -374,7 +374,7 @@ The Crown Plan adds a storage architecture for organizational learning and analy
 
 - CP3 and CP5 now plan storage contracts so handlers, queue payloads, and prompt-injection logic stay DB-neutral.
 - CP7 defines PostgreSQL as the long-term relational scale-up target once activation criteria are met.
-- `pgvector` is intentionally optional future scope only if GitGandalf later proves it needs semantic retrieval across free-form review memory.
+- `pgvector` is intentionally optional future scope only if CodeSmith later proves it needs semantic retrieval across free-form review memory.
 - Dedicated vector databases remain a later specialized choice, not the default next step.
 
 ## Why the Design Looks This Way
@@ -387,4 +387,4 @@ The Crown Plan adds a storage architecture for organizational learning and analy
 
 ## ELI5
 
-GitGandalf receives a GitLab webhook, validates the important parts, fetches the MR and repo contents, lets three agents investigate the change, and posts the result back to GitLab. The code keeps Bedrock-specific details boxed into one adapter, and every log line carries the same request context so humans and agents can trace a review end to end.
+CodeSmith receives a GitLab webhook, validates the important parts, fetches the MR and repo contents, lets three agents investigate the change, and posts the result back to GitLab. The code keeps Bedrock-specific details boxed into one adapter, and every log line carries the same request context so humans and agents can trace a review end to end.

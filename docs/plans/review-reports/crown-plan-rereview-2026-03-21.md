@@ -1,7 +1,7 @@
 ## Plan Review: Crown Plan Follow-Up Re-Review
 
 **Plan files**:
-- `docs/plans/active/git-gandalf-crown-plan.md`
+- `docs/plans/active/code-smith-crown-plan.md`
 - `docs/plans/backlog/repo-review-config-plan.md`
 - `docs/plans/backlog/linter-sast-integration-plan.md`
 - `docs/plans/backlog/organizational-learning-plan.md`

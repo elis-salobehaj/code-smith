@@ -19,10 +19,10 @@ describe("findAutomaticReviewSkipSummary", () => {
     const existingSummary = {
       id: 57110,
       body: [
-        "<!-- git-gandalf:summary -->",
+        "<!-- code-smith:summary -->",
         "## review",
         "",
-        "<!-- git-gandalf:head sha=05fef636ef4e5feb8bd54ebe7a29d3554eca4c48 -->",
+        "<!-- code-smith:head sha=05fef636ef4e5feb8bd54ebe7a29d3554eca4c48 -->",
       ].join("\n"),
     };
 
@@ -39,10 +39,10 @@ describe("findAutomaticReviewSkipSummary", () => {
           {
             id: 57110,
             body: [
-              "<!-- git-gandalf:summary -->",
+              "<!-- code-smith:summary -->",
               "## review",
               "",
-              "<!-- git-gandalf:head sha=05fef636ef4e5feb8bd54ebe7a29d3554eca4c48 -->",
+              "<!-- code-smith:head sha=05fef636ef4e5feb8bd54ebe7a29d3554eca4c48 -->",
             ].join("\n"),
           },
         ],
@@ -58,7 +58,7 @@ describe("findAutomaticReviewSkipSummary", () => {
         [
           {
             id: 57110,
-            body: ["<!-- git-gandalf:summary -->", "## review", "", "<!-- git-gandalf:head sha=deadbeef -->"].join(
+            body: ["<!-- code-smith:summary -->", "## review", "", "<!-- code-smith:head sha=deadbeef -->"].join(
               "\n",
             ),
           },

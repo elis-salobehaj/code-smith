@@ -3,7 +3,7 @@ import type { ZodError } from "zod";
 import { getLogger } from "../logger";
 import { DEFAULT_REPO_CONFIG, REPO_CONFIG_FILENAMES, type RepoConfig, RepoConfigSchema } from "./repo-config";
 
-const logger = getLogger(["gandalf", "repo-config"]);
+const logger = getLogger(["codesmith", "repo-config"]);
 
 function cloneDefaultRepoConfig(): RepoConfig {
   return structuredClone(DEFAULT_REPO_CONFIG);

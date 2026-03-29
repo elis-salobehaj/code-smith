@@ -21,7 +21,7 @@ import { investigatorLoop } from "./investigator-agent";
 import { reflectionAgent } from "./reflection-agent";
 import type { Finding, ReviewState } from "./state";
 
-const logger = getLogger(["gandalf", "orchestrator"]);
+const logger = getLogger(["codesmith", "orchestrator"]);
 
 // ---------------------------------------------------------------------------
 // P3 — Deterministic post-processing deduplication

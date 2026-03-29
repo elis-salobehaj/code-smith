@@ -1,7 +1,7 @@
 ---
 name: plan-implementation
 description: >
-  Produces thorough, repo-aware implementation plans for GitGandalf. Gathers deep
+  Produces thorough, repo-aware implementation plans for CodeSmith. Gathers deep
   context from AGENTS.md, docs/, and source code before proposing architecture,
   tech stack decisions, tradeoffs, and phased implementation steps. Produces a
   markdown plan file consistent with existing plan conventions. Asks the user
@@ -14,7 +14,7 @@ license: Apache-2.0
 # Plan Implementation
 
 Use this skill to produce a detailed, actionable implementation plan for a new
-feature, capability, or architectural change in GitGandalf. The plan must be
+feature, capability, or architectural change in CodeSmith. The plan must be
 grounded in the actual codebase — not generic advice — and must follow the
 conventions established by existing plans in this repository.
 
@@ -22,7 +22,7 @@ conventions established by existing plans in this repository.
 
 Produce a markdown plan file saved to `docs/plans/backlog/` (default) or `docs/plans/active/`
 (when the user explicitly requests active, or when no active plans exist) that:
-- is grounded in the current architecture, tech stack, and conventions of GitGandalf
+- is grounded in the current architecture, tech stack, and conventions of CodeSmith
 - evaluates technology choices and tradeoffs when the feature introduces new tools, libraries, or patterns
 - proactively suggests superior alternatives when a clearly better option exists (more performant,
   more secure, open-source, actively maintained, community-loved, near drop-in replacement) —
@@ -86,7 +86,7 @@ repository by reading primary sources in this order:
    and grep searches as needed to build confidence in your understanding.
 
 7. If the feature introduces dependencies on external systems, APIs, or libraries, research
-   their compatibility with the GitGandalf stack (Bun runtime, TypeScript strict mode,
+   their compatibility with the CodeSmith stack (Bun runtime, TypeScript strict mode,
    Hono framework, Zod validation patterns).
 
 > **Documentation rule**: The repo now uses unified docs under `docs/context/*` and `docs/designs/*`.
@@ -119,7 +119,7 @@ When the feature introduces new dependencies, tools, patterns, or architectural 
 
 1. Identify the decision points. For each:
    - List candidate approaches or libraries
-   - Evaluate each against GitGandalf's stack constraints (Bun compatibility, TypeScript
+   - Evaluate each against CodeSmith's stack constraints (Bun compatibility, TypeScript
      strict mode, bundle size, maintenance health, license)
    - State the tradeoffs clearly: what you gain, what you give up, what risks exist
    - Make a recommendation with rationale
@@ -345,8 +345,8 @@ Before presenting the plan as ready:
 
 ## Preferred Prompts
 
-- Plan the implementation of [feature] for GitGandalf.
+- Plan the implementation of [feature] for CodeSmith.
 - Create an implementation plan for adding [capability] to the review pipeline.
-- I want to add [library/tool] to GitGandalf — plan the integration.
+- I want to add [library/tool] to CodeSmith — plan the integration.
 - Plan a migration from [current approach] to [new approach].
 - Break down [large initiative] into a phased implementation plan.

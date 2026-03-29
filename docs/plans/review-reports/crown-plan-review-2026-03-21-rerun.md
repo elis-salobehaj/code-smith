@@ -1,6 +1,6 @@
-# Plan Review: The Crown Plan — Git Gandalf Feature Parity & Beyond (Re-review)
+# Plan Review: The Crown Plan — Code Smith Feature Parity & Beyond (Re-review)
 
-**Plan file**: `docs/plans/active/git-gandalf-crown-plan.md` + attached child plans CP1–CP6
+**Plan file**: `docs/plans/active/code-smith-crown-plan.md` + attached child plans CP1–CP6
 **Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, active plans, current source code
 **Verdict**: 🟡 CONDITIONAL
 
@@ -18,7 +18,7 @@ The updated Crown Plan set is materially stronger than the previous revision. Th
 - **Dimension**: Structure
 - **Finding**: The Crown Plan still locks dependency phases to a `bun audit` gate, and CP6's operating assumptions repeat that requirement. But CP6 PH0.3 now instructs implementers to use `npx audit-ci --moderate`, with fallback to `npm audit --omit=dev`. That conflicts directly with AGENTS.md's Bun-only rule and is no longer justified by tooling limitations: in the current repo, `bun audit` now works and reports real advisories.
 - **Evidence**:
-  - Crown Plan lock: `bun audit` requirement in `docs/plans/active/git-gandalf-crown-plan.md`
+  - Crown Plan lock: `bun audit` requirement in `docs/plans/active/code-smith-crown-plan.md`
   - CP6 operating assumption: `bun audit` requirement in `docs/plans/backlog/production-hardening-plan.md`
   - Conflicting PH0.3 command: `npx audit-ci` / `npm audit` in `docs/plans/backlog/production-hardening-plan.md`
   - Actual terminal result from this review: `bun audit` reported 2 advisories in `fast-xml-parser` via `@aws-sdk/client-bedrock-runtime` (1 high, 1 moderate)
@@ -57,7 +57,7 @@ The updated Crown Plan set is materially stronger than the previous revision. Th
 4. PH0/OL0 ownership is substantially cleaner: CP6 creates the foundation, CP3 consumes it.
 5. The migration runner now requires transactions, which closes an important schema-corruption edge case at essentially zero complexity cost.
 6. The production-hardening plan now acknowledges both backup/recovery requirements and the limits of CPU-based worker autoscaling.
-7. The active-plan coordination note with Gandalf Awakening is now explicit and useful.
+7. The active-plan coordination note with CodeSmith Awakening is now explicit and useful.
 
 ## Verdict Details
 

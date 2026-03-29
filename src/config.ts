@@ -36,7 +36,7 @@ const envSchema = z
     // GitLab deployment hardening (Phase 4.6)
     // Path to a PEM-encoded CA bundle for self-hosted GitLab instances that use
     // a privately-signed certificate (internal / enterprise CA).
-    // When set, GitGandalf injects this file into every git subprocess via
+    // When set, CodeSmith injects this file into every git subprocess via
     // GIT_SSL_CAINFO and exposes it via NODE_EXTRA_CA_CERTS for the
     // @gitbeaker/rest HTTP client at startup.
     GITLAB_CA_FILE: z.string().optional(),

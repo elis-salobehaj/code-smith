@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide gets the current implemented GitGandalf runtime running locally.
+This guide gets the current implemented CodeSmith runtime running locally.
 
 ## Prerequisites
 
@@ -35,7 +35,7 @@ Important:
 - `REPO_CACHE_DIR` is where shallow clones will be cached
 - `GITLAB_URL` must be the GitLab base URL, for example `https://gitlab.example.com`, not the webhook settings page URL
 
-If you want to author repo-owned review config, see [`docs/guides/REPO_REVIEW_CONFIG.md`](./REPO_REVIEW_CONFIG.md). That guide explains what `.gitgandalf.yaml` is, how to structure it, and which parts of the contract are already active versus still planned.
+If you want to author repo-owned review config, see [`docs/guides/REPO_REVIEW_CONFIG.md`](./REPO_REVIEW_CONFIG.md). That guide explains what `.codesmith.yaml` is, how to structure it, and which parts of the contract are already active versus still planned.
 
 ## GitLab personal access token (GLPAT)
 
@@ -49,7 +49,7 @@ Create a token with a dedicated bot or service account when possible.
 For GitLab.com or self-hosted GitLab:
 
 1. Open GitLab and go to your avatar → Preferences or Edit profile → Access tokens.
-2. Create a personal access token named something like `git-gandalf-local-dev`.
+2. Create a personal access token named something like `code-smith-local-dev`.
 3. Set an expiry date that matches your local-security requirements.
 4. Grant the `api` scope.
 
@@ -77,7 +77,7 @@ Then:
 1. Put that value in `.env` as `GITLAB_WEBHOOK_SECRET`.
 2. In GitLab, open the target project.
 3. Go to Settings → Webhooks.
-4. Set the webhook URL to your GitGandalf endpoint.
+4. Set the webhook URL to your CodeSmith endpoint.
 5. Paste the same secret into the webhook secret/token field.
 6. Subscribe to merge request events and, if you want `/ai-review`, note events.
 
@@ -86,7 +86,7 @@ The exact field label varies slightly by GitLab version, but the value must matc
 
 ## Project webhook vs system hook
 
-If your goal is to have GitGandalf review merge requests across the entire GitLab instance,
+If your goal is to have CodeSmith review merge requests across the entire GitLab instance,
 a system hook is a valid approach on self-hosted GitLab when you have administrator access.
 
 What works well with a system hook today:
@@ -113,7 +113,7 @@ Setup:
 
 1. Open the target project.
 2. Go to Settings → Webhooks.
-3. Set the webhook URL to your GitGandalf endpoint.
+3. Set the webhook URL to your CodeSmith endpoint.
 4. Paste `GITLAB_WEBHOOK_SECRET` into the secret/token field.
 5. Subscribe to merge request events and, if you want `/ai-review`, note events.
 
@@ -129,7 +129,7 @@ Setup:
 
 1. In GitLab, open Admin.
 2. Go to System hooks.
-3. Add a new webhook pointing at your GitGandalf endpoint.
+3. Add a new webhook pointing at your CodeSmith endpoint.
 4. Paste the same `GITLAB_WEBHOOK_SECRET` into the secret token field.
 5. Enable at least merge request events.
 
@@ -139,19 +139,19 @@ for note events as well.
 
 ## Webhook reachability
 
-GitLab must be able to make an HTTP request to the GitGandalf webhook URL.
+GitLab must be able to make an HTTP request to the CodeSmith webhook URL.
 
 What this means in practice:
 
-- if GitLab and GitGandalf run on the same machine, `http://localhost:8020` can work
+- if GitLab and CodeSmith run on the same machine, `http://localhost:8020` can work
 - if GitLab runs on a different machine, `localhost` on your laptop is not reachable from GitLab
-- a reverse proxy is only useful if GitLab can already reach the proxy and the proxy can route traffic to your GitGandalf process
+- a reverse proxy is only useful if GitLab can already reach the proxy and the proxy can route traffic to your CodeSmith process
 
 Common setups:
 
-1. Run GitGandalf on a host GitLab can reach directly, then use `http://that-host:8020/api/v1/webhooks/gitlab` or an HTTPS URL in front of it.
+1. Run CodeSmith on a host GitLab can reach directly, then use `http://that-host:8020/api/v1/webhooks/gitlab` or an HTTPS URL in front of it.
 2. For early testing, create an SSH reverse tunnel from your machine to a host GitLab can reach.
-3. For longer-lived environments, run GitGandalf on a reachable host directly.
+3. For longer-lived environments, run CodeSmith on a reachable host directly.
 
 For early testing, the simplest terminal-only option is usually an SSH reverse tunnel.
 The important detail is direction:
@@ -199,38 +199,38 @@ Notes:
 - `ssh -N` keeps the tunnel open without starting a shell
 - this is appropriate for early testing, not a durable production ingress design
 
-For self-hosted GitLab system hooks, remember one more constraint: the GitLab instance itself must be allowed to send requests to that destination. If GitGandalf is only listening on your local machine, GitLab will need either a network route to it or a tunnel/proxy endpoint that is reachable from the GitLab server.
+For self-hosted GitLab system hooks, remember one more constraint: the GitLab instance itself must be allowed to send requests to that destination. If CodeSmith is only listening on your local machine, GitLab will need either a network route to it or a tunnel/proxy endpoint that is reachable from the GitLab server.
 
 ## Jira setup
 
-Jira ticket fetching is live and optional. When enabled, GitGandalf reads ticket keys from the MR title and description, fetches each ticket from the Jira REST API, and passes the context to Agent 1 before the review begins. This step always degrades gracefully — if Jira is unavailable or a ticket cannot be fetched, the review continues without ticket context.
+Jira ticket fetching is live and optional. When enabled, CodeSmith reads ticket keys from the MR title and description, fetches each ticket from the Jira REST API, and passes the context to Agent 1 before the review begins. This step always degrades gracefully — if Jira is unavailable or a ticket cannot be fetched, the review continues without ticket context.
 
 The integration is **disabled by default** (`JIRA_ENABLED=false`). Existing deployments are unaffected until you opt in.
 ### Jira API token
 
-GitGandalf uses Jira Cloud's REST API v3 with Basic Auth. The credential is `email:api_token`, base64-encoded in each request header.
+CodeSmith uses Jira Cloud's REST API v3 with Basic Auth. The credential is `email:api_token`, base64-encoded in each request header.
 
 To create a token:
 
 1. Log in to your Atlassian account (even if your org uses SSO via Okta, Azure AD, or similar, you can still generate API tokens from the Atlassian account portal).
 2. Go to **https://id.atlassian.com/manage-profile/security/api-tokens** (not the Jira project settings — this is the Atlassian account-level page).
-3. Click **Create API token**, give it a label (e.g. `git-gandalf`), and copy the value immediately — it is not shown again.
+3. Click **Create API token**, give it a label (e.g. `code-smith`), and copy the value immediately — it is not shown again.
 4. Set `JIRA_EMAIL` to the email address on that Atlassian account and `JIRA_API_TOKEN` to the copied token.
 
 **Critical:** paste `JIRA_API_TOKEN` as a **single unbroken line** in `.env`. A line break anywhere in the token value causes it to be read as two separate variables and Jira will return `401 Client must be authenticated`.
 
-**SSO note:** if your organization enforces SAML SSO via Atlassian Access and has additionally restricted API token usage, API tokens may not work for accounts governed by that policy. In that case, ask an Atlassian administrator to either exempt a service account from the restriction or create a dedicated non-SSO Jira account for GitGandalf.
+**SSO note:** if your organization enforces SAML SSO via Atlassian Access and has additionally restricted API token usage, API tokens may not work for accounts governed by that policy. In that case, ask an Atlassian administrator to either exempt a service account from the restriction or create a dedicated non-SSO Jira account for CodeSmith.
 
 ### Recommended: read-only service account
 
-For production use, create a dedicated Jira account (e.g. `git-gandalf-bot@your-company.com`) and grant it only **Browse Projects** permission on the relevant Jira project permission scheme. Generate the API token for that account. This limits blast radius: if the token is ever compromised, it cannot write to Jira or access projects it has not been explicitly granted.
+For production use, create a dedicated Jira account (e.g. `code-smith-bot@your-company.com`) and grant it only **Browse Projects** permission on the relevant Jira project permission scheme. Generate the API token for that account. This limits blast radius: if the token is ever compromised, it cannot write to Jira or access projects it has not been explicitly granted.
 
 ### Environment variables
 
 ```env
 JIRA_ENABLED=true
 JIRA_BASE_URL=https://your-company.atlassian.net
-JIRA_EMAIL=git-gandalf-bot@your-company.com
+JIRA_EMAIL=code-smith-bot@your-company.com
 JIRA_API_TOKEN=<paste full token on one line>
 # Optional: restrict lookups to specific project keys
 JIRA_PROJECT_KEYS=SRT,ENG
@@ -240,11 +240,11 @@ JIRA_PROJECT_KEYS=SRT,ENG
 
 ### How it works at runtime
 
-Once enabled, the pipeline extracts ticket keys from the MR title and description using the pattern `[A-Z][A-Z0-9]+-\d+`. The most common pattern in practice is a title that begins with the ticket key followed by a colon — for example `SRT-28326: refactor authentication layer`. GitGandalf handles this automatically; you do not need to configure any title format.
+Once enabled, the pipeline extracts ticket keys from the MR title and description using the pattern `[A-Z][A-Z0-9]+-\d+`. The most common pattern in practice is a title that begins with the ticket key followed by a colon — for example `SRT-28326: refactor authentication layer`. CodeSmith handles this automatically; you do not need to configure any title format.
 
-Keys found in both the title and description are deduplicated. The `JIRA_PROJECT_KEYS` allow-list filters out keys from projects you do not want GitGandalf to look up. `JIRA_MAX_TICKETS` (default 5) caps the number of API calls per review run.
+Keys found in both the title and description are deduplicated. The `JIRA_PROJECT_KEYS` allow-list filters out keys from projects you do not want CodeSmith to look up. `JIRA_MAX_TICKETS` (default 5) caps the number of API calls per review run.
 
-Resolved tickets are attached to `ReviewState.linkedTickets` and included in Agent 1's prompt as a `## Linked Jira Tickets` section with the ticket's summary, status, issue type, priority, assignee, description, and acceptance criteria. All logs from the Jira fetch step appear under the `["gandalf", "jira"]` log category.
+Resolved tickets are attached to `ReviewState.linkedTickets` and included in Agent 1's prompt as a `## Linked Jira Tickets` section with the ticket's summary, status, issue type, priority, assignee, description, and acceptance criteria. All logs from the Jira fetch step appear under the `["codesmith", "jira"]` log category.
 
 ## AWS Bedrock bearer-token setup
 
@@ -258,14 +258,14 @@ Required values:
 - `AWS_AUTH_SCHEME_PREFERENCE='smithy.api#httpBearerAuth'`
 
 If Bedrock auth is misconfigured, the webhook can still return `202 Accepted` because the
-review runs in the background, but the pipeline will later fail in `logs/gg-dev.log` with
+review runs in the background, but the pipeline will later fail in `logs/codesmith-dev.log` with
 credential or authorization errors.
 
 ## LLM provider fallback (Phase 5.3)
 
-By default, GitGandalf uses AWS Bedrock as the sole LLM provider. You can configure
+By default, CodeSmith uses AWS Bedrock as the sole LLM provider. You can configure
 additional providers as automatic fallbacks: if Bedrock is unavailable (rate-limited,
-service disruption, or credential error), GitGandalf retries automatically with the next
+service disruption, or credential error), CodeSmith retries automatically with the next
 provider in the list without dropping the review.
 
 ### Environment variables
@@ -300,7 +300,7 @@ Bedrock credentials are then not required.
 
 ## Task queue setup (Phase 5.1)
 
-By default, GitGandalf runs in fire-and-forget mode: the webhook handler dispatches the
+By default, CodeSmith runs in fire-and-forget mode: the webhook handler dispatches the
 review pipeline in the background without a queue. This mode requires no additional
 infrastructure.
 
@@ -343,7 +343,7 @@ can take up to 10 minutes) is not interrupted on `docker-compose down`.
 
 ### Local KinD bootstrap
 
-For local Kubernetes validation, GitGandalf includes helper scripts that create a KinD
+For local Kubernetes validation, CodeSmith includes helper scripts that create a KinD
 cluster, build and load the local image, generate the ConfigMap and Secret from your local
 `.env`, deploy the manifests, and wait for the webhook, worker, and Valkey rollouts.
 
@@ -385,7 +385,7 @@ post-mortem inspection (last 200). You can inspect the queue state using
 
 ## GitLab deployment compatibility
 
-GitGandalf works with both GitLab.com and self-hosted GitLab (GitLab Self-Managed and GitLab Dedicated) without any deployment-mode flag. The supported auth and URL combinations are documented below.
+CodeSmith works with both GitLab.com and self-hosted GitLab (GitLab Self-Managed and GitLab Dedicated) without any deployment-mode flag. The supported auth and URL combinations are documented below.
 
 ### Supported deployment matrix
 
@@ -397,7 +397,7 @@ GitGandalf works with both GitLab.com and self-hosted GitLab (GitLab Self-Manage
 
 ### Token types
 
-GitGandalf uses a Personal Access Token (PAT) in two places:
+CodeSmith uses a Personal Access Token (PAT) in two places:
 - **GitLab REST API calls** — `@gitbeaker/rest` uses `GITLAB_TOKEN` as a private token
 - **HTTPS git clone / fetch** — the token is injected as `oauth2:<token>` HTTP basic auth in the clone URL
 
@@ -415,7 +415,7 @@ Both the REST API client and the SSRF host guard use this value directly. The cl
 
 ### Self-hosted GitLab with an internal / enterprise CA
 
-If your GitLab instance uses a certificate signed by an internal CA (common in enterprise environments), git clone operations and API calls will fail with TLS errors unless GitGandalf is told about the CA.
+If your GitLab instance uses a certificate signed by an internal CA (common in enterprise environments), git clone operations and API calls will fail with TLS errors unless CodeSmith is told about the CA.
 
 Set `GITLAB_CA_FILE` to the absolute path of a PEM-encoded CA bundle:
 
@@ -427,7 +427,7 @@ What this does at runtime:
 - **Git subprocesses** (`clone`, `fetch`): `GIT_SSL_CAINFO` is injected into the subprocess environment so git uses the CA bundle for HTTPS certificate verification
 - **API client** (`@gitbeaker/rest`): `NODE_EXTRA_CA_CERTS` is set to the same path at startup (`src/index.ts`), before any TLS connections are opened, so Bun's TLS layer trusts the CA bundle for all outgoing HTTPS requests
 
-The CA bundle file must be readable by the GitGandalf process. In Docker, mount the file into the container and set `GITLAB_CA_FILE` to the mounted path. For enterprise deployments the bundle is typically the organization's root CA certificate in PEM format.
+The CA bundle file must be readable by the CodeSmith process. In Docker, mount the file into the container and set `GITLAB_CA_FILE` to the mounted path. For enterprise deployments the bundle is typically the organization's root CA certificate in PEM format.
 
 ## 3. Start the service
 
@@ -474,7 +474,7 @@ Implemented now:
 - GitLab client wrapper
 - repo cache manager
 - modular tool surface for repository investigation
-- internal GitGandalf message and tool protocol between the agent runtime and provider adapter
+- internal CodeSmith message and tool protocol between the agent runtime and provider adapter
 - integrated multi-agent review subsystem (context, investigator, reflection, orchestrator)
 - end-to-end pipeline: webhook → agents → GitLab inline comments + summary note
 - GitLab publisher with duplicate detection
@@ -490,11 +490,11 @@ Implemented now:
 
 Every accepted webhook emits logs with a unique `requestId` plus `projectId` and `mrIid` for end-to-end traceability.
 
-Set `LOG_LEVEL=debug` for verbose per-agent output, or `LOG_LEVEL=warn` for quiet production deployments. In debug mode, logs are also written to `logs/gg-dev.log` under the project root.
+Set `LOG_LEVEL=debug` for verbose per-agent output, or `LOG_LEVEL=warn` for quiet production deployments. In debug mode, logs are also written to `logs/codesmith-dev.log` under the project root.
 
 Still planned:
 
-- Gandalf Awakening trigger aliases, acknowledgement notes, and tone-aware summary behavior
+- CodeSmith Awakening trigger aliases, acknowledgement notes, and tone-aware summary behavior
 - Phase 5.5 optional adapter evaluation remains deferred by the master plan
 - Phase 6 Jira write actions remain deferred pending explicit scope and security review
 

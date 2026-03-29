@@ -6,7 +6,7 @@ import { buildGitEnv, RepoManager } from "../src/context/repo-manager";
 
 // ---------------------------------------------------------------------------
 // All integration tests use config.REPO_CACHE_DIR, which is pointed at the
-// test-specific directory /tmp/git-gandalf-test-cache via .env.test.
+// test-specific directory /tmp/code-smith-test-cache via .env.test.
 // This ensures tests never touch the real /tmp/repo_cache used in production.
 // ---------------------------------------------------------------------------
 

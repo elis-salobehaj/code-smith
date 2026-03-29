@@ -1,6 +1,6 @@
-## Plan Review: GitGandalf Master Plan — Phase 4.6 (GitLab Deployment Hardening)
+## Plan Review: CodeSmith Master Plan — Phase 4.6 (GitLab Deployment Hardening)
 
-**Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
+**Plan file**: `docs/plans/active/code-smith-master-plan.md`
 **Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, docs/context/CONFIGURATION.md
 **Verdict**: 🟢 READY — 0 BLOCKERs · 0 RISKs · 1 OPTIMIZATION
 

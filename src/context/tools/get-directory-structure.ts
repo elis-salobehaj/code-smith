@@ -6,7 +6,7 @@ import type { AgentToolDefinition } from "../../agents/protocol";
 import { assertInsideRepo } from "./shared";
 
 // ---------------------------------------------------------------------------
-// Tool definition (GitGandalf internal tool schema)
+// Tool definition (CodeSmith internal tool schema)
 // ---------------------------------------------------------------------------
 
 export const toolDefinition: AgentToolDefinition = {

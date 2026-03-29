@@ -1,5 +1,5 @@
 ---
-title: "Git-Gandalf: Repository Setup & Agentic Development Plan"
+title: "CodeSmith: Repository Setup & Agentic Development Plan"
 status: implemented
 priority: high
 estimated_hours: 10
@@ -21,7 +21,7 @@ related_files:
   - docs/README.md
   - docs/context/ARCHITECTURE.md
   - docs/designs/tech-stack-evaluation.md
-  - docs/plans/active/git-gandalf-master-plan.md
+  - docs/plans/active/code-smith-master-plan.md
   - docs/guides/GETTING_STARTED.md
   - docs/guides/DEVELOPMENT.md
 tags:
@@ -31,8 +31,8 @@ tags:
   - bun
 completion:
   - "# 1. GitHub Repository Setup"
-  - [x] 1.1 `gh repo create git-gandalf --public --license apache-2.0 --clone=false`
-  - [x] 1.2 Initialize local git in `/home/elis/projects/git-gandalf`
+  - [x] 1.1 `gh repo create code-smith --public --license apache-2.0 --clone=false`
+  - [x] 1.2 Initialize local git in `/home/elis/projects/code-smith`
   - [x] 1.3 Add GitHub remote, commit only the LICENSE, push to main
   - [x] 1.4 Existing `.md` files remain uncommitted until moved to their proper doc locations
   - "# 2. Documentation Structure"
@@ -49,7 +49,7 @@ completion:
   - [x] 5.2 Set up `biome.json`
   - [x] 5.3 Set Zod Strict Usage Policy
   - "# 6. File Movement Plan"
-  - [x] 6.1 Move `git-gandalf-master-plan.md` to `docs/plans/active/git-gandalf-master-plan.md`
+  - [x] 6.1 Move `code-smith-master-plan.md` to `docs/plans/active/code-smith-master-plan.md`
   - [x] 6.2 Move `tech-stack-evaluation-design-choices.md` to `docs/designs/tech-stack-evaluation.md`
   - [x] 6.3 Create `docs/designs/tech-stack-evaluation.md`
   - [x] 6.4 Move `gg-system-prompt.md` to `src/agents/prompts/system-prompt.md`
@@ -59,7 +59,7 @@ completion:
   - [x] 7.3 Update package.json scripts
   - [x] 7.4 Elevate Zod strict policy to Phase 1 setup
 ---
-# Git-Gandalf: Repository Setup & Agentic Development Plan
+# CodeSmith: Repository Setup & Agentic Development Plan
 
 > All decisions finalized. This plan covers GitHub repo bootstrap, documentation structure, Agent Skills setup, linting/formatting, and file organization.
 
@@ -69,8 +69,8 @@ completion:
 
 ### Steps
 
-1. `gh repo create git-gandalf --public --license apache-2.0 --clone=false`
-2. Initialize local git in `/home/elis/projects/git-gandalf`
+1. `gh repo create code-smith --public --license apache-2.0 --clone=false`
+2. Initialize local git in `/home/elis/projects/code-smith`
 3. Add GitHub remote, commit only the LICENSE, push to main
 4. Existing `.md` files remain uncommitted until moved to their proper doc locations
 
@@ -84,7 +84,7 @@ completion:
 ### Finalized Layout
 
 ```
-git-gandalf/
+code-smith/
 ├── AGENTS.md                                    # Root agent operating manual
 ├── LICENSE                                       # Apache 2.0
 ├── README.md                                     # Project overview (Phase 1)
@@ -114,7 +114,7 @@ git-gandalf/
 │   │       └── tech-stack-evaluation.md
 │   ├── plans/
 │   │   ├── active/
-│   │   │   └── git-gandalf-master-plan.md
+│   │   │   └── code-smith-master-plan.md
 │   │   ├── backlog/
 │   │   └── implemented/
 │   └── guides/
@@ -192,7 +192,7 @@ Body is markdown with instructions, "When to Use", and step-by-step guidance.
 ---
 name: bun-project-conventions
 description: >
-  Bun-specific conventions for the git-gandalf project.
+  Bun-specific conventions for the code-smith project.
   Use when writing or modifying TypeScript code, running commands,
   or managing dependencies. Ensures Bun-native APIs are used
   instead of Node.js equivalents.
@@ -237,7 +237,7 @@ license: Apache-2.0
 ## 4. AGENTS.md (Finalized Draft)
 
 ```markdown
-# GitGandalf: Agent Operating Manual
+# CodeSmith: Agent Operating Manual
 
 ## 🎯 Mission
 
@@ -251,7 +251,7 @@ high-signal inline review comments.
 - **Framework**: Hono (ultralight, Web Standards)
 - **Language**: TypeScript (strict mode)
 - **Validation**: Zod (all schemas, env config, API payloads)
-- **LLM**: AWS Bedrock via @aws-sdk/client-bedrock-runtime (Claude Sonnet 4 via Converse; current implementation keeps provider details behind an internal GitGandalf protocol)
+- **LLM**: AWS Bedrock via @aws-sdk/client-bedrock-runtime (Claude Sonnet 4 via Converse; current implementation keeps provider details behind an internal CodeSmith protocol)
 - **GitLab Client**: @gitbeaker/rest
 - **Linting/Formatting**: Biome (replaces ESLint + Prettier)
 
@@ -366,7 +366,7 @@ Bun's "all-in-one" covers runtime, package manager, bundler, and test runner —
 
 | Current Location | New Location | Notes |
 |-----------------|-------------|-------|
-| `git-gandalf-master-plan.md` | `docs/plans/active/git-gandalf-master-plan.md` | Move |
+| `code-smith-master-plan.md` | `docs/plans/active/code-smith-master-plan.md` | Move |
 | `tech-stack-evaluation-design-choices.md` | `docs/designs/tech-stack-evaluation.md` | Full version (humans) |
 | *(create new)* | `docs/designs/tech-stack-evaluation.md` | Compact summary (agents) |
 | `gg-system-prompt.md` | `src/agents/prompts/system-prompt.md` | Runtime asset |
@@ -375,7 +375,7 @@ Bun's "all-in-one" covers runtime, package manager, bundler, and test runner —
 
 ## 7. Master Plan Updates Required
 
-Add to Phase 1 of `git-gandalf-master-plan.md`:
+Add to Phase 1 of `code-smith-master-plan.md`:
 
 1. **`[NEW] biome.json`** — Biome configuration (lint + format + import sorting)
 2. **`[NEW] .agents/skills/bun-project-conventions/SKILL.md`** — Agent Skill

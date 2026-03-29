@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { config } from "../config";
 import { getLogger } from "../logger";
 
-const logger = getLogger(["gandalf", "repo-manager"]);
+const logger = getLogger(["codesmith", "repo-manager"]);
 
 // ---------------------------------------------------------------------------
 // buildGitEnv — pure helper exported for unit testing

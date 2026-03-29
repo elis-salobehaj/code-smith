@@ -1,6 +1,6 @@
 # Plan Review: Crown Plan Storage Architecture (Post-Remediation Re-review)
 
-**Plan file**: `docs/plans/active/git-gandalf-crown-plan.md`
+**Plan file**: `docs/plans/active/code-smith-crown-plan.md`
 **Reviewed child plans**:
 - `docs/plans/backlog/organizational-learning-plan.md`
 - `docs/plans/backlog/analytics-observability-plan.md`

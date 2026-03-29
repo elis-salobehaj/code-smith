@@ -74,14 +74,14 @@ If a specific tool call throws, Agent 2 catches the failure and sends the error 
 
 `src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → load current review ledger surfaces → clone repo → fetch Jira context → run agents → publish findings.
 The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging.
-Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if a cached top-level GitGandalf summary note already embeds the current `headSha`, the pipeline logs the skip and returns before repo refresh or agent execution. Manual `/ai-review` triggers bypass this guard and always run.
+Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if a cached top-level CodeSmith summary note already embeds the current `headSha`, the pipeline logs the skip and returns before repo refresh or agent execution. Manual `/ai-review` triggers bypass this guard and always run.
 The pipeline also caches MR discussions, top-level MR notes, and MR diff versions once per run. Top-level notes are used for summary/head-sha guards and checkpoint parsing; discussions are reused for inline duplicate detection.
 Runs are serialized per `{projectId}-{branch}` across the full pipeline, starting before `getMRDetails()`. This ensures a later same-branch delivery re-reads MR state after any earlier run writes its summary/checkpoint.
-All pipeline logs emit structured JSON under `["gandalf", "pipeline"]` and carry the implicit `requestId`, `projectId`, and `mrIid` context set by the router and pipeline entry.
+All pipeline logs emit structured JSON under `["codesmith", "pipeline"]` and carry the implicit `requestId`, `projectId`, and `mrIid` context set by the router and pipeline entry.
 
 ### Checkpoint write/read flow
 
-- Summary publication embeds a `git-gandalf:review-run` block inside the summary note body before the footer.
+- Summary publication embeds a `code-smith:review-run` block inside the summary note body before the footer.
 - The marker includes `format_version=1`, status, trigger mode, reviewed range start/end SHAs, MR version id, publish flags, run id, and timestamp.
 - `src/publisher/checkpoint.ts` parses those markers with Zod and selects the latest successful checkpoint.
 - Failed or partial runs may still write markers for auditability, but they are excluded when determining the next automatic review checkpoint.
@@ -90,7 +90,7 @@ All pipeline logs emit structured JSON under `["gandalf", "pipeline"]` and carry
 
 - Pipeline loads MR commits and MR diff versions alongside the current MR diff, discussions, and top-level notes.
 - `selectReviewRange()` chooses `full`, `incremental`, or `skip` mode for automatic runs from the last successful checkpoint and the current MR commit list.
-- When the checkpoint head SHA is missing from the current MR commit list, GitGandalf treats the branch as rewritten and falls back to a full current-MR review.
+- When the checkpoint head SHA is missing from the current MR commit list, CodeSmith treats the branch as rewritten and falls back to a full current-MR review.
 - When the checkpoint end SHA already equals the current head, the automatic run is skipped before repo refresh or agent execution.
 - For `incremental` mode, the analysis diff comes from GitLab repository compare (`from=lastReviewedHeadSha`, `to=currentHeadSha`); publisher anchoring continues to use the current MR diff refs unchanged.
 - This same-head skip, combined with per-branch serialization, keeps duplicate or out-of-order automatic webhook deliveries idempotent for the current head.
@@ -152,12 +152,12 @@ The agent subsystem is implemented and invoked from the API pipeline.
 
 All structured logs are emitted as JSON Lines to stdout via LogTape:
 
-- `["gandalf", "http"]` — HTTP request/response via `@logtape/hono` middleware
-- `["gandalf", "router"]` — webhook auth and validation events
-- `["gandalf", "pipeline"]` — pipeline start/complete
-- `["gandalf", "jira"]` — Jira fetch start, completion, and degradation warnings
-- `["gandalf", "orchestrator"]` — per-agent-stage progress
-- `["gandalf", "publisher"]` — inline comment posting, duplicates, errors
+- `["codesmith", "http"]` — HTTP request/response via `@logtape/hono` middleware
+- `["codesmith", "router"]` — webhook auth and validation events
+- `["codesmith", "pipeline"]` — pipeline start/complete
+- `["codesmith", "jira"]` — Jira fetch start, completion, and degradation warnings
+- `["codesmith", "orchestrator"]` — per-agent-stage progress
+- `["codesmith", "publisher"]` — inline comment posting, duplicates, errors
 
 All log lines in the webhook → pipeline flow carry `requestId`, `projectId`, and `mrIid` automatically via LogTape implicit context.
 

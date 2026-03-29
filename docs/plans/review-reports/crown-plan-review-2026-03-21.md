@@ -1,6 +1,6 @@
-# Plan Review: The Crown Plan — Git Gandalf Feature Parity & Beyond
+# Plan Review: The Crown Plan — Code Smith Feature Parity & Beyond
 
-**Plan file**: `docs/plans/active/git-gandalf-crown-plan.md` + all six child plans (CP1–CP6)
+**Plan file**: `docs/plans/active/code-smith-crown-plan.md` + all six child plans (CP1–CP6)
 **Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, active plans, current source code
 **Verdict**: 🟡 CONDITIONAL
 
@@ -16,7 +16,7 @@ The Crown Plan and its six child plans represent a well-structured, thorough exe
 
 ### R1: Crown Plan references stale evaluation scores throughout
 - **Dimension**: Structure
-- **Finding**: The Crown Plan's Strategic Vision section states "Git Gandalf's current evaluation score is **7.1/10** — tied with GitLab Duo and slightly above CodeRabbit (6.9)." The Scoring Gap Analysis table uses `Current` scores that match the pre-correction evaluation document. The actual corrected scores are GitLab Duo **7.4**, Git Gandalf **7.3**, CodeRabbit **6.9**. Additionally, the Crown Plan states "Data privacy & sovereignty" is **10/10** — but the evaluation document was corrected to acknowledge that code diffs transit to external LLM providers, making a perfect 10 questionable. The completion gate item `CV2 — Update AI-Code-Review-Tool-Evaluation.md with new scores` exists but cannot succeed if the baseline scores in the Crown Plan itself are wrong.
+- **Finding**: The Crown Plan's Strategic Vision section states "Code Smith's current evaluation score is **7.1/10** — tied with GitLab Duo and slightly above CodeRabbit (6.9)." The Scoring Gap Analysis table uses `Current` scores that match the pre-correction evaluation document. The actual corrected scores are GitLab Duo **7.4**, Code Smith **7.3**, CodeRabbit **6.9**. Additionally, the Crown Plan states "Data privacy & sovereignty" is **10/10** — but the evaluation document was corrected to acknowledge that code diffs transit to external LLM providers, making a perfect 10 questionable. The completion gate item `CV2 — Update AI-Code-Review-Tool-Evaluation.md with new scores` exists but cannot succeed if the baseline scores in the Crown Plan itself are wrong.
 - **Impact**: Implementers will work against wrong baselines. The 9.15 target score calculation is also wrong because it assumes a current 10/10 in privacy that was softened. The Crown Plan's strategic narrative of "closing every competitive gap" is undermined when the starting position is less favorable than stated.
 - **Alternative**: Update the Crown Plan's Strategic Vision and Scoring Gap Analysis to reference the corrected evaluation scores (7.4 / 6.9 / 7.3) and recalculate the target weighted score accordingly. Additionally, reconsider whether "Data privacy & sovereignty" should remain 10/10 in the target given the LLM-provider transit reality — a score of 9/10 with an honest footnote is more defensible.
 
@@ -28,9 +28,9 @@ The Crown Plan and its six child plans represent a well-structured, thorough exe
 
 ### R3: Feedback polling may amplify GitLab API load dangerously
 - **Dimension**: Resilience
-- **Finding**: CP3 OL2.4 defines a periodic polling scheduler with a default interval of 5 minutes. The poll iterates over every MR that has had a Git Gandalf review and fetches discussions plus award_emoji for each Git Gandalf note. For a busy organization (50 developers, 200 MRs/month, ~20 active MRs at any time, ~3 Git Gandalf notes per MR), each poll cycle could produce 60+ GitLab API calls. At 5-minute intervals, that's 720+ API calls/hour just for feedback polling — plus baseline review API calls. The plan mentions "bounded batch sizes, backoff on GitLab 429s" but does not specify: (a) how many MRs are polled per cycle, (b) what the per-cycle API call cap is, (c) how poll scope narrows over time (e.g., stop polling closed MRs), or (d) how the polling window shrinks as signal density drops.
+- **Finding**: CP3 OL2.4 defines a periodic polling scheduler with a default interval of 5 minutes. The poll iterates over every MR that has had a Code Smith review and fetches discussions plus award_emoji for each Code Smith note. For a busy organization (50 developers, 200 MRs/month, ~20 active MRs at any time, ~3 Code Smith notes per MR), each poll cycle could produce 60+ GitLab API calls. At 5-minute intervals, that's 720+ API calls/hour just for feedback polling — plus baseline review API calls. The plan mentions "bounded batch sizes, backoff on GitLab 429s" but does not specify: (a) how many MRs are polled per cycle, (b) what the per-cycle API call cap is, (c) how poll scope narrows over time (e.g., stop polling closed MRs), or (d) how the polling window shrinks as signal density drops.
 - **Impact**: At scale, feedback polling could consume meaningful GitLab API rate-limit budget, competing with core review operations (fetching diffs, posting comments). If the org scales to 500+ MRs/month, this becomes a production-impacting rate-limit concern.
-- **Alternative**: Make the polling design explicit about bounds: (a) poll only MRs that were reviewed in the last N days (default: 14), with a hard cap of M MRs per cycle (default: 50), (b) define a per-cycle API call budget (e.g., 100 calls) with early termination if the budget exhausts, (c) after an MR is merged/closed or has had no new Git Gandalf notes for 7 days, remove it from the active polling set, (d) document that the 5-minute interval is conservative for < 50 active MRs and should be lengthened for larger deployments.
+- **Alternative**: Make the polling design explicit about bounds: (a) poll only MRs that were reviewed in the last N days (default: 14), with a hard cap of M MRs per cycle (default: 50), (b) define a per-cycle API call budget (e.g., 100 calls) with early termination if the budget exhausts, (c) after an MR is merged/closed or has had no new Code Smith notes for 7 days, remove it from the active polling set, (d) document that the 5-minute interval is conservative for < 50 active MRs and should be lengthened for larger deployments.
 
 ### R4: `prom-client` default metrics rely on Node.js-native APIs that may not exist in Bun
 - **Dimension**: Library
@@ -87,10 +87,10 @@ The Crown Plan and its six child plans represent a well-structured, thorough exe
 - **Finding**: The Crown Plan's locked design decision says "dependency-introducing phases must include a `bun audit` remediation or explicit risk-acceptance step before merge." Testing confirmed that `bun audit` is not a built-in command and the `audit` npm package does not resolve as a Bun executable. CP6 PH0.3 formalizes this gate but does not specify which audit tool to use.
 - **Alternative**: Specify the concrete audit tool: either `npx audit-ci` (works with Bun's npm-compatible lockfile), or `bunx better-npm-audit`, or a direct call to `npm audit --omit=dev` using the system npm. Add the chosen tool to the project's dev dependencies or document it as a CI step. Include the audit tool decision in PH0.3 so implementers know exactly what to run.
 
-### O6: Crown Plan should include the Gandalf Awakening plan in its coordination map
+### O6: Crown Plan should include the CodeSmith Awakening plan in its coordination map
 - **Dimension**: Structure
-- **Finding**: The active `Gandalf-awakening-personality-plan.md` modifies `src/api/router.ts`, `src/publisher/gitlab-publisher.ts`, and `src/api/pipeline.ts` — all files that CP1, CP4, and CP6 also modify. The Crown Plan does not reference the Awakening plan in its dependency graph or coordination notes.
-- **Alternative**: Add a note in the Crown Plan that identifies the Gandalf Awakening plan as a parallel active plan touching overlapping files. Specify coordination: either (a) complete the Awakening plan before Crown Plan implementation begins on CP4 (publisher changes), or (b) implement Crown Plan changes in a way that preserves Awakening's trigger-context and tone-split hooks.
+- **Finding**: The active `CodeSmith-awakening-personality-plan.md` modifies `src/api/router.ts`, `src/publisher/gitlab-publisher.ts`, and `src/api/pipeline.ts` — all files that CP1, CP4, and CP6 also modify. The Crown Plan does not reference the Awakening plan in its dependency graph or coordination notes.
+- **Alternative**: Add a note in the Crown Plan that identifies the CodeSmith Awakening plan as a parallel active plan touching overlapping files. Specify coordination: either (a) complete the Awakening plan before Crown Plan implementation begins on CP4 (publisher changes), or (b) implement Crown Plan changes in a way that preserves Awakening's trigger-context and tone-split hooks.
 
 ---
 
@@ -100,9 +100,9 @@ The Crown Plan and its six child plans represent a well-structured, thorough exe
 
 2. **Security-first linter sandbox**: CP2's sandbox contract (stripped credentials, bounded output, bounded time, isolated temp, instance-owned profiles only, no repo-defined commands) is thorough. The explicit deferral of ESLint to a future dependency-hydration plan shows disciplined scoping.
 
-3. **Phased feature flags**: Each new capability (linters, learning, walkthroughs, analytics) is gated behind both instance-level env vars (`LEARNING_ENABLED`, etc.) and repo-level `.gitgandalf.yaml` feature flags. This means every feature can be rolled out incrementally and rolled back without code changes.
+3. **Phased feature flags**: Each new capability (linters, learning, walkthroughs, analytics) is gated behind both instance-level env vars (`LEARNING_ENABLED`, etc.) and repo-level `.codesmith.yaml` feature flags. This means every feature can be rolled out incrementally and rolled back without code changes.
 
-4. **Honest limitations in the evaluation document**: The evaluation admits every Git Gandalf weakness candidly (bus factor, no SAST, pre-production, hidden maintenance cost). The Crown Plan maps directly to those weaknesses with quantified target scores. This is credible engineering, not wishful marketing.
+4. **Honest limitations in the evaluation document**: The evaluation admits every Code Smith weakness candidly (bus factor, no SAST, pre-production, hidden maintenance cost). The Crown Plan maps directly to those weaknesses with quantified target scores. This is credible engineering, not wishful marketing.
 
 5. **Dependency discipline**: The locked design decision requiring `bun audit` remediation per dependency-introducing phase, the preference for `Bun.Glob` over `picomatch`, and the explicit ESLint deferral all show strong supply-chain discipline. The current dependency tree is remarkably lean (13 direct deps for a multi-provider, multi-integration service).
 

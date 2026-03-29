@@ -69,7 +69,7 @@ completion:
   - [ ] OL5.1 Create API endpoints for viewing learned patterns
   - [ ] OL5.2 Create API endpoints for editing/deleting learned patterns
   - [ ] OL5.3 Create API endpoint for feedback statistics
-  - [ ] OL5.4 Respect .gitgandalf.yaml learning configuration
+  - [ ] OL5.4 Respect .codesmith.yaml learning configuration
   - [ ] OL5.5 Add learning system documentation to guides
   - [ ] OL5.6 Update docs/README.md
   - [ ] OL5.7 Run review-plan-phase audit
@@ -81,7 +81,7 @@ completion:
 
 CodeRabbit's "Learnings" system is their most impactful competitive differentiator. Teams can correct review comments in natural language, and those corrections are retained and applied to all future reviews across the organization. Over time, reviews become more accurate and less noisy because the system learns what matters to each team.
 
-Git Gandalf currently has no feedback mechanism. Every review runs fresh — the system learns nothing from prior interactions. A finding that was dismissed 50 times will be raised a 51st time.
+Code Smith currently has no feedback mechanism. Every review runs fresh — the system learns nothing from prior interactions. A finding that was dismissed 50 times will be raised a 51st time.
 
 This plan introduces a complete learning feedback loop:
 1. **Capture** — track developer reactions (👍/👎) and suggestion application/dismissal
@@ -99,7 +99,7 @@ Phase-one storage uses `bun:sqlite` because it is Bun-native and operationally c
 ```mermaid
 flowchart TD
   subgraph Feedback Capture
-    MR["GitLab MR"] --> Reactions["Poll reactions on\nGit Gandalf comments"]
+    MR["GitLab MR"] --> Reactions["Poll reactions on\nCode Smith comments"]
     MR --> Applied["Track applied\nsuggestions"]
     MR --> Dismissed["Track resolved/dismissed\nthreads"]
   end
@@ -145,7 +145,7 @@ flowchart TD
 | Admin auth | Dedicated bearer token or mTLS | Keeps operator surfaces separate from webhook auth |
 | Future scale-up target | PostgreSQL; add `pgvector` only if semantic retrieval becomes a requirement | Preserves a clean path to HA and richer retrieval without forcing vector infrastructure early |
 
-**Storage boundary note:** The relational store is the system of record for feedback events, learned patterns, and review-run facts. Valkey remains queue/cache infrastructure. Dedicated vector indexing is explicitly future scope only if Git Gandalf later needs semantic retrieval across free-form review memory.
+**Storage boundary note:** The relational store is the system of record for feedback events, learned patterns, and review-run facts. Valkey remains queue/cache infrastructure. Dedicated vector indexing is explicitly future scope only if Code Smith later needs semantic retrieval across free-form review memory.
 
 ## Database Schema
 
@@ -331,14 +331,14 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 **OL2.1** — Create `src/learning/feedback-poller.ts`:
 - `pollReactions(projectId, mrIid, gitlabClient): Promise<FeedbackEvent[]>`
 - Fetch discussions on the MR
-- For each Git Gandalf inline comment (identified by `<!-- git-gandalf:finding ... -->` marker):
+- For each Code Smith inline comment (identified by `<!-- code-smith:finding ... -->` marker):
   - Check for 👍 and 👎 emoji reactions via `GET /projects/:id/merge_requests/:iid/discussions/:disc_id/notes/:note_id/award_emoji`
   - Map to feedback events with `signal_type: 'thumbs_up'` or `'thumbs_down'`, plus `discussion_id`, `note_id`, and source cursor metadata
 - Idempotency: enforce dedup through the `feedback_events` unique index and sync-state watermarks rather than best-effort in-memory checks
 
 **OL2.2** — Create `src/learning/suggestion-tracker.ts`:
 - `trackSuggestions(projectId, mrIid, gitlabClient): Promise<FeedbackEvent[]>`
-- Fetch MR discussions with Git Gandalf suggestion comments
+- Fetch MR discussions with Code Smith suggestion comments
 - Check if suggestions were applied (GitLab marks applied suggestions differently in the API)
 - Check if threads were resolved (resolved without applying = dismissed)
 - Map to feedback events: `signal_type: 'applied'` (+1) or `'dismissed'` (-1), with stable source identifiers for replay-safe deduplication
@@ -351,14 +351,14 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 
 **OL2.4** — Create `src/learning/feedback-scheduler.ts`:
 - Schedule periodic polling (configurable interval, default: 5 minutes)
-- On each tick: load `feedback_sync_state`, advance per-MR cursors for Git Gandalf-authored notes, and poll only unseen feedback surfaces
+- On each tick: load `feedback_sync_state`, advance per-MR cursors for Code Smith-authored notes, and poll only unseen feedback surfaces
 - Enforce bounded batch sizes, backoff on GitLab 429s, and idempotent resume from persisted cursors after restarts
 - Update sync-state rows transactionally with write ingestion so cursor advance and event persistence stay consistent
 - Graceful shutdown integration (cancel timer on SIGTERM)
 - Skip when `LEARNING_ENABLED=false`
 - Run only in the singleton ops service
 - **Polling bounds (review-driven):**
-  - Only poll MRs that were reviewed by Git Gandalf in the last `FEEDBACK_POLL_MR_AGE_DAYS` days (default: 14); remove merged/closed MRs from the active set after that window
+  - Only poll MRs that were reviewed by Code Smith in the last `FEEDBACK_POLL_MR_AGE_DAYS` days (default: 14); remove merged/closed MRs from the active set after that window
   - Cap active polling set at `FEEDBACK_POLL_MAX_MRS` per cycle (default: 50); prioritize most recently reviewed MRs
   - Cap per-cycle GitLab API calls at `FEEDBACK_POLL_API_BUDGET` (default: 100); terminate the cycle early if the budget exhausts
   - For deployments with >50 active MRs, document that the polling interval should be lengthened (e.g., 10-15 minutes) to avoid rate-limit pressure
@@ -401,7 +401,7 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 **OL3.4** — Scope management:
 - Per-project patterns: derived from that project's feedback events only
 - Cross-project patterns: derived from all projects (when scope = 'global')
-- `.gitgandalf.yaml` `features.learning` controls opt-in
+- `.codesmith.yaml` `features.learning` controls opt-in
 - Cross-project patterns require explicit opt-in at instance level (`LEARNING_CROSS_PROJECT=true`)
 
 **OL3.5** — Tests:
@@ -474,7 +474,7 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 - `GET /api/v1/admin/learning/stats?project_id=N` — feedback statistics
   - Total feedback events, positive/negative ratio, pattern count, most active rules
 
-**OL5.4** — Respect `.gitgandalf.yaml`:
+**OL5.4** — Respect `.codesmith.yaml`:
 - `features.learning: false` → skip feedback polling and pattern injection for this project
 - `features.learning: true` (or default when `LEARNING_ENABLED=true`) → full learning loop
 
@@ -492,7 +492,7 @@ CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, s
 ## Privacy & Security Considerations
 
 - Feedback events store GitLab user IDs for attribution but no personal information beyond that
-- All data stays local to the Git Gandalf instance (SQLite file on disk)
+- All data stays local to the Code Smith instance (SQLite file on disk)
 - Learning patterns are derived from aggregated signals, not individual feedback events
 - The management API must use dedicated admin auth and never reuse webhook secrets; worker/service-to-service reads must use a separate read-only internal auth mechanism
 - Data retention: configurable (`LEARNING_RETENTION_DAYS`, default 365)

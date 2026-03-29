@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-git-gandalf}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-code-smith}"
 
 if ! command -v kind >/dev/null 2>&1; then
   echo "Missing required command: kind" >&2

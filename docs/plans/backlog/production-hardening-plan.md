@@ -93,9 +93,9 @@ completion:
 
 ## Executive Summary
 
-Git Gandalf scored **4/10 on production readiness** and **5/10 on ease of setup** in the competitive evaluation. These are the two biggest numerical gaps in the scoring matrix. The evaluation was honest: no HPA, no Helm chart, no resource limits, no ingress, no monitoring integration, no load testing, no operational runbook, no contributor guide, no end-to-end tests.
+Code Smith scored **4/10 on production readiness** and **5/10 on ease of setup** in the competitive evaluation. These are the two biggest numerical gaps in the scoring matrix. The evaluation was honest: no HPA, no Helm chart, no resource limits, no ingress, no monitoring integration, no load testing, no operational runbook, no contributor guide, no end-to-end tests.
 
-This plan transforms Git Gandalf from a well-engineered prototype into a production-grade service that an operations team can deploy, monitor, scale, and trust. It also addresses the "bus factor" risk by creating contributor documentation and improving developer experience.
+This plan transforms Code Smith from a well-engineered prototype into a production-grade service that an operations team can deploy, monitor, scale, and trust. It also addresses the "bus factor" risk by creating contributor documentation and improving developer experience.
 
 The plan has no dependencies on other Crown Plan children and can start immediately, in parallel with CP1.
 
@@ -108,7 +108,7 @@ The plan has no dependencies on other Crown Plan children and can start immediat
 - Admin and analytics APIs are disabled by default and exposed only through a dedicated admin route group with separate auth.
 - Readiness is based on local process health and critical local dependencies, not on transient GitLab reachability.
 - Every dependency-introducing phase must run `bun audit` and either remediate or explicitly record accepted risk. Optional reporting helpers may be used in CI, but they do not replace the Bun-native audit gate.
-- If Git Gandalf later requires HA beyond a singleton writer, external SQL/reporting consumers, or semantic retrieval over free-form feedback memory, activate CP7 and migrate the source of truth to PostgreSQL before trying to stretch SQLite past its intended role.
+- If Code Smith later requires HA beyond a singleton writer, external SQL/reporting consumers, or semantic retrieval over free-form feedback memory, activate CP7 and migrate the source of truth to PostgreSQL before trying to stretch SQLite past its intended role.
 
 ## Architecture — Target Deployment
 
@@ -197,7 +197,7 @@ flowchart TD
 
 **PH1.1** — Create Helm chart structure:
 ```
-charts/git-gandalf/
+charts/code-smith/
 ├── Chart.yaml
 ├── values.yaml
 ├── templates/
@@ -258,10 +258,10 @@ charts/git-gandalf/
 - Webhook HPA: scale on CPU utilization (target: 70%, min: 2, max: 10)
 - Worker HPA: scale on CPU initially; queue-depth-based scaling is added only after a metrics-adapter path is implemented and validated
 - Both configurable via `values.yaml`
-- **Known limitation (review-driven R7):** CPU-based HPA is a poor proxy for worker throughput because workers are I/O-bound (waiting on LLM API responses). A worker at 10% CPU may be fully saturated with concurrent reviews. Until queue-depth-based scaling exists (planned for CP5 after Prometheus metrics), recommend operators set a fixed `replicaCount` based on expected MR throughput rather than relying on CPU HPA alone. Add a follow-up task in CP5 to implement KEDA ScaledObject or Prometheus-adapter HPA for worker pods based on `gitgandalf_queue_depth` metric.
+- **Known limitation (review-driven R7):** CPU-based HPA is a poor proxy for worker throughput because workers are I/O-bound (waiting on LLM API responses). A worker at 10% CPU may be fully saturated with concurrent reviews. Until queue-depth-based scaling exists (planned for CP5 after Prometheus metrics), recommend operators set a fixed `replicaCount` based on expected MR throughput rather than relying on CPU HPA alone. Add a follow-up task in CP5 to implement KEDA ScaledObject or Prometheus-adapter HPA for worker pods based on `codesmith_queue_depth` metric.
 
 **PH1.8** — Tests:
-- `helm lint charts/git-gandalf/`
+- `helm lint charts/code-smith/`
 - `helm template` rendering with default values
 - `helm template` rendering with custom values (all features enabled)
 - Validate generated YAML passes `kubectl --dry-run`
@@ -320,7 +320,7 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
 
 ### Phase PH3 — Performance Benchmarking
 
-**Goal:** Measure and document Git Gandalf's performance characteristics under realistic load.
+**Goal:** Measure and document Code Smith's performance characteristics under realistic load.
 
 **PH3.1** — Create `benchmarks/` directory:
 - `benchmarks/synthetic-mr.ts` — generates synthetic MR payloads with configurable diff sizes
@@ -410,8 +410,8 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
 - Records all received requests for assertion in tests
 
 **PH5.2** — Integration test: full review flow:
-- Start mock GitLab server + Git Gandalf (test mode with mocked LLM)
-- Send webhook payload to Git Gandalf
+- Start mock GitLab server + Code Smith (test mode with mocked LLM)
+- Send webhook payload to Code Smith
 - Assert: MR details fetched, diff fetched, review executed, findings published to mock server
 - Assert: summary note posted with correct format
 
@@ -421,7 +421,7 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
 - Assert: second review only analyzed new commit range
 
 **PH5.4** — Integration test: queue mode:
-- Start mock GitLab + Git Gandalf + in-memory Valkey (or mock)
+- Start mock GitLab + Code Smith + in-memory Valkey (or mock)
 - Send webhook → job queued → worker picks up → review completes → findings published
 - Assert: correct async flow
 

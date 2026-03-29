@@ -2,8 +2,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: git-gandalf-config
-  namespace: git-gandalf
+  name: code-smith-config
+  namespace: code-smith
 data:
   GITLAB_URL: "https://gitlab.example.com"
   AWS_REGION: "us-west-2"

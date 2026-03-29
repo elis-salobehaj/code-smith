@@ -1,6 +1,6 @@
 # Configuration
 
-Unified reference for the environment variables accepted by `src/config.ts` and the repo-level review configuration loaded from `.gitgandalf.yaml`.
+Unified reference for the environment variables accepted by `src/config.ts` and the repo-level review configuration loaded from `.codesmith.yaml`.
 
 | Variable | Required | Type | Default | Notes |
 |---|---|---|---|---|
@@ -14,7 +14,7 @@ Unified reference for the environment variables accepted by `src/config.ts` and 
 | `MAX_TOOL_ITERATIONS` | no | positive integer | `15` | Upper bound for tool-call iterations inside `investigatorLoop()`. |
 | `MAX_SEARCH_RESULTS` | no | positive integer | `100` | Caps `search_codebase` results returned from ripgrep parsing. |
 | `REPO_CACHE_DIR` | no | string | `/tmp/repo_cache` | Root directory for shallow repo clones managed by `RepoManager`. |
-| `LOG_LEVEL` | no | enum | `info` | Wired to LogTape via `src/logger.ts`. Controls the `lowestLevel` of the root `["gandalf"]` logger category. Accepted values: `debug`, `info`, `warn`, `error`. Mapped to LogTape's level names internally. When set to `debug` outside tests, logs are also appended to `logs/gg-dev.log` under the project root. |
+| `LOG_LEVEL` | no | enum | `info` | Wired to LogTape via `src/logger.ts`. Controls the `lowestLevel` of the root `["codesmith"]` logger category. Accepted values: `debug`, `info`, `warn`, `error`. Mapped to LogTape's level names internally. When set to `debug` outside tests, logs are also appended to `logs/codesmith-dev.log` under the project root. |
 | `PORT` | no | positive integer | `8020` | Port used by the Bun server export in `src/index.ts`. |
 | `JIRA_ENABLED` | no | boolean string | `false` | Set to `"true"` to activate Jira ticket-context enrichment. When `false`, `fetchLinkedTickets()` returns an empty array immediately and no network calls are made. |
 | `JIRA_BASE_URL` | no | URL string | none | Jira Cloud base URL, e.g. `https://your-company.atlassian.net`. Required when `JIRA_ENABLED=true`. |
@@ -55,8 +55,8 @@ Phase C1 of CP1 adds repo-config parsing primitives alongside env config:
 
 For a repo-author guide with examples, authoring standards, and troubleshooting, see [`docs/guides/REPO_REVIEW_CONFIG.md`](../guides/REPO_REVIEW_CONFIG.md).
 
-- `src/config/repo-config.ts` defines the strict Zod schema for `.gitgandalf.yaml` or `.gitgandalf.yml`
-- `src/config/repo-config-loader.ts` discovers repo config files at repo root in this order: `.gitgandalf.yaml`, then `.gitgandalf.yml`
+- `src/config/repo-config.ts` defines the strict Zod schema for `.codesmith.yaml` or `.codesmith.yml`
+- `src/config/repo-config-loader.ts` discovers repo config files at repo root in this order: `.codesmith.yaml`, then `.codesmith.yml`
 - missing repo config falls back to `DEFAULT_REPO_CONFIG`
 - malformed YAML or schema validation failures also fall back to defaults and log a warning instead of blocking the review pipeline
 - supported top-level sections are `version`, `review_instructions`, `file_rules`, `exclude`, `severity`, `features`, `linters`, and `output`
@@ -65,7 +65,7 @@ For a repo-author guide with examples, authoring standards, and troubleshooting,
 
 This loader is implemented in Phase C1 only. Pipeline attachment and config-driven behavior land in later CP1 phases.
 
-### `.gitgandalf.yaml` schema reference
+### `.codesmith.yaml` schema reference
 
 - `version`: required literal `1`
 - `review_instructions`: optional non-empty string; global review guidance for later prompt-injection phases

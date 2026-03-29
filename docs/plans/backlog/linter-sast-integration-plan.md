@@ -41,7 +41,7 @@ completion:
   - [ ] L2.2 Attach normalized linter findings to ReviewState
   - [ ] L2.3 Inject linter findings as structured context into investigator agent prompt
   - [ ] L2.4 Update reflection agent to deduplicate AI findings against linter findings
-  - [ ] L2.5 Respect .gitgandalf.yaml linter configuration (enable/disable, threshold)
+  - [ ] L2.5 Respect .codesmith.yaml linter configuration (enable/disable, threshold)
   - [ ] L2.6 Unit tests for pipeline integration and prompt injection
   - [ ] L2.7 Update WORKFLOWS.md with linter pipeline step
   - "# Phase L3 — Publication & Output"
@@ -64,9 +64,9 @@ completion:
 
 ## Executive Summary
 
-CodeRabbit integrates 40+ linters and SAST scanners alongside its AI analysis. Git Gandalf currently relies entirely on LLM reasoning — no linter, no SAST, no static analysis of any kind. This is a significant gap: linters catch deterministic, rule-based issues (unused imports, type errors, security patterns) that LLMs sometimes miss or hallucinate about.
+CodeRabbit integrates 40+ linters and SAST scanners alongside its AI analysis. Code Smith currently relies entirely on LLM reasoning — no linter, no SAST, no static analysis of any kind. This is a significant gap: linters catch deterministic, rule-based issues (unused imports, type errors, security patterns) that LLMs sometimes miss or hallucinate about.
 
-This plan adds automatic linter detection and execution to the Git Gandalf pipeline. Changed files are linted before the AI review begins; linter findings are fed into agents as structured context; and linter-specific findings are published as separate inline comments.
+This plan adds automatic linter detection and execution to the Code Smith pipeline. Changed files are linted before the AI review begins; linter findings are fed into agents as structured context; and linter-specific findings are published as separate inline comments.
 
 The initial scope covers **Biome** and other **instance-owned standalone binaries** only. ESLint is explicitly out of scope for this plan because it requires dependency hydration, plugin resolution, and sandbox boundaries that do not exist in the current clone-only runtime. The architecture remains extensible to additional standalone binaries (Ruff for Python, golangci-lint for Go, Semgrep, etc.) via an instance-owned profile pattern.
 
@@ -74,8 +74,8 @@ The initial scope covers **Biome** and other **instance-owned standalone binarie
 
 | Concern | Choice | Rationale |
 |---|---|---|
-| Biome execution | `Bun.spawn()` → `biome lint --reporter json` | Biome is already installed in Git Gandalf's image; single-binary, fast |
-| Standalone profile execution | `Bun.spawn()` with instance-owned allowlisted commands | Commands and binaries are configured by the Git Gandalf deployment, not by the reviewed repository |
+| Biome execution | `Bun.spawn()` → `biome lint --reporter json` | Biome is already installed in Code Smith's image; single-binary, fast |
+| Standalone profile execution | `Bun.spawn()` with instance-owned allowlisted commands | Commands and binaries are configured by the Code Smith deployment, not by the reviewed repository |
 | Linter detection | Config file presence + named profile selection | Fast, reliable: `biome.json` or a repo-selected allowlisted profile |
 | Output normalization | Zod-validated schema | Both linters output JSON; normalize to a common `LinterFinding` type |
 | Diff scoping | Filter linter output to changed lines | Run linter on full files (needed for accurate analysis) but only report findings on changed lines |
@@ -129,7 +129,7 @@ type LinterFinding = z.infer<typeof linterFindingSchema>;
 **L1.1** — Create `src/linters/detect.ts`:
 - `detectLinters(repoPath: string, repoConfig: RepoConfig): Promise<LinterType[]>`
 - Check for: `biome.json`, `biome.jsonc` → `"biome"`
-- Check for named instance-owned profile from `.gitgandalf.yaml` → `"standalone"`
+- Check for named instance-owned profile from `.codesmith.yaml` → `"standalone"`
 - Respect repo config overrides and allowlist validation from instance config
 - Return array of detected linter types
 
@@ -204,7 +204,7 @@ type LinterFinding = z.infer<typeof linterFindingSchema>;
 - If overlap exists and the AI finding adds no meaningful insight beyond the linter finding, prefer the linter finding (deterministic > probabilistic)
 - If the AI finding provides deeper analysis (e.g., explains the security impact of the linter error), keep both
 
-**L2.5** — Respect `.gitgandalf.yaml`:
+**L2.5** — Respect `.codesmith.yaml`:
 - `features.linter_integration: false` → skip entirely
 - `linters.profile` → select an allowlisted instance-owned profile
 - `linters.severity_threshold` → filter normalized findings below threshold
@@ -224,10 +224,10 @@ type LinterFinding = z.infer<typeof linterFindingSchema>;
 
 **L3.1** — Extend `src/publisher/gitlab-publisher.ts`:
 - New function `postLinterComments(findings, mrDetails, discussions)`
-- Marker format: `<!-- git-gandalf:linter biome:no-unused-vars src/file.ts:10 -->`
+- Marker format: `<!-- code-smith:linter biome:no-unused-vars src/file.ts:10 -->`
 - Comment format:
   ```
-  <!-- git-gandalf:linter {source}:{ruleId} {file}:{line} -->
+  <!-- code-smith:linter {source}:{ruleId} {file}:{line} -->
   🔧 **Linter: {ruleId}** ({source})
   
   {message}
@@ -295,7 +295,7 @@ type LinterFinding = z.infer<typeof linterFindingSchema>;
 
 **L4.4** — Update `docs/guides/GETTING_STARTED.md`:
 - Add linter prerequisites (Biome binary in Docker image)
-- Note that standalone binaries are installed into the Git Gandalf image by operators
+- Note that standalone binaries are installed into the Code Smith image by operators
 
 **L4.5** — Update `docs/README.md`.
 
@@ -307,8 +307,8 @@ The architecture supports future linter additions by creating a new executor fil
 
 ## Docker Image Changes
 
-The Git Gandalf Dockerfile already includes `git` and `ripgrep`. For linter support:
-- Biome: install the Biome binary in the Git Gandalf image
-- Additional standalone tools: install explicitly in the Git Gandalf image and expose only through instance-owned profiles
+The Code Smith Dockerfile already includes `git` and `ripgrep`. For linter support:
+- Biome: install the Biome binary in the Code Smith image
+- Additional standalone tools: install explicitly in the Code Smith image and expose only through instance-owned profiles
 - Standalone tools must follow the sandbox contract above before they are exposed in a profile
 - ESLint: explicitly out of scope for this plan

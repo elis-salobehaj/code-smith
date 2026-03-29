@@ -1,6 +1,6 @@
 ## Plan Review: Crown Plan Storage Architecture
 
-**Plan file**: `docs/plans/active/git-gandalf-crown-plan.md`
+**Plan file**: `docs/plans/active/code-smith-crown-plan.md`
 **Reviewed child plans**:
 - `docs/plans/backlog/repo-review-config-plan.md`
 - `docs/plans/backlog/linter-sast-integration-plan.md`
@@ -13,7 +13,7 @@
 
 ### Summary
 
-The current SQLite-first direction is defensible for the initial implementation, but only because the plan deliberately constrains writes to a singleton ops service and already has Valkey-backed durable buffering in the stack. That said, the current plan set still leaves two long-term hazards under-specified: it does not pin SQLite to safe storage semantics in Kubernetes, and it does not establish a storage abstraction seam that would let GitGandalf migrate to PostgreSQL later without rewriting CP3 and CP5 from the inside out.
+The current SQLite-first direction is defensible for the initial implementation, but only because the plan deliberately constrains writes to a singleton ops service and already has Valkey-backed durable buffering in the stack. That said, the current plan set still leaves two long-term hazards under-specified: it does not pin SQLite to safe storage semantics in Kubernetes, and it does not establish a storage abstraction seam that would let CodeSmith migrate to PostgreSQL later without rewriting CP3 and CP5 from the inside out.
 
 My recommendation is not a big-bang replacement. Keep `bun:sqlite` for the first implementation of learning and analytics, but formalize PostgreSQL as the long-term scale-up target and design the code now so that migration is additive rather than invasive. Do not use Valkey, Qdrant, or Mem0 as the primary system of record for this feature set.
 
@@ -38,7 +38,7 @@ None.
 #### R2: The plans do not yet create a migration seam away from SQLite
 - **Dimension**: Architecture
 - **Finding**: The current child plans correctly specify schemas, migrations, and ops ownership, but they also bake SQLite directly into CP3 and CP5 as if it were both the implementation choice and the permanent architectural boundary. There is no explicit `LearningStore` or `AnalyticsStore` contract, no repository boundary, and no migration criteria that would let the team swap in PostgreSQL without editing queue consumers, admin handlers, analytics queries, and pattern extraction logic all at once.
-- **Impact**: If GitGandalf succeeds and the learning/analytics subsystem needs HA, stronger multi-writer behavior, external BI access, or larger-scale trend analysis, the migration cost will be much higher than it needs to be. The risk is not that SQLite fails immediately; the risk is that the codebase becomes structurally loyal to SQLite before the team has earned that permanence.
+- **Impact**: If CodeSmith succeeds and the learning/analytics subsystem needs HA, stronger multi-writer behavior, external BI access, or larger-scale trend analysis, the migration cost will be much higher than it needs to be. The risk is not that SQLite fails immediately; the risk is that the codebase becomes structurally loyal to SQLite before the team has earned that permanence.
 - **Alternative**: Update CP3 and CP5 to require a storage abstraction layer now: repository-style interfaces for feedback events, learned patterns, review runs, and analytics queries; DB-neutral job payloads; and a migration ADR that records SQLite as phase-one storage and PostgreSQL as the default scale-up target when predefined thresholds are crossed.
 
 ---
@@ -58,12 +58,12 @@ None.
 - **Dimension**: Structure
 - **Finding**: The current plan set names SQLite decisively, but does not state the preferred long-term replacement if the workload outgrows it. That leaves future migration decisions open to drift.
 - **Impact**: A later migration discussion could reopen the entire storage decision from scratch, increasing design churn and making it easier to overcorrect into a specialized database too early.
-- **Alternative**: Add a “future scale path” note: if GitGandalf needs multi-writer HA, cross-instance analytics, or external SQL consumers, PostgreSQL becomes the default migration target. This preserves optionality while still giving implementers a directionally correct end state.
+- **Alternative**: Add a “future scale path” note: if CodeSmith needs multi-writer HA, cross-instance analytics, or external SQL consumers, PostgreSQL becomes the default migration target. This preserves optionality while still giving implementers a directionally correct end state.
 
 #### O3: If vector retrieval is later needed, prefer PostgreSQL plus pgvector before Qdrant
 - **Dimension**: Library
 - **Finding**: The user requested evaluation of vector-first options such as Qdrant. Qdrant is a strong dedicated vector database, but the current plan's actual needs are transactional event storage, derived pattern storage, and operator-facing analytics. Those are relational problems first. If semantic retrieval later becomes important, a relational core plus `pgvector` is a better middle ground than immediately adding a dedicated vector service.
-- **Impact**: Jumping straight from SQLite to Qdrant would solve the wrong problem first and still leave GitGandalf needing a separate relational database for analytics, audit history, and admin CRUD.
+- **Impact**: Jumping straight from SQLite to Qdrant would solve the wrong problem first and still leave CodeSmith needing a separate relational database for analytics, audit history, and admin CRUD.
 - **Alternative**: Record `PostgreSQL + pgvector` as the preferred future “semantic memory without a second control-plane database” option. Reserve Qdrant for the narrower case where vector search becomes large, latency-sensitive, and dominant enough to justify dedicated vector infrastructure.
 
 #### O4: Valkey should remain queue and cache infrastructure, not the learning/analytics source of truth
@@ -74,9 +74,9 @@ None.
 
 #### O5: Mem0 is a product-layer memory framework, not the right foundational store for this plan
 - **Dimension**: Library
-- **Finding**: Mem0 is an active and popular project with a broad contributor base and Apache-2.0 licensing, but it solves a different problem: LLM-oriented memory extraction, storage, reranking, and retrieval for personalized AI agents. Its docs emphasize a managed platform, and its OSS project spans vector stores, graph services, rerankers, and LLM integration. GitGandalf's current learning design is much narrower and more auditable: reactions, suggestion outcomes, heuristics, and admin-managed patterns.
+- **Finding**: Mem0 is an active and popular project with a broad contributor base and Apache-2.0 licensing, but it solves a different problem: LLM-oriented memory extraction, storage, reranking, and retrieval for personalized AI agents. Its docs emphasize a managed platform, and its OSS project spans vector stores, graph services, rerankers, and LLM integration. CodeSmith's current learning design is much narrower and more auditable: reactions, suggestion outcomes, heuristics, and admin-managed patterns.
 - **Impact**: Adopting Mem0 as the foundation would add architectural weight, introduce another opinionated memory layer, and move the design away from transparent, reviewable heuristics toward a more opaque memory subsystem before the product has proven it needs one.
-- **Alternative**: Do not adopt Mem0 as the storage foundation for CP3. If the team later wants to evaluate richer long-term memory techniques, run a separate spike comparing GitGandalf's structured learning loop against Mem0-style semantic memory on real review feedback data.
+- **Alternative**: Do not adopt Mem0 as the storage foundation for CP3. If the team later wants to evaluate richer long-term memory techniques, run a separate spike comparing CodeSmith's structured learning loop against Mem0-style semantic memory on real review feedback data.
 
 #### O6: Add explicit migration triggers and non-functional thresholds to the plans
 - **Dimension**: Structure
@@ -136,7 +136,7 @@ None.
 - Natural system of record for feedback events, analytics facts, admin CRUD, and derived learned patterns.
 - Strong concurrency, MVCC, replication, PITR, indexing, and mature operational tooling.
 - Easier integration with external dashboards, SQL consumers, backups, and managed offerings.
-- Cleaner long-term answer once GitGandalf wants HA beyond “singleton ops pod + queue absorbs downtime.”
+- Cleaner long-term answer once CodeSmith wants HA beyond “singleton ops pod + queue absorbs downtime.”
 
 **Tradeoff**
 - Higher operational burden than SQLite for the initial implementation.
@@ -150,7 +150,7 @@ None.
 
 **What it gets right here**
 - Keeps transactional and semantic memory in one operational plane.
-- Lets GitGandalf evolve from heuristics to embedding-assisted retrieval without replacing the relational core.
+- Lets CodeSmith evolve from heuristics to embedding-assisted retrieval without replacing the relational core.
 - Mature extension with active maintenance and strong ecosystem support.
 
 **Tradeoff**
@@ -182,7 +182,7 @@ None.
 **What it gets right here**
 - Strong dedicated vector search engine.
 - Good hybrid retrieval story and production scaling model.
-- Sensible choice if GitGandalf eventually stores large volumes of embeddings and retrieval quality becomes a product-critical differentiator.
+- Sensible choice if CodeSmith eventually stores large volumes of embeddings and retrieval quality becomes a product-critical differentiator.
 
 **Where it mismatches**
 - It does not solve transactional feedback logging or SQL analytics.
@@ -202,7 +202,7 @@ None.
 **Where it mismatches**
 - It is a memory framework and product layer, not just a database choice.
 - It introduces its own assumptions around memory extraction, retrieval, reranking, and often additional LLM/vector infrastructure.
-- GitGandalf's current requirement is not “general-purpose conversational memory”; it is auditable review feedback learning tied to files, categories, and projects.
+- CodeSmith's current requirement is not “general-purpose conversational memory”; it is auditable review feedback learning tied to files, categories, and projects.
 
 **Bottom line**
 - Interesting future research input.
@@ -221,7 +221,7 @@ None.
 
 #### What I would declare as the long-term path
 
-1. Make **PostgreSQL** the default migration target once GitGandalf needs stronger HA, concurrency, or external analytics.
+1. Make **PostgreSQL** the default migration target once CodeSmith needs stronger HA, concurrency, or external analytics.
 2. Add **`pgvector`** only if the learning model expands from heuristic pattern extraction into semantic retrieval over free-form feedback or review corpora.
 3. Keep **Qdrant** as a later specialized option only if vector search becomes large enough to justify a dedicated service.
 4. Do **not** adopt **Mem0** as the core storage architecture for this plan.

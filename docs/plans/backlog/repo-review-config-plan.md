@@ -1,5 +1,5 @@
 ---
-title: "CP1 — Repo-Based Review Configuration (.gitgandalf.yaml)"
+title: "CP1 — Repo-Based Review Configuration (.codesmith.yaml)"
 status: backlog
 priority: high
 estimated_hours: 24-36
@@ -31,7 +31,7 @@ tags:
 
 completion:
   - "# Phase C1 — Config Schema & Parser"
-  - [x] C1.1 Define `.gitgandalf.yaml` Zod schema with all supported sections
+  - [x] C1.1 Define `.codesmith.yaml` Zod schema with all supported sections
   - [x] C1.2 Implement config discovery and loading from cloned repo path
   - [x] C1.3 Add fallback defaults when no config file exists
   - [x] C1.4 Add Zod validation with helpful error messages for invalid configs
@@ -54,36 +54,36 @@ completion:
   - [ ] C3.5 Unit tests for prompt injection with various config combinations
   - [ ] C3.6 Update ARCHITECTURE.md prompt-loading section
   - "# Phase C4 — Docs, Validation & Audit"
-  - [x] C4.1 Create .gitgandalf.yaml reference documentation with examples
-  - [ ] C4.2 Add sample .gitgandalf.yaml to repo root as a dogfooding example
+  - [x] C4.1 Create .codesmith.yaml reference documentation with examples
+  - [ ] C4.2 Add sample .codesmith.yaml to repo root as a dogfooding example
   - [ ] C4.3 Update GETTING_STARTED.md with config setup instructions
   - [ ] C4.4 Update docs/README.md
   - [ ] C4.5 Run review-plan-phase audit
 ---
 
-# CP1 — Repo-Based Review Configuration (.gitgandalf.yaml)
+# CP1 — Repo-Based Review Configuration (.codesmith.yaml)
 
 ## Executive Summary
 
-Git Gandalf currently has no repo-level configuration. All behavior is controlled by environment variables on the Git Gandalf instance. This means every project reviewed by the same instance gets identical treatment — no custom rules, no file exclusions, no severity overrides, no per-team customization.
+Code Smith currently has no repo-level configuration. All behavior is controlled by environment variables on the Code Smith instance. This means every project reviewed by the same instance gets identical treatment — no custom rules, no file exclusions, no severity overrides, no per-team customization.
 
 Both competitors offer repo-based config: GitLab Duo uses `.gitlab/duo/mr-review-instructions.yaml` with per-file glob patterns, and CodeRabbit uses `.coderabbit.yaml` with path-based and AST-based rules plus organizational learnings.
 
-This plan introduces `.gitgandalf.yaml` — a repo-level configuration file that lets teams customize Git Gandalf's behavior without redeployment. It is the foundational plan: CP2 (linters), CP3 (learning), and CP4 (output) all depend on this config system.
+This plan introduces `.codesmith.yaml` — a repo-level configuration file that lets teams customize Code Smith's behavior without redeployment. It is the foundational plan: CP2 (linters), CP3 (learning), and CP4 (output) all depend on this config system.
 
 ## Config Schema Design
 
 ### File Location
 
-Git Gandalf discovers config in this order (first match wins):
-1. `.gitgandalf.yaml` at repo root
-2. `.gitgandalf.yml` at repo root
+Code Smith discovers config in this order (first match wins):
+1. `.codesmith.yaml` at repo root
+2. `.codesmith.yml` at repo root
 3. No file → use defaults
 
 ### Full Schema
 
 ```yaml
-# .gitgandalf.yaml — Git Gandalf repo-level configuration
+# .codesmith.yaml — Code Smith repo-level configuration
 version: 1
 
 # Global review instructions injected into every review
@@ -127,7 +127,7 @@ features:
 
 # Linter configuration (used by CP2)
 # Repo config may select a named profile, but executable commands are owned by
-# the Git Gandalf deployment and never defined in the reviewed repository.
+# the Code Smith deployment and never defined in the reviewed repository.
 linters:
   enabled: true
   profile: default                    # Named instance-owned profile (e.g. default, strict)
@@ -163,7 +163,7 @@ The config will be validated with Zod at load time. Key design decisions:
 
 | Aspect | Current | Target |
 |---|---|---|
-| Repo config | None | `.gitgandalf.yaml` with full Zod-validated schema |
+| Repo config | None | `.codesmith.yaml` with full Zod-validated schema |
 | File exclusions | None (review all changed files) | Glob-based exclusion patterns |
 | Custom instructions | None (static prompts only) | Per-file-pattern and global custom instructions injected into agent prompts |
 | Severity control | Fixed (report all findings) | Configurable minimum severity and blocking threshold |
@@ -185,7 +185,7 @@ The config will be validated with Zod at load time. Key design decisions:
 
 **C1.2** — Create `src/config/repo-config-loader.ts`:
 - `loadRepoConfig(repoPath: string): Promise<RepoConfig>`
-- Discovery order: `.gitgandalf.yaml`, `.gitgandalf.yml`
+- Discovery order: `.codesmith.yaml`, `.codesmith.yml`
 - Use `Bun.file(path).text()` for zero-copy reads
 - Parse with `Bun.YAML.parse()`
 - Validate with `RepoConfigSchema.parse()`
@@ -216,7 +216,7 @@ The config will be validated with Zod at load time. Key design decisions:
   - If any pattern fails under `Bun.Glob`, document the gap and add `picomatch` as a fallback at that point
 - Rejection of any repo-defined executable command fields
 
-**C1.6** — Update CONFIGURATION.md: add `.gitgandalf.yaml` section with schema reference.
+**C1.6** — Update CONFIGURATION.md: add `.codesmith.yaml` section with schema reference.
 
 ### Phase C2 — Pipeline Integration
 
@@ -284,13 +284,13 @@ The config will be validated with Zod at load time. Key design decisions:
 **Goal:** Complete documentation and validate the full config system.
 
 **C4.1** — Create `docs/guides/REPO_REVIEW_CONFIG.md`:
-- Full reference for `.gitgandalf.yaml`
+- Full reference for `.codesmith.yaml`
 - Example configs for common scenarios (monorepo, Go service, TypeScript library, Python data pipeline)
 - Field-by-field documentation
 - Explicit note that repo config cannot define commands and may only reference allowlisted instance profiles
 - Troubleshooting (config not loading, patterns not matching)
 
-**C4.2** — Add `.gitgandalf.yaml` to the Git Gandalf repo itself (dogfooding):
+**C4.2** — Add `.codesmith.yaml` to the Code Smith repo itself (dogfooding):
 - Exclude `node_modules/`, `dist/`, lock files
 - Set review instructions for the codebase conventions
 

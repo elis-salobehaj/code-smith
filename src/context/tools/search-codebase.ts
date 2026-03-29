@@ -4,7 +4,7 @@ import { config } from "../../config";
 import type { SearchResult } from "./shared";
 
 // ---------------------------------------------------------------------------
-// Tool definition (GitGandalf internal tool schema)
+// Tool definition (CodeSmith internal tool schema)
 // The cap is injected from config so the LLM sees the actual runtime limit.
 // ---------------------------------------------------------------------------
 

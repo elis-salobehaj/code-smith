@@ -1,7 +1,7 @@
 ---
 name: conventional-commits
 description: >
-  Conventional Commits standard for GitGandalf. Use when creating a git commit
+  Conventional Commits standard for CodeSmith. Use when creating a git commit
   message, reviewing a commit message, or preparing a set of changes to commit.
   Produces a correctly structured commit message with type, optional scope, subject,
   body, and footer following https://www.conventionalcommits.org/en/v1.0.0/
@@ -11,7 +11,7 @@ license: Apache-2.0
 
 # Conventional Commits
 
-Use this skill whenever composing a commit message for GitGandalf. The commit
+Use this skill whenever composing a commit message for CodeSmith. The commit
 message must follow the [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/)
 specification so the history is machine-readable, changelogs are automatable, and
 the intent of every change is immediately clear.
@@ -51,7 +51,7 @@ or `git commit` that:
 | `revert` | Reverting a prior commit |
 | `build` | Changes to build system or external dependencies |
 
-### Scopes for GitGandalf
+### Scopes for CodeSmith
 
 Use scopes to narrow the area of change. Preferred scopes for this repo:
 

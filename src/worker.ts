@@ -27,7 +27,7 @@ await initLogging();
 
 import { getLogger } from "./logger";
 
-const logger = getLogger(["gandalf", "worker"]);
+const logger = getLogger(["codesmith", "worker"]);
 
 if (!config.QUEUE_ENABLED) {
   logger.warn("QUEUE_ENABLED is false — worker process started but queue is disabled. Set QUEUE_ENABLED=true.");

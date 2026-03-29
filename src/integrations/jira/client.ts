@@ -11,7 +11,7 @@ import { z } from "zod";
 import type { Config } from "../../config";
 import { getLogger } from "../../logger";
 
-const logger = getLogger(["gandalf", "jira"]);
+const logger = getLogger(["codesmith", "jira"]);
 
 // ---------------------------------------------------------------------------
 // Regex for Jira-style ticket keys: one or more uppercase letters, dash, digits

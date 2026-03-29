@@ -21,7 +21,7 @@ async function configureCapturing(level: "debug" | "info" | "warning" | "error")
       },
     },
     loggers: [
-      { category: ["gandalf"], lowestLevel: level, sinks: ["capture"] },
+      { category: ["codesmith"], lowestLevel: level, sinks: ["capture"] },
       { category: ["logtape", "meta"], lowestLevel: "warning", sinks: [] },
     ],
   });
@@ -39,7 +39,7 @@ describe("LogTape level filtering", () => {
 
   test("emits records at or above the configured level", async () => {
     const captured = await configureCapturing("warning");
-    const logger = getLogger(["gandalf", "test"]);
+    const logger = getLogger(["codesmith", "test"]);
 
     logger.debug("should be filtered");
     logger.info("should be filtered");
@@ -53,7 +53,7 @@ describe("LogTape level filtering", () => {
 
   test("emits nothing when level is above all calls", async () => {
     const captured = await configureCapturing("error");
-    const logger = getLogger(["gandalf", "test"]);
+    const logger = getLogger(["codesmith", "test"]);
 
     logger.debug("filtered");
     logger.info("filtered");
@@ -64,7 +64,7 @@ describe("LogTape level filtering", () => {
 
   test("emits all levels when configured to debug", async () => {
     const captured = await configureCapturing("debug");
-    const logger = getLogger(["gandalf", "test"]);
+    const logger = getLogger(["codesmith", "test"]);
 
     logger.debug("d");
     logger.info("i");
@@ -82,7 +82,7 @@ describe("LogTape structured properties", () => {
 
   test("properties are attached to the log record", async () => {
     const captured = await configureCapturing("info");
-    const logger = getLogger(["gandalf", "test"]);
+    const logger = getLogger(["codesmith", "test"]);
 
     logger.info("MR processed", { projectId: 42, mrIid: 7, verdict: "APPROVE" });
 
@@ -99,16 +99,16 @@ describe("LogTape category hierarchy", () => {
   test("child categories inherit the parent sink", async () => {
     const captured = await configureCapturing("info");
 
-    // loggers in child categories should route through the parent ["gandalf"] config
-    const routerLogger = getLogger(["gandalf", "router"]);
-    const publisherLogger = getLogger(["gandalf", "publisher"]);
+    // loggers in child categories should route through the parent ["codesmith"] config
+    const routerLogger = getLogger(["codesmith", "router"]);
+    const publisherLogger = getLogger(["codesmith", "publisher"]);
 
     routerLogger.info("router message");
     publisherLogger.info("publisher message");
 
     expect(captured).toHaveLength(2);
-    expect(captured[0].category).toEqual(["gandalf", "router"]);
-    expect(captured[1].category).toEqual(["gandalf", "publisher"]);
+    expect(captured[0].category).toEqual(["codesmith", "router"]);
+    expect(captured[1].category).toEqual(["codesmith", "publisher"]);
   });
 });
 
@@ -122,7 +122,7 @@ describe("initLogging in test mode", () => {
     rmSync(devLogPath, { force: true });
 
     await initLogging();
-    const logger = getLogger(["gandalf", "test"]);
+    const logger = getLogger(["codesmith", "test"]);
     logger.info("should stay silent under bun test");
 
     const activeConfig = getConfig();

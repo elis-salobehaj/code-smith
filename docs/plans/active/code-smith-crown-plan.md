@@ -1,10 +1,10 @@
 ---
-title: "The Crown Plan — Git Gandalf Feature Parity & Beyond"
+title: "The Crown Plan — Code Smith Feature Parity & Beyond"
 status: active
 priority: high
 estimated_hours: 200-320
 dependencies:
-  - docs/plans/active/git-gandalf-master-plan.md
+  - docs/plans/active/code-smith-master-plan.md
 created: 2026-03-21
 date_updated: 2026-03-22
 
@@ -37,13 +37,13 @@ completion:
   - [ ] CV2 — Update AI-Code-Review-Tool-Evaluation.md with new scores
 ---
 
-# The Crown Plan — Git Gandalf Feature Parity & Beyond
+# The Crown Plan — Code Smith Feature Parity & Beyond
 
 ## Locked Design Decisions
 
 The crown plan now assumes the following implementation constraints. They are no longer open decisions.
 
-- Repo configuration lives in `.gitgandalf.yaml` at repo root.
+- Repo configuration lives in `.codesmith.yaml` at repo root.
 - Repo configuration may select behavior, thresholds, and named linter profiles, but it may never define executable commands.
 - Initial linter scope is Biome and other instance-owned standalone binaries only. ESLint is explicitly deferred to a future dependency-hydration and sandbox design.
 - Learning and analytics data use `bun:sqlite`, but write ownership belongs to a singleton internal ops/control-plane service rather than multi-writer shared pods.
@@ -64,7 +64,7 @@ The crown plan now assumes the following implementation constraints. They are no
 
 ## Strategic Vision
 
-Git Gandalf's corrected evaluation score is **7.3/10** — marginally behind GitLab Duo (7.4) and above CodeRabbit (6.9). The score is honest: Git Gandalf leads on data sovereignty and cost but gets hammered on production readiness (4/10), ease of setup (5/10), and operational maturity. The gap to GitLab Duo is 0.1 points — closing it requires meaningful gains in readiness, operations, and integration depth.
+Code Smith's corrected evaluation score is **7.3/10** — marginally behind GitLab Duo (7.4) and above CodeRabbit (6.9). The score is honest: Code Smith leads on data sovereignty and cost but gets hammered on production readiness (4/10), ease of setup (5/10), and operational maturity. The gap to GitLab Duo is 0.1 points — closing it requires meaningful gains in readiness, operations, and integration depth.
 
 This plan closes every competitive gap through six primary child plans plus one threshold-driven future migration plan. The target is a legitimate **9.0/10** — earned through real capabilities, not marketing.
 
@@ -75,7 +75,7 @@ config:
   markdownAutoWrap: false
 ---
 flowchart LR
-  CP1["CP1: Review Config\n.gitgandalf.yaml"]
+  CP1["CP1: Review Config\n.codesmith.yaml"]
   CP2["CP2: Linter/SAST\nIntegration"]
   CP3["CP3: Organizational\nLearning"]
   CP4["CP4: Enhanced\nReview Output"]
@@ -123,7 +123,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 **Target weighted score:** 9×0.20 + 10×0.20 + 9×0.15 + 9×0.15 + 9×0.10 + 9×0.10 + 10×0.05 + 7×0.05 = **9.15**
 
-> **Baseline note:** Current scores are from the corrected evaluation: GitLab Duo 7.4, CodeRabbit 6.9, Git Gandalf 7.3. See `docs/AI-Code-Review-Tool-Evaluation.md` Section 9 for the evidence-backed rubric.
+> **Baseline note:** Current scores are from the corrected evaluation: GitLab Duo 7.4, CodeRabbit 6.9, Code Smith 7.3. See `docs/AI-Code-Review-Tool-Evaluation.md` Section 9 for the evidence-backed rubric.
 
 ---
 
@@ -135,12 +135,12 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **Priority:** HIGH (foundational — CP2, CP3, CP4 depend on it)
 **Estimated hours:** 24–36
 
-**What it does:** Introduces `.gitgandalf.yaml` repo-level configuration. Projects can customize review behavior, severity thresholds, file exclusions, language-specific rules, and opt into features like enhanced summaries and linter integration — all without environment variables or Git Gandalf redeployment.
+**What it does:** Introduces `.codesmith.yaml` repo-level configuration. Projects can customize review behavior, severity thresholds, file exclusions, language-specific rules, and opt into features like enhanced summaries and linter integration — all without environment variables or Code Smith redeployment.
 
 **Competitive gap closed:** Custom review instructions (GitLab Duo: YAML per-file patterns; CodeRabbit: YAML + AST + Learnings)
 
 **Key capabilities:**
-- `.gitgandalf.yaml` discovery and Zod-validated parsing during pipeline startup
+- `.codesmith.yaml` discovery and Zod-validated parsing during pipeline startup
 - Per-file-pattern review rules (glob-based, like GitLab Duo's `fileFilters`)
 - Severity threshold overrides (e.g., "only report high+ for test files")
 - File/directory exclusion patterns
@@ -155,11 +155,11 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **File:** [`docs/plans/backlog/linter-sast-integration-plan.md`](../backlog/linter-sast-integration-plan.md)
 **Priority:** HIGH
 **Estimated hours:** 30–45
-**Depends on:** CP1 (linter config in `.gitgandalf.yaml`)
+**Depends on:** CP1 (linter config in `.codesmith.yaml`)
 
 **What it does:** Runs Biome and other instance-owned standalone static-analysis profiles against changed files before the AI review. Feeds normalized findings into the agent pipeline as structured context — agents can reference, deduplicate against, and prioritize their own findings relative to deterministic tooling output.
 
-**Competitive gap closed:** Linter/SAST integration (CodeRabbit: 40+ built-in; Git Gandalf: 0 → Biome + standalone-binary profile architecture)
+**Competitive gap closed:** Linter/SAST integration (CodeRabbit: 40+ built-in; Code Smith: 0 → Biome + standalone-binary profile architecture)
 
 **Key capabilities:**
 - Auto-detect repo Biome usage and select instance-owned standalone profiles from deployment config
@@ -167,7 +167,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 - Parse linter output (JSON format) into normalized finding format
 - Feed linter context to investigator agent as structured pre-review data
 - Optionally publish linter-only findings as separate inline comments
-- Configurable via `.gitgandalf.yaml` (enable/disable, severity threshold, named profile selection)
+- Configurable via `.codesmith.yaml` (enable/disable, severity threshold, named profile selection)
 - ESLint explicitly deferred until a separate dependency-hydration and sandbox plan exists
 
 ---
@@ -177,21 +177,21 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **File:** [`docs/plans/backlog/organizational-learning-plan.md`](../backlog/organizational-learning-plan.md)
 **Priority:** HIGH
 **Estimated hours:** 40–60
-**Depends on:** CP1 (learning config in `.gitgandalf.yaml`), CP6 (admin route group and singleton ops foundation)
+**Depends on:** CP1 (learning config in `.codesmith.yaml`), CP6 (admin route group and singleton ops foundation)
 
-**What it does:** Captures feedback signals from developers (reactions and applied/dismissed suggestions), stores them in a singleton ops-owned SQLite database, and injects relevant learned patterns into future reviews through a safe internal read path. This is the single biggest competitive differentiator CodeRabbit has — and the most impactful feature Git Gandalf can build.
+**What it does:** Captures feedback signals from developers (reactions and applied/dismissed suggestions), stores them in a singleton ops-owned SQLite database, and injects relevant learned patterns into future reviews through a safe internal read path. This is the single biggest competitive differentiator CodeRabbit has — and the most impactful feature Code Smith can build.
 
-**Competitive gap closed:** Learns from feedback across MRs (CodeRabbit: "Learnings" system; GitLab Duo: none; Git Gandalf: none → full learning loop)
+**Competitive gap closed:** Learns from feedback across MRs (CodeRabbit: "Learnings" system; GitLab Duo: none; Code Smith: none → full learning loop)
 
 **Key capabilities:**
-- Feedback ingestion: poll GitLab for reactions on Git Gandalf comments, track applied suggestions
+- Feedback ingestion: poll GitLab for reactions on Code Smith comments, track applied suggestions
 - `bun:sqlite` learning database with WAL mode and singleton write ownership
 - Durable internal write-job transport from webhook/worker surfaces to the ops service
 - Pattern extraction: group feedback by file pattern, language, finding category
 - Learning injection: add relevant learned patterns to investigator agent's system prompt per review via an internal cached read API
 - Learning management: API endpoints to view, edit, and delete learned patterns behind the dedicated admin route group
 - Per-project and cross-project learning scopes
-- Configurable via `.gitgandalf.yaml` (opt-in/out, scope, retention)
+- Configurable via `.codesmith.yaml` (opt-in/out, scope, retention)
 
 ---
 
@@ -200,11 +200,11 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **File:** [`docs/plans/backlog/enhanced-review-output-plan.md`](../backlog/enhanced-review-output-plan.md)
 **Priority:** MEDIUM-HIGH
 **Estimated hours:** 24–36
-**Depends on:** CP1 (output config in `.gitgandalf.yaml`)
+**Depends on:** CP1 (output config in `.codesmith.yaml`)
 
-**What it does:** Upgrades Git Gandalf's review output from "findings + verdict" to a comprehensive review experience: smart MR summaries, change walkthroughs, architecture impact notes, and improved suggestion formatting with better one-click-apply support.
+**What it does:** Upgrades Code Smith's review output from "findings + verdict" to a comprehensive review experience: smart MR summaries, change walkthroughs, architecture impact notes, and improved suggestion formatting with better one-click-apply support.
 
-**Competitive gap closed:** PR summary/walkthrough (CodeRabbit: summary + walkthrough + diagram; GitLab Duo: MR summary; Git Gandalf: verdict only → full review output)
+**Competitive gap closed:** PR summary/walkthrough (CodeRabbit: summary + walkthrough + diagram; GitLab Duo: MR summary; Code Smith: verdict only → full review output)
 
 **Key capabilities:**
 - Smart MR summary: change categories, key decisions, risk assessment, testing status
@@ -213,7 +213,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 - Severity-sorted finding presentation with color-coded priority bands
 - Collapsible detail sections in summary notes (GitLab-flavored markdown)
 - Architecture impact notes when cross-module changes are detected
-- Configurable output depth via `.gitgandalf.yaml`
+- Configurable output depth via `.codesmith.yaml`
 
 ---
 
@@ -226,7 +226,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 **What it does:** Adds review-level analytics (finding trends, severity distributions, per-project stats, false positive rates) and operational metrics (Prometheus endpoint for request latency, queue depth, LLM call duration). Provides API endpoints for querying analytics data for dashboards or reports.
 
-**Competitive gap closed:** Analytics/reporting (CodeRabbit: built-in dashboard; GitLab Duo: SDLC trends; Git Gandalf: structured logs only → metrics + analytics API)
+**Competitive gap closed:** Analytics/reporting (CodeRabbit: built-in dashboard; GitLab Duo: SDLC trends; Code Smith: structured logs only → metrics + analytics API)
 
 **Key capabilities:**
 - `bun:sqlite` analytics tables: review runs, findings, feedback, timing
@@ -247,7 +247,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **Priority:** HIGH (parallel with CP1 — no dependencies)
 **Estimated hours:** 40–60
 
-**What it does:** Transforms Git Gandalf from a well-engineered prototype into a production-grade service. Helm chart, HPA, health probes, resource limits, Prometheus metrics, operational runbook, performance benchmarks, contributor documentation, and end-to-end integration tests.
+**What it does:** Transforms Code Smith from a well-engineered prototype into a production-grade service. Helm chart, HPA, health probes, resource limits, Prometheus metrics, operational runbook, performance benchmarks, contributor documentation, and end-to-end integration tests.
 
 **Competitive gap closed:** Production readiness (4/10 → 9/10), Ease of setup (5/10 → 9/10), Vendor risk (5/10 → 7/10)
 
@@ -277,7 +277,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **Estimated hours:** 40–70
 **Depends on:** CP3, CP5, CP6
 
-**What it does:** Defines the additive migration path from the phase-one singleton SQLite design to PostgreSQL as the long-term system of record, with optional `pgvector` only if Git Gandalf later needs semantic retrieval over free-form review memory.
+**What it does:** Defines the additive migration path from the phase-one singleton SQLite design to PostgreSQL as the long-term system of record, with optional `pgvector` only if Code Smith later needs semantic retrieval over free-form review memory.
 
 **Competitive gap closed:** Long-term operational maturity, HA storage, and future semantic memory without locking the product into a premature specialized database.
 
@@ -297,7 +297,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 Start CP1 (Review Config) and CP6 (Production Hardening) in parallel. These have no cross-dependencies and are the highest-impact plans.
 
-- **CP1** unlocks CP2, CP3, and CP4 (they all read `.gitgandalf.yaml`)
+- **CP1** unlocks CP2, CP3, and CP4 (they all read `.codesmith.yaml`)
 - **CP6** establishes the operational foundation (Helm, metrics, testing)
 
 ### Phase 2 — Core Capabilities (Weeks 3–7)
@@ -330,7 +330,7 @@ The Crown Plan is complete when:
 
 1. CP1–CP6 are implemented, reviewed (via `review-plan-phase`), and moved to `docs/plans/implemented/`
 2. CP7 is either implemented after its activation criteria are met or explicitly left deferred with the criteria documented as not yet met
-3. The competitive evaluation scoring can be re-run with evidence showing Git Gandalf at **9.0+** weighted score
+3. The competitive evaluation scoring can be re-run with evidence showing Code Smith at **9.0+** weighted score
 4. Every scoring improvement claim is backed by a working, tested feature — not aspirational capability
 5. The evaluation document (`docs/AI-Code-Review-Tool-Evaluation.md`) is updated with new scores and evidence
 6. No child plan was marked complete based on partial scaffolding, stub implementations, or skipped tests
@@ -341,6 +341,6 @@ The Crown Plan is complete when:
 
 | Active Plan | Relationship |
 |---|---|
-| [Git Gandalf Master Plan](./git-gandalf-master-plan.md) | Predecessor. Crown Plan extends beyond Phase 5. No conflicts. |
-| [Gandalf Awakening Personality Plan](./Gandalf-awakening-personality-plan.md) | Independent. Personality work continues alongside Crown Plan. CP1 config may later include personality settings. **Coordination note (review-driven O6):** The Awakening plan modifies `src/api/router.ts`, `src/publisher/gitlab-publisher.ts`, and `src/api/pipeline.ts` — all files that CP1, CP4, and CP6 also modify. Strategy: either (a) complete the Awakening plan before Crown Plan implementation begins on CP4 (publisher changes), or (b) implement Crown Plan changes in a way that preserves Awakening's trigger-context and tone-split hooks. Implementers of CP4 and CP6 must check the Awakening plan's current status before modifying overlapping files. |
+| [Code Smith Master Plan](./code-smith-master-plan.md) | Predecessor. Crown Plan extends beyond Phase 5. No conflicts. |
+| [CodeSmith Awakening Personality Plan](./CodeSmith-awakening-personality-plan.md) | Independent. Personality work continues alongside Crown Plan. CP1 config may later include personality settings. **Coordination note (review-driven O6):** The Awakening plan modifies `src/api/router.ts`, `src/publisher/gitlab-publisher.ts`, and `src/api/pipeline.ts` — all files that CP1, CP4, and CP6 also modify. Strategy: either (a) complete the Awakening plan before Crown Plan implementation begins on CP4 (publisher changes), or (b) implement Crown Plan changes in a way that preserves Awakening's trigger-context and tone-split hooks. Implementers of CP4 and CP6 must check the Awakening plan's current status before modifying overlapping files. |
 | [Review Edge Cases Hardening](./review-edge-cases-hardening.md) | Predecessor (fully implemented). Crown Plan builds on the checkpoint, incremental review, and dedup infrastructure. |

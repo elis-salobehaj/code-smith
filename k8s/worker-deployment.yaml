@@ -4,30 +4,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: git-gandalf-worker
-  namespace: git-gandalf
+  name: code-smith-worker
+  namespace: code-smith
   labels:
-    app: git-gandalf-worker
+    app: code-smith-worker
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: git-gandalf-worker
+      app: code-smith-worker
   template:
     metadata:
       labels:
-        app: git-gandalf-worker
+        app: code-smith-worker
     spec:
       containers:
         - name: worker
-          image: git-gandalf:latest
+          image: code-smith:latest
           imagePullPolicy: IfNotPresent
           command: ["bun", "run", "src/worker.ts"]
           envFrom:
             - configMapRef:
-                name: git-gandalf-config
+                name: code-smith-config
             - secretRef:
-                name: git-gandalf-secrets
+                name: code-smith-secrets
           resources:
             # Workers run LLM agents, tool loops, and git operations — allocate
             # more CPU and memory than the lightweight webhook server.

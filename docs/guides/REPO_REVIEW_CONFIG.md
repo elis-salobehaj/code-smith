@@ -1,10 +1,10 @@
 # Repo Review Config Guide
 
-This guide explains the repo-level `.gitgandalf.yaml` file: what it is, where it lives, how to write it, and what GitGandalf currently does with it.
+This guide explains the repo-level `.codesmith.yaml` file: what it is, where it lives, how to write it, and what CodeSmith currently does with it.
 
 ## What This File Is
 
-`.gitgandalf.yaml` is the repository-owned configuration file for GitGandalf review behavior.
+`.codesmith.yaml` is the repository-owned configuration file for CodeSmith review behavior.
 
 It is intended to let a project define review rules close to the codebase instead of pushing every behavior change into deployment-level environment variables.
 
@@ -17,7 +17,7 @@ Typical use cases include:
 
 ## Current Status
 
-GitGandalf currently supports the **configuration foundation** for this file:
+CodeSmith currently supports the **configuration foundation** for this file:
 
 - discovery at repo root
 - YAML parsing
@@ -31,21 +31,21 @@ Important:
 - most config-driven behavior is **not applied yet** in the review pipeline
 - later CP1 phases will wire this file into diff filtering, prompt injection, and severity-aware verdict behavior
 
-If you add `.gitgandalf.yaml` today, GitGandalf will validate it, but fields like `exclude`, `review_instructions`, and `file_rules` are still part of the forward contract rather than active review behavior.
+If you add `.codesmith.yaml` today, CodeSmith will validate it, but fields like `exclude`, `review_instructions`, and `file_rules` are still part of the forward contract rather than active review behavior.
 
 ## File Location And Discovery
 
-GitGandalf looks for repo config at the **repository root** in this order:
+CodeSmith looks for repo config at the **repository root** in this order:
 
-1. `.gitgandalf.yaml`
-2. `.gitgandalf.yml`
+1. `.codesmith.yaml`
+2. `.codesmith.yml`
 3. no file → use defaults
 
 Only the first matching file is used.
 
 ## Authoring Standard
 
-Treat `.gitgandalf.yaml` as a strict, versioned contract.
+Treat `.codesmith.yaml` as a strict, versioned contract.
 
 Recommended standard:
 
@@ -174,7 +174,7 @@ Important:
 
 - this section may reference a **named profile only**
 - the repo config may **not** define commands such as `eslint .`, `bunx biome check`, or shell snippets
-- executable tooling remains controlled by the GitGandalf deployment, not by reviewed repositories
+- executable tooling remains controlled by the CodeSmith deployment, not by reviewed repositories
 
 ### `output`
 
@@ -259,7 +259,7 @@ file_rules:
 
 ## Matching Rules And Glob Guidance
 
-GitGandalf validates glob patterns at load time.
+CodeSmith validates glob patterns at load time.
 
 Patterns tested in the current compatibility matrix include:
 
@@ -279,29 +279,29 @@ Guidance:
 
 ## What Not To Put In This File
 
-Do not use `.gitgandalf.yaml` for:
+Do not use `.codesmith.yaml` for:
 
 - secrets
 - access tokens
 - deployment-specific credentials
 - shell commands
 - linter executable paths
-- environment-specific hostnames or URLs unless GitGandalf later documents them as supported repo config
+- environment-specific hostnames or URLs unless CodeSmith later documents them as supported repo config
 
 This file is for **repo-owned review policy**, not deployment ownership or secret management.
 
 ## Troubleshooting
 
-### GitGandalf behaves as if no config exists
+### CodeSmith behaves as if no config exists
 
 Check:
 
-1. the file is named `.gitgandalf.yaml` or `.gitgandalf.yml`
+1. the file is named `.codesmith.yaml` or `.codesmith.yml`
 2. the file is at repo root
 3. the YAML parses cleanly
 4. the file uses only documented keys
 
-If parsing or validation fails, GitGandalf falls back to defaults rather than failing the review.
+If parsing or validation fails, CodeSmith falls back to defaults rather than failing the review.
 
 ### A key is being ignored
 
@@ -314,14 +314,14 @@ Use the documented snake_case field names exactly.
 Check that:
 
 1. the pattern is repo-relative
-2. the path form matches the reviewed file paths GitGandalf uses
+2. the path form matches the reviewed file paths CodeSmith uses
 3. the pattern is valid glob syntax
 
 When in doubt, prefer simple patterns over clever ones.
 
 ### You expected review behavior to change immediately
 
-Today, GitGandalf loads and validates repo config but does not yet consume most of it in the pipeline.
+Today, CodeSmith loads and validates repo config but does not yet consume most of it in the pipeline.
 
 Current state:
 
@@ -336,7 +336,7 @@ See CP1 in [docs/plans/backlog/repo-review-config-plan.md](../plans/backlog/repo
 
 That is intentionally rejected.
 
-GitGandalf only accepts a named deployment-owned linter profile from the repo config. The reviewed repository is not allowed to decide what executable command the GitGandalf deployment runs.
+CodeSmith only accepts a named deployment-owned linter profile from the repo config. The reviewed repository is not allowed to decide what executable command the CodeSmith deployment runs.
 
 ## See Also
 

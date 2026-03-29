@@ -1,4 +1,4 @@
-# GitGandalf: Agent Operating Manual
+# CodeSmith: Agent Operating Manual
 
 ## 🎯 Mission
 
@@ -12,7 +12,7 @@ high-signal inline review comments.
 - **Framework**: Hono (ultralight, Web Standards)
 - **Language**: TypeScript (strict mode)
 - **Validation**: Zod (all schemas, env config, API payloads)
-- **LLM**: AWS Bedrock Runtime Converse via `@aws-sdk/client-bedrock-runtime` (Claude Sonnet 4), behind GitGandalf's internal agent protocol
+- **LLM**: AWS Bedrock Runtime Converse via `@aws-sdk/client-bedrock-runtime` (Claude Sonnet 4), behind CodeSmith's internal agent protocol
 - **GitLab Client**: @gitbeaker/rest
 - **Linting/Formatting**: Biome (replaces ESLint + Prettier)
 

@@ -42,7 +42,7 @@ completion:
   - "# Phase RO2 — File-by-File Walkthrough"
   - [ ] RO2.1 Create walkthrough generator (per-file change description from diff analysis)
   - [ ] RO2.2 Integrate walkthrough into summary note as collapsible section
-  - [ ] RO2.3 Add tiered trigger logic (auto for 5+ files, configurable via .gitgandalf.yaml)
+  - [ ] RO2.3 Add tiered trigger logic (auto for 5+ files, configurable via .codesmith.yaml)
   - [ ] RO2.4 Token budget management (cap walkthrough to reasonable size)
   - [ ] RO2.5 Unit tests for walkthrough generation and triggering logic
   - [ ] RO2.6 Update WORKFLOWS.md
@@ -54,7 +54,7 @@ completion:
   - [ ] RO3.5 Unit tests for suggestion formatting and validation
   - [ ] RO3.6 Update ARCHITECTURE.md
   - "# Phase RO4 — Output Config, Docs & Audit"
-  - [ ] RO4.1 Respect .gitgandalf.yaml output settings (summary depth, walkthrough, max findings)
+  - [ ] RO4.1 Respect .codesmith.yaml output settings (summary depth, walkthrough, max findings)
   - [ ] RO4.2 Add output customization section to REPO_REVIEW_CONFIG.md
   - [ ] RO4.3 Update docs/README.md
   - [ ] RO4.4 Run review-plan-phase audit
@@ -64,9 +64,9 @@ completion:
 
 ## Executive Summary
 
-Git Gandalf currently publishes two types of output: inline finding comments (anchored to specific lines) and a summary note (verdict + finding list + checkpoint). This is functional but bare compared to CodeRabbit (which produces summaries, file-by-file walkthroughs, architecture diagrams, and one-click fixes) and GitLab Duo (which generates MR summaries and merge commit messages).
+Code Smith currently publishes two types of output: inline finding comments (anchored to specific lines) and a summary note (verdict + finding list + checkpoint). This is functional but bare compared to CodeRabbit (which produces summaries, file-by-file walkthroughs, architecture diagrams, and one-click fixes) and GitLab Duo (which generates MR summaries and merge commit messages).
 
-This plan upgrades Git Gandalf's review output to be comprehensive and developer-friendly:
+This plan upgrades Code Smith's review output to be comprehensive and developer-friendly:
 - **Smart MR summary** with change categories, risk assessment, and testing status
 - **File-by-file walkthrough** for larger MRs (configurable)
 - **Improved suggestion formatting** with clearer context and better GitLab integration
@@ -124,7 +124,7 @@ flowchart TD
 - `generateSmartSummary(state: ReviewState): string`
 - Template structure:
   ```markdown
-  ## 🤖 GitGandalf Code Review — {verdictEmoji} {verdict}
+  ## 🤖 CodeSmith Code Review — {verdictEmoji} {verdict}
   
   ### Summary
   {changeSummary}
@@ -155,7 +155,7 @@ flowchart TD
 **RO1.3** — Integrate into publisher:
 - Replace current summary building logic in `gitlab-publisher.ts` with `generateSmartSummary()`
 - Maintain backward compatibility: checkpoint markers still appended at the bottom
-- Maintain `<!-- git-gandalf:summary -->` and `<!-- git-gandalf:head sha=... -->` markers
+- Maintain `<!-- code-smith:summary -->` and `<!-- code-smith:head sha=... -->` markers
 
 **RO1.4** — Collapsible details:
 - Use GitLab-flavored markdown `<details><summary>...</summary>...</details>` for:
@@ -211,8 +211,8 @@ flowchart TD
 - `auto` (default): generate walkthrough when MR has 5+ changed files
 - `always`: generate for every MR
 - `never`: skip walkthrough entirely
-- Configurable via `.gitgandalf.yaml` `output.include_walkthrough`
-- Also triggerable via `/ai-review --walkthrough` command suffix (when Gandalf Awakening plan is implemented)
+- Configurable via `.codesmith.yaml` `output.include_walkthrough`
+- Also triggerable via `/ai-review --walkthrough` command suffix (when CodeSmith Awakening plan is implemented)
 
 **RO2.4** — Token budget management:
 - Walkthrough shares the existing context-agent LLM call rather than introducing a second call
@@ -231,7 +231,7 @@ flowchart TD
 
 ### Phase RO3 — Improved Suggestion UX
 
-**Goal:** Make Git Gandalf's suggestions easier to understand and apply.
+**Goal:** Make Code Smith's suggestions easier to understand and apply.
 
 **RO3.1** — Enhance suggestion fence generation in `suggestion-normalizer.ts`:
 - Current: basic context-stripping normalization
@@ -262,7 +262,7 @@ flowchart TD
 - Current: emoji prefix (🔴🟠🟡🔵)
 - Enhanced: add a severity badge with consistent formatting
   ```markdown
-  <!-- git-gandalf:finding ... -->
+  <!-- code-smith:finding ... -->
   ### 🔴 CRITICAL — Unauthenticated Endpoint Exposed
   
   **Impact:** This endpoint accepts requests without auth middleware, exposing user data.
@@ -288,7 +288,7 @@ flowchart TD
 
 **Goal:** Wire output settings to repo config and complete documentation.
 
-**RO4.1** — Respect `.gitgandalf.yaml`:
+**RO4.1** — Respect `.codesmith.yaml`:
 - `output.max_findings` → cap verified findings before publication
 - `output.include_walkthrough` → control walkthrough generation
 - `output.collapsible_details` → toggle collapsible sections

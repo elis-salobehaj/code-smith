@@ -9,7 +9,7 @@
 import { getLogger } from "../logger";
 import type { AgentMessage, AgentResponse, AgentToolDefinition } from "./protocol";
 
-const logger = getLogger(["gandalf", "llm"]);
+const logger = getLogger(["codesmith", "llm"]);
 
 export type ProviderFn = (
   systemPrompt: string,

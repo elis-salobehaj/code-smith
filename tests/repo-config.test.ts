@@ -13,7 +13,7 @@ import { loadRepoConfig } from "../src/config/repo-config-loader";
 const tempRepos: string[] = [];
 
 async function createTempRepo(): Promise<string> {
-  const repoPath = await mkdtemp(join(tmpdir(), "git-gandalf-repo-config-"));
+  const repoPath = await mkdtemp(join(tmpdir(), "code-smith-repo-config-"));
   tempRepos.push(repoPath);
   return repoPath;
 }
@@ -183,11 +183,11 @@ describe("loadRepoConfig", () => {
     await expect(loadRepoConfig(repoPath)).resolves.toEqual(DEFAULT_REPO_CONFIG);
   });
 
-  it("loads .gitgandalf.yaml when present", async () => {
+  it("loads .codesmith.yaml when present", async () => {
     const repoPath = await createTempRepo();
     await writeRepoConfig(
       repoPath,
-      ".gitgandalf.yaml",
+      ".codesmith.yaml",
       ["version: 1", "review_instructions: Keep summaries crisp.", "exclude:", "  - dist/"].join("\n"),
     );
 
@@ -196,18 +196,18 @@ describe("loadRepoConfig", () => {
     expect(config.exclude).toEqual(["dist/"]);
   });
 
-  it("loads .gitgandalf.yml when .yaml is absent", async () => {
+  it("loads .codesmith.yml when .yaml is absent", async () => {
     const repoPath = await createTempRepo();
-    await writeRepoConfig(repoPath, ".gitgandalf.yml", "version: 1\nexclude:\n  - vendor/**\n");
+    await writeRepoConfig(repoPath, ".codesmith.yml", "version: 1\nexclude:\n  - vendor/**\n");
 
     const config = await loadRepoConfig(repoPath);
     expect(config.exclude).toEqual(["vendor/**"]);
   });
 
-  it("prefers .gitgandalf.yaml over .gitgandalf.yml", async () => {
+  it("prefers .codesmith.yaml over .codesmith.yml", async () => {
     const repoPath = await createTempRepo();
-    await writeRepoConfig(repoPath, ".gitgandalf.yml", "version: 1\nreview_instructions: from yml\n");
-    await writeRepoConfig(repoPath, ".gitgandalf.yaml", "version: 1\nreview_instructions: from yaml\n");
+    await writeRepoConfig(repoPath, ".codesmith.yml", "version: 1\nreview_instructions: from yml\n");
+    await writeRepoConfig(repoPath, ".codesmith.yaml", "version: 1\nreview_instructions: from yaml\n");
 
     const config = await loadRepoConfig(repoPath);
     expect(config.review_instructions).toBe("from yaml");
@@ -215,21 +215,21 @@ describe("loadRepoConfig", () => {
 
   it("falls back to defaults for malformed YAML", async () => {
     const repoPath = await createTempRepo();
-    await writeRepoConfig(repoPath, ".gitgandalf.yaml", "version: [1\n");
+    await writeRepoConfig(repoPath, ".codesmith.yaml", "version: [1\n");
 
     await expect(loadRepoConfig(repoPath)).resolves.toEqual(DEFAULT_REPO_CONFIG);
   });
 
   it("falls back to defaults for invalid schema values", async () => {
     const repoPath = await createTempRepo();
-    await writeRepoConfig(repoPath, ".gitgandalf.yaml", "version: 1\nseverity:\n  minimum: banana\n");
+    await writeRepoConfig(repoPath, ".codesmith.yaml", "version: 1\nseverity:\n  minimum: banana\n");
 
     await expect(loadRepoConfig(repoPath)).resolves.toEqual(DEFAULT_REPO_CONFIG);
   });
 
   it("falls back to defaults when unknown keys are present", async () => {
     const repoPath = await createTempRepo();
-    await writeRepoConfig(repoPath, ".gitgandalf.yaml", "version: 1\nunknown_key: true\n");
+    await writeRepoConfig(repoPath, ".codesmith.yaml", "version: 1\nunknown_key: true\n");
 
     await expect(loadRepoConfig(repoPath)).resolves.toEqual(DEFAULT_REPO_CONFIG);
   });

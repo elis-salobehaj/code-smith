@@ -74,7 +74,7 @@ const diffFiles: DiffFile[] = [
 describe("formatFindingComment", () => {
   it("includes risk emoji and title without level label or H2 heading", () => {
     const comment = formatFindingComment(criticalFinding);
-    expect(comment).toContain("git-gandalf:finding");
+    expect(comment).toContain("code-smith:finding");
     expect(comment).toContain("🔴");
     expect(comment).toContain("**Missing authentication check**");
     expect(comment).not.toContain("## ");
@@ -183,7 +183,7 @@ describe("normalizeSuggestionCodeForRange", () => {
 describe("formatSummaryComment", () => {
   it("renders APPROVE badge for APPROVE verdict", () => {
     const body = formatSummaryComment("APPROVE", []);
-    expect(body).toContain("git-gandalf:summary");
+    expect(body).toContain("code-smith:summary");
     expect(body).toContain("✅ APPROVE");
   });
 
@@ -216,23 +216,23 @@ describe("formatSummaryComment", () => {
     expect(body).toMatch(/Low.*1/);
   });
 
-  it("includes a GitGandalf footer attribution", () => {
+  it("includes a CodeSmith footer attribution", () => {
     const body = formatSummaryComment("APPROVE", []);
-    expect(body).toContain("GitGandalf");
+    expect(body).toContain("CodeSmith");
   });
 
   it("embeds hidden head SHA marker when headSha is provided", () => {
     const body = formatSummaryComment("APPROVE", [], "deadbeefsha");
-    expect(body).toContain("<!-- git-gandalf:head sha=deadbeefsha -->");
+    expect(body).toContain("<!-- code-smith:head sha=deadbeefsha -->");
     // Marker must appear before the footer separator line (not the table row |---|---|)
-    const markerIdx = body.indexOf("<!-- git-gandalf:head sha=");
+    const markerIdx = body.indexOf("<!-- code-smith:head sha=");
     const footerIdx = body.indexOf("\n---\n");
     expect(markerIdx).toBeLessThan(footerIdx);
   });
 
   it("omits head SHA marker when headSha is absent", () => {
     const body = formatSummaryComment("APPROVE", []);
-    expect(body).not.toContain("<!-- git-gandalf:head sha=");
+    expect(body).not.toContain("<!-- code-smith:head sha=");
   });
 
   it("embeds a checkpoint marker before the footer when checkpoint metadata is provided", () => {
@@ -249,9 +249,9 @@ describe("formatSummaryComment", () => {
       source: "merge_request_event",
     });
 
-    expect(body).toContain("<!-- git-gandalf:review-run");
+    expect(body).toContain("<!-- code-smith:review-run");
     expect(body).toContain("format_version=1");
-    const markerIdx = body.indexOf("<!-- git-gandalf:review-run");
+    const markerIdx = body.indexOf("<!-- code-smith:review-run");
     const footerIdx = body.indexOf("\n---\n");
     expect(markerIdx).toBeLessThan(footerIdx);
   });
@@ -342,7 +342,7 @@ function makeBotDiscussion(filePath: string, line: number, finding: Finding, hea
   const note: Note = {
     id: 2,
     body: formatFindingComment(finding),
-    authorUsername: "git-gandalf",
+    authorUsername: "code-smith",
     createdAt: "2026-01-01T00:00:00Z",
     resolvable: true,
     position: {
@@ -411,7 +411,7 @@ describe("GitLabPublisher.postInlineComments", () => {
     expect(client.createInlineDiscussion).toHaveBeenCalledTimes(1);
   });
 
-  it("skips a finding when the same GitGandalf marker already exists", async () => {
+  it("skips a finding when the same CodeSmith marker already exists", async () => {
     const existing = makeBotDiscussion(
       criticalFinding.file,
       criticalFinding.lineStart,
@@ -453,7 +453,7 @@ describe("GitLabPublisher.postInlineComments", () => {
     expect(client.createInlineDiscussion).toHaveBeenCalledTimes(2);
   });
 
-  it("does not suppress a valid finding when the prior GitGandalf note belongs to an older head", async () => {
+  it("does not suppress a valid finding when the prior CodeSmith note belongs to an older head", async () => {
     const existing = makeBotDiscussion(
       criticalFinding.file,
       criticalFinding.lineStart,
@@ -527,7 +527,7 @@ describe("GitLabPublisher.postSummaryComment", () => {
     const pub = new GitLabPublisher(client);
     await pub.postSummaryComment(1, 2, "APPROVE", [], "abc123sha");
     const [, , body] = (client.createMRNote as ReturnType<typeof mock>).mock.calls[0] as [number, number, string];
-    expect(body).toContain("<!-- git-gandalf:head sha=abc123sha -->");
+    expect(body).toContain("<!-- code-smith:head sha=abc123sha -->");
   });
 
   it("always posts a summary note and does not query existing notes", async () => {

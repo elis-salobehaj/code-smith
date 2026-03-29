@@ -1,5 +1,5 @@
 ---
-title: "Structured Logging for GitGandalf"
+title: "Structured Logging for CodeSmith"
 status: implemented
 priority: medium
 estimated_hours: 6-10
@@ -85,7 +85,7 @@ completion:
   - [x] L5.10 Plan moved to `docs/plans/implemented/`, status set to 'implemented'
 ---
 
-# Structured Logging for GitGandalf
+# Structured Logging for CodeSmith
 
 ## Resolved Decisions
 
@@ -97,7 +97,7 @@ completion:
 
 ## Problem Statement
 
-GitGandalf had 13 ad-hoc `console.*` calls scattered across 4 modules, each
+CodeSmith had 13 ad-hoc `console.*` calls scattered across 4 modules, each
 manually prefixed with `[module]` tags. At the time this plan was written, the `LOG_LEVEL` env var was parsed by Zod
 in `src/config.ts` but **not wired to any logging backend**. The only structured logging was
 Hono's built-in `logger()` middleware in `src/index.ts`, which outputs
@@ -126,7 +126,7 @@ benchmarks close to Pino's raw throughput. A 40-line custom wrapper over
 `console` + `JSON.stringify` with level gating would wire up `LOG_LEVEL` and
 give structured JSON with zero deps.
 
-**However**, for GitGandalf specifically that approach falls short:
+**However**, for CodeSmith specifically that approach falls short:
 
 1. **Request correlation** — the webhook → pipeline → orchestrator → agents →
    publisher flow crosses multiple async boundaries. Building `withContext()`
@@ -162,8 +162,8 @@ give structured JSON with zero deps.
    produces structured JSON with method, path, status, response time, and
    content length.
 
-2. **Hierarchical categories** — `["gandalf", "pipeline"]`, `["gandalf",
-   "orchestrator"]`, `["gandalf", "publisher"]` etc. Parent-level config
+2. **Hierarchical categories** — `["codesmith", "pipeline"]`, `["codesmith",
+   "orchestrator"]`, `["codesmith", "publisher"]` etc. Parent-level config
    controls all children. Wire `config.LOG_LEVEL` once.
 
 3. **Request context propagation** — `withContext({ requestId, projectId,
@@ -187,20 +187,20 @@ give structured JSON with zero deps.
 
 ### Category Convention
 
-All loggers use hierarchical categories rooted at `"gandalf"`:
+All loggers use hierarchical categories rooted at `"codesmith"`:
 
 | Module | Category |
 |---|---|
-| `src/index.ts` / Hono HTTP | `["gandalf", "http"]` |
-| `src/api/router.ts` | `["gandalf", "router"]` |
-| `src/api/pipeline.ts` | `["gandalf", "pipeline"]` |
-| `src/agents/orchestrator.ts` | `["gandalf", "orchestrator"]` |
-| `src/agents/context-agent.ts` | `["gandalf", "agent", "context"]` |
-| `src/agents/investigator-agent.ts` | `["gandalf", "agent", "investigator"]` |
-| `src/agents/reflection-agent.ts` | `["gandalf", "agent", "reflection"]` |
-| `src/publisher/gitlab-publisher.ts` | `["gandalf", "publisher"]` |
+| `src/index.ts` / Hono HTTP | `["codesmith", "http"]` |
+| `src/api/router.ts` | `["codesmith", "router"]` |
+| `src/api/pipeline.ts` | `["codesmith", "pipeline"]` |
+| `src/agents/orchestrator.ts` | `["codesmith", "orchestrator"]` |
+| `src/agents/context-agent.ts` | `["codesmith", "agent", "context"]` |
+| `src/agents/investigator-agent.ts` | `["codesmith", "agent", "investigator"]` |
+| `src/agents/reflection-agent.ts` | `["codesmith", "agent", "reflection"]` |
+| `src/publisher/gitlab-publisher.ts` | `["codesmith", "publisher"]` |
 
-This allows a single config line `{ category: ["gandalf"], lowestLevel: config.LOG_LEVEL, sinks: ["console"] }`
+This allows a single config line `{ category: ["codesmith"], lowestLevel: config.LOG_LEVEL, sinks: ["console"] }`
 to control the entire application, with per-subsystem overrides possible.
 
 ---
@@ -223,7 +223,7 @@ and wire `config.LOG_LEVEL` so it actually controls log output.
   - Define and export an `initLogging()` async function that calls `configure()`:
     - Sink: `getConsoleSink({ formatter: jsonLinesFormatter })` for structured
       JSON to stdout
-    - Logger: `{ category: ["gandalf"], lowestLevel: config.LOG_LEVEL, sinks: ["console"] }`
+    - Logger: `{ category: ["codesmith"], lowestLevel: config.LOG_LEVEL, sinks: ["console"] }`
     - Set `contextLocalStorage: new AsyncLocalStorage()` for implicit context
   - Re-export `getLogger` and `withContext` from `@logtape/logtape` for
     convenient import across the codebase
@@ -243,7 +243,7 @@ and wire `config.LOG_LEVEL` so it actually controls log output.
 - [x] **L1.5** — Update `docs/context/CONFIGURATION.md`:
   - Change the `LOG_LEVEL` row from "Parsed today but not yet connected to a
     structured logger" to "Wired to LogTape via `src/logger.ts`. Controls the
-    `lowestLevel` of the root `["gandalf"]` logger category."
+    `lowestLevel` of the root `["codesmith"]` logger category."
 - [x] **L1.6** — Update `docs/context/ARCHITECTURE.md`:
   - Add `src/logger.ts` to the "Current Runtime Surface" list with description:
     "LogTape configuration, `initLogging()` setup, re-exports `getLogger` and
@@ -259,7 +259,7 @@ and wire `config.LOG_LEVEL` so it actually controls log output.
 - [x] **L1.9** — Update `docs/guides/DEVELOPMENT.md`:
   - Add a "Logging conventions" section documenting: use `getLogger()` from
     `src/logger.ts`, never use bare `console.*` in source code, category naming
-    convention (`["gandalf", "<module>"]`)
+    convention (`["codesmith", "<module>"]`)
 - [x] **L1.10** — Update `docs/README.md`:
   - In "Implemented today" list, add "Structured logging via LogTape with
     `LOG_LEVEL` filtering and hierarchical categories"
@@ -279,7 +279,7 @@ request/response logging is structured JSON rather than plain text.
   - Replace `app.use("*", logger())` with:
     ```typescript
     app.use(honoLogger({
-      category: ["gandalf", "http"],
+      category: ["codesmith", "http"],
       level: "info",
       format: "combined",
       skip: (c) => c.req.path === "/api/v1/health",
@@ -323,7 +323,7 @@ calls remain in production source code.
 #### Tasks
 
 - [x] **L3.1** — Migrate `src/api/router.ts` (2 calls):
-  - Add `const logger = getLogger(["gandalf", "router"])` at module scope
+  - Add `const logger = getLogger(["codesmith", "router"])` at module scope
   - Replace `console.warn("[webhook] Payload validation failed:", ...)` with
     `logger.warn("Payload validation failed: {error}", { error: result.error.message })`
   - Replace `console.error("[pipeline] Unhandled error:", err)` with
@@ -332,14 +332,14 @@ calls remain in production source code.
     system handles module identification.
 
 - [x] **L3.2** — Migrate `src/api/pipeline.ts` (2 calls):
-  - Add `const logger = getLogger(["gandalf", "pipeline"])` at module scope
+  - Add `const logger = getLogger(["codesmith", "pipeline"])` at module scope
   - Replace the `console.log` at pipeline start with
     `logger.info("Starting review for MR", { projectId, mrIid })`
   - Replace the `console.log` at pipeline end with
     `logger.info("Review complete", { verdict: state.summaryVerdict, findings: state.verifiedFindings.length })`
 
 - [x] **L3.3** — Migrate `src/agents/orchestrator.ts` (5 calls):
-  - Add `const logger = getLogger(["gandalf", "orchestrator"])` at module scope
+  - Add `const logger = getLogger(["codesmith", "orchestrator"])` at module scope
   - Replace each legacy orchestrator console log call with the corresponding
     LogTape call:
     - `"Starting review pipeline"` → `logger.info("Starting review pipeline")`
@@ -350,7 +350,7 @@ calls remain in production source code.
     - `"Review complete: ..."` → `logger.info("Review complete", { verdict: state.summaryVerdict, findings: state.verifiedFindings.length })`
 
 - [x] **L3.4** — Migrate `src/publisher/gitlab-publisher.ts` (3 calls):
-  - Add `const logger = getLogger(["gandalf", "publisher"])` at module scope
+  - Add `const logger = getLogger(["codesmith", "publisher"])` at module scope
   - Replace `console.warn("[publisher] Skipping non-diff finding: ...")` with
     `logger.warn("Skipping non-diff finding", { title: finding.title, file: finding.file, lineStart: finding.lineStart, lineEnd: finding.lineEnd })`
   - Replace the legacy duplicate-finding console log call with
@@ -388,8 +388,8 @@ calls remain in production source code.
     logging" — this description is stale (Phase 4 is complete) and the
     logging reference should mention structured LogTape output
   - In section "5. Standalone Agent Review Workflow", note that each agent
-    stage emits structured logs under `["gandalf", "orchestrator"]` /
-    `["gandalf", "agent", "*"]` categories
+    stage emits structured logs under `["codesmith", "orchestrator"]` /
+    `["codesmith", "agent", "*"]` categories
 - [x] **L3.10** — Update `docs/context/ARCHITECTURE.md`:
   - Refresh the Mermaid diagram to remove `H[console log only]` and show
     the structured logging flow

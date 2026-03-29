@@ -1,5 +1,5 @@
 ---
-title: "GitGandalf — Master Implementation Plan"
+title: "CodeSmith — Master Implementation Plan"
 status: active
 priority: high
 estimated_hours: 40-60
@@ -101,11 +101,11 @@ completion:
   - [ ] 6.1 Explicitly design Jira write permissions and least-privilege auth
   - [ ] 6.2 Add write-mode workflows only after review of security and product scope
 ---
-# GitGandalf — Master Implementation Plan
+# CodeSmith — Master Implementation Plan
 
 > **Ecosystem**: TypeScript · **Runtime**: Bun · **Framework**: Hono
 >
-> This is the definitive implementation plan for GitGandalf (GG) — a self-hosted, multi-agent code review service that intercepts GitLab MR events, deeply reasons about code changes using LLM-powered agents with tool-calling capabilities, and posts high-signal, inline review comments back to the MR.
+> This is the definitive implementation plan for CodeSmith (GG) — a self-hosted, multi-agent code review service that intercepts GitLab MR events, deeply reasons about code changes using LLM-powered agents with tool-calling capabilities, and posts high-signal, inline review comments back to the MR.
 >
 > **Reference**: See [docs/designs/tech-stack-evaluation.md](../../designs/tech-stack-evaluation.md) for the broader stack decision record.
 
@@ -119,7 +119,7 @@ completion:
 | **Web Framework** | **Hono** | Ultralight (~20KB), Web Standards-based, 111K+ req/s on Bun. First-class TypeScript. Zod integration via `@hono/zod-validator`. |
 | **LLM Provider** | **AWS Bedrock** via `@aws-sdk/client-bedrock-runtime` | Claude Sonnet 4 primary. Uses the Bedrock Converse API with bearer-token auth in the current implementation. Fallback: OpenAI/Google API keys in Phase 5. |
 | **Agent Orchestration** | **Custom state-machine orchestrator** (~250 LOC) | GG's 3-agent pipeline is a linear graph with 2 small loops — simple enough that LangGraph.js adds complexity without proportional value. Custom code is more debuggable, zero-dependency, and fully typed. |
-| **LLM Abstraction** | **GitGandalf-owned internal contract** | Keep provider-specific SDK details behind an internal message/tool contract. Use direct AWS Bedrock Runtime integration today; evaluate Vercel AI SDK later only as an adapter implementation, not as the app's core domain boundary. |
+| **LLM Abstraction** | **CodeSmith-owned internal contract** | Keep provider-specific SDK details behind an internal message/tool contract. Use direct AWS Bedrock Runtime integration today; evaluate Vercel AI SDK later only as an adapter implementation, not as the app's core domain boundary. |
 | **GitLab API Client** | **`@gitbeaker/rest`** | Actively maintained (v43.8+), fully typed, comprehensive GitLab API coverage. Works on Bun natively. |
 | **Git Operations** | **`Bun.spawn()`** + native Git CLI | Pragmatic: `posix_spawn(3)` is the fastest subprocess model. Uses system `git` and `ripgrep` (trivial Docker install). Avoids `isomorphic-git` overhead and `simple-git` unnecessary abstraction. `Bun.file().text()` for zero-copy file reads. |
 | **Validation** | **Zod** | Runtime type validation + static type inference. TypeScript-native Pydantic equivalent. |
@@ -205,7 +205,7 @@ flowchart TD
 ## Directory Structure
 
 ```
-git-gandalf/
+code-smith/
 ├── .env.example                    # Template for secrets & config
 ├── .gitignore
 ├── docker-compose.yml
@@ -234,7 +234,7 @@ git-gandalf/
 │   │       └── get-directory-structure.ts  # get_directory_structure tool definition + implementation
 │   ├── agents/
 │   │   ├── orchestrator.ts         # Custom state-machine pipeline (runReview entrypoint)
-│   │   ├── protocol.ts             # Internal GitGandalf agent message/tool contract
+│   │   ├── protocol.ts             # Internal CodeSmith agent message/tool contract
 │   │   ├── state.ts                # ReviewState type + Finding type definitions
 │   │   ├── llm-client.ts           # Bedrock Runtime adapter behind the internal contract
 │   │   ├── context-agent.ts        # Agent 1: Context & Intent Mapper
@@ -542,7 +542,7 @@ export interface ReviewState {
 ```
 
 #### [NEW] `src/agents/protocol.ts`
-- GitGandalf-owned canonical agent contract used across the pipeline.
+- CodeSmith-owned canonical agent contract used across the pipeline.
 - Defines the app's internal message, tool-call, tool-result, and stop-reason shapes.
 - Provider SDKs adapt to and from this contract instead of becoming the app's domain model.
 
@@ -838,7 +838,7 @@ CMD ["bun", "run", "src/index.ts"]
 #### [NEW] `docker-compose.yml`
 ```yaml
 services:
-  git-gandalf:
+  code-smith:
     build: .
     env_file: .env
     ports:
@@ -988,7 +988,7 @@ This phase should address only verified deployment gaps.
 - Implement provider rotation/fallback logic when Bedrock is unavailable.
 
 ### Internal LLM Contract (Phase 5.4)
-- Introduce a GitGandalf-owned canonical schema for messages, tool calls, tool results, stop reasons, and any future usage metadata.
+- Introduce a CodeSmith-owned canonical schema for messages, tool calls, tool results, stop reasons, and any future usage metadata.
 - Refactor the agent pipeline to depend on this internal contract instead of a provider SDK's message types.
 - Keep provider-specific conversions isolated inside adapter modules such as `src/agents/llm-client.ts`.
 

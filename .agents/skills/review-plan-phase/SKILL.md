@@ -1,7 +1,7 @@
 ---
 name: review-plan-phase
 description: >
-  Principal-engineer review and remediation workflow for GitGandalf implementation
+  Principal-engineer review and remediation workflow for CodeSmith implementation
   phases driven by markdown plan files. Audits whether an implementation fully followed
   a plan, checks code and architecture against AGENTS.md conventions, categorizes
   findings as BLOCKER / RISK / OPTIMIZATION with mandatory actionable alternatives,

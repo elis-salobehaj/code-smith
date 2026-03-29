@@ -1,6 +1,6 @@
-## Plan Review: GitGandalf Master Plan — Phase 5 (Production Hardening)
+## Plan Review: CodeSmith Master Plan — Phase 5 (Production Hardening)
 
-**Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
+**Plan file**: `docs/plans/active/code-smith-master-plan.md`
 **Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🟢 READY
 

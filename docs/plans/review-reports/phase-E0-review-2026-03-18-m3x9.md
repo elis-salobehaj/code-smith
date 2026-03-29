@@ -57,9 +57,9 @@ process-level gap; it is resolved in the working tree.
 #### O2: Missing blank line before HEAD_MARKER in formatted note output
 
 - **Dimension**: Structure
-- **Finding**: In `formatSummaryComment`, the `<!-- git-gandalf:head sha=... -->` line is
+- **Finding**: In `formatSummaryComment`, the `<!-- code-smith:head sha=... -->` line is
   pushed immediately after the last finding bullet or "No findings" line with no blank
-  line separator. The output reads `- 🔵 **finding** ...\n<!-- git-gandalf:head ... -->`
+  line separator. The output reads `- 🔵 **finding** ...\n<!-- code-smith:head ... -->`
   without a visual break.
 - **Impact**: Cosmetic only — the hidden HTML comment is never visible in rendered
   GitLab Markdown. No functional impact.
@@ -85,17 +85,17 @@ process-level gap; it is resolved in the working tree.
   ```ts
   it("embeds hidden head SHA marker when headSha is provided", () => {
     const body = formatSummaryComment("APPROVE", [], "deadbeefsha");
-    expect(body).toContain("<!-- git-gandalf:head sha=deadbeefsha -->");
+    expect(body).toContain("<!-- code-smith:head sha=deadbeefsha -->");
     expect(body).toContain("---");
     // Marker must appear before the footer separator
-    const markerIdx = body.indexOf("<!-- git-gandalf:head sha=");
+    const markerIdx = body.indexOf("<!-- code-smith:head sha=");
     const footerIdx = body.indexOf("---");
     expect(markerIdx).toBeLessThan(footerIdx);
   });
 
   it("omits head SHA marker when headSha is absent", () => {
     const body = formatSummaryComment("APPROVE", []);
-    expect(body).not.toContain("<!-- git-gandalf:head sha=");
+    expect(body).not.toContain("<!-- code-smith:head sha=");
   });
   ```
 
@@ -120,11 +120,11 @@ process-level gap; it is resolved in the working tree.
    compatibility. The legacy note case is the most important correctness test and is present.
 
 5. **WORKFLOWS.md describes the behavior accurately** — the doc update is precise:
-   references both `<!-- git-gandalf:summary -->` and `<!-- git-gandalf:head sha=... -->`
+   references both `<!-- code-smith:summary -->` and `<!-- code-smith:head sha=... -->`
    markers and explains the skip-on-match semantics.
 
 6. **No full checkpoint marker leaked in** — the plan explicitly required E0 NOT to
-   embed the full `<!-- git-gandalf:review-run ... -->` block (that is E2's job). The
+   embed the full `<!-- code-smith:review-run ... -->` block (that is E2's job). The
    implementation correctly limits itself to only the head marker.
 
 ---

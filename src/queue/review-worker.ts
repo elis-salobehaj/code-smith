@@ -26,7 +26,7 @@ import type { ReviewJobData } from "./review-queue";
 import { REVIEW_QUEUE_NAME } from "./review-queue";
 import { ReviewJobTimeoutError, runReviewJobWithTimeout } from "./review-worker-core";
 
-const logger = getLogger(["gandalf", "worker"]);
+const logger = getLogger(["codesmith", "worker"]);
 
 let _deadLetterQueue: Queue<ReviewDeadLetterJobData> | null = null;
 

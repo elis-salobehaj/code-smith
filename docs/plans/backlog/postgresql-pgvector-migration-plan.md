@@ -72,7 +72,7 @@ CP3 and CP5 intentionally start with `bun:sqlite` because it is Bun-native, chea
 
 This plan exists so SQLite does not become an accidental forever-dependency.
 
-CP7 defines the threshold-driven migration path to PostgreSQL as the long-term system of record for organizational learning and analytics, with `pgvector` reserved as an optional extension only if Git Gandalf later proves it needs semantic retrieval over free-form review memory. This is not a big-bang rewrite plan. It is an additive migration plan that assumes CP3 and CP5 were implemented behind storage interfaces.
+CP7 defines the threshold-driven migration path to PostgreSQL as the long-term system of record for organizational learning and analytics, with `pgvector` reserved as an optional extension only if Code Smith later proves it needs semantic retrieval over free-form review memory. This is not a big-bang rewrite plan. It is an additive migration plan that assumes CP3 and CP5 were implemented behind storage interfaces.
 
 ## Activation Criteria
 
@@ -231,7 +231,7 @@ If none of those conditions are true, keep SQLite and do not spend the migration
 - Keep embedding generation out of latency-critical review paths where possible
 
 **M4.4** — Hybrid retrieval evaluation:
-- Compare heuristic-only learning against heuristic plus embedding retrieval on real Git Gandalf feedback history
+- Compare heuristic-only learning against heuristic plus embedding retrieval on real Code Smith feedback history
 - Measure quality lift, latency impact, storage size, and operational cost
 
 **M4.5** — Release gate:
@@ -241,7 +241,7 @@ If none of those conditions are true, keep SQLite and do not spend the migration
 
 - Replacing Valkey as queue/cache infrastructure
 - Adding Qdrant or another dedicated vector database by default
-- General-purpose conversational memory frameworks such as Mem0 as a replacement for Git Gandalf's auditable feedback-learning model
+- General-purpose conversational memory frameworks such as Mem0 as a replacement for Code Smith's auditable feedback-learning model
 
 ## Success Criteria
 

@@ -24,7 +24,7 @@ import { bedrockChatCompletion } from "./providers/bedrock";
 import { googleChatCompletion } from "./providers/google";
 import { openaiChatCompletion } from "./providers/openai";
 
-const logger = getLogger(["gandalf", "llm"]);
+const logger = getLogger(["codesmith", "llm"]);
 
 const PROVIDER_REGISTRY: Record<string, ProviderFn> = {
   bedrock: bedrockChatCompletion,

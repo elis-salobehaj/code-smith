@@ -1,7 +1,7 @@
 ---
 name: bun-project-conventions
 description: >
-  Bun-specific conventions for the git-gandalf project. Covers package management,
+  Bun-specific conventions for the code-smith project. Covers package management,
   runtime APIs, testing, CI, Biome linting/formatting, Zod validation patterns, and
   TypeScript strict-mode configuration. Use when creating or modifying Bun projects,
   replacing Node-first tooling, reviewing TS code for Bun best practices, or enforcing

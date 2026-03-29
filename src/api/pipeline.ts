@@ -14,7 +14,7 @@ import { findExistingSummaryNote } from "../publisher/summary-note";
 import type { WebhookPayload } from "./schemas";
 import type { ReviewTriggerContext } from "./trigger";
 
-const logger = getLogger(["gandalf", "pipeline"]);
+const logger = getLogger(["codesmith", "pipeline"]);
 
 const branchPipelineLocks = new Map<string, Promise<void>>();
 

@@ -8,7 +8,7 @@ import { runPipeline } from "./pipeline";
 import { type WebhookPayload, webhookPayloadSchema } from "./schemas";
 import type { ReviewTriggerContext } from "./trigger";
 
-const logger = getLogger(["gandalf", "router"]);
+const logger = getLogger(["codesmith", "router"]);
 
 function isMetadataOnlyMergeRequestUpdate(event: WebhookPayload): boolean {
   if (event.object_kind !== "merge_request") {

@@ -1,8 +1,8 @@
-# GitGandalf Multi-Agent Architecture
+# CodeSmith Multi-Agent Architecture
 
 ## 🧭 Overview
 
-GitGandalf uses a three-agent pipeline to review GitLab Merge Requests. A webhook event
+CodeSmith uses a three-agent pipeline to review GitLab Merge Requests. A webhook event
 fires, a lightweight state machine runs three specialized LLM agents in sequence, and the
 results are published back to GitLab as inline discussion threads and a top-level MR note.
 
@@ -189,7 +189,7 @@ Translates `verifiedFindings[]` into GitLab API calls:
 - `postInlineComments()` — one GitLab inline discussion per finding, anchored to the
   nearest added diff line within the finding's `lineStart`–`lineEnd` range.
   Skips findings that have no added diff line in range (cannot be anchored).
-  Deduplicates against existing GitGandalf comments by marker prefix in note body.
+  Deduplicates against existing CodeSmith comments by marker prefix in note body.
 - `postSummaryComment()` — one top-level MR note with verdict badge, finding table,
   and severity counts.
 
@@ -353,5 +353,5 @@ which renders as a `**Suggested Fix**: …` markdown line above the block.
 | Investigator       | Tool-calling deep inspection            | ✅ Live      |
 | Reflection         | Filter, consolidate, verdict            | ✅ Live      |
 | Deduplicator       | Deterministic hunk-level merge          | 📋 Planned  |
-| Acknowledger       | Immediate Gandalf reply on trigger      | 📋 Planned (Gandalf Awakening P3) |
-| Tone Adapter       | Gandalf vs professional summary voice   | 📋 Planned (Gandalf Awakening P4) |
+| Acknowledger       | Immediate CodeSmith reply on trigger      | 📋 Planned (CodeSmith Awakening P3) |
+| Tone Adapter       | CodeSmith vs professional summary voice   | 📋 Planned (CodeSmith Awakening P4) |

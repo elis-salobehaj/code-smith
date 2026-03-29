@@ -6,7 +6,7 @@ The structured logging implementation is functionally sound: LogTape is wired co
 
 Four issues prevent the plan from being considered fully complete. First, local debug workflows still lack a dedicated file log target, which makes following a noisy review pipeline harder than necessary. Second, several agent-facing and human-facing docs still describe a pre-Phase-4 system and therefore contradict the implemented pipeline, publisher, and deployment surface. Third, the plan file is internally inconsistent: the frontmatter completion block says the work is complete, while the body checklist remains unchecked. Fourth, test-time logging is only configured locally inside `tests/logger.test.ts`, so the broader suite still initializes production-style logging and emits JSON logs during normal test runs.
 
-The remediation should therefore start by adding a debug-mode file sink at `logs/gg-dev.log`, then repair documentation correctness, then fix plan bookkeeping, then normalize suite-wide test logging behavior. This ordering closes the completion gap with the least risk and improves day-to-day debugging immediately.
+The remediation should therefore start by adding a debug-mode file sink at `logs/codesmith-dev.log`, then repair documentation correctness, then fix plan bookkeeping, then normalize suite-wide test logging behavior. This ordering closes the completion gap with the least risk and improves day-to-day debugging immediately.
 
 ## 2. Remediation Objective
 
@@ -14,7 +14,7 @@ Bring the structured logging plan to actual completion by adding a root-level de
 
 ## 3. Ordered Remediation Steps
 
-- [x] **[agent] Add debug-mode file logging**: Update `src/logger.ts` so debug-mode runs also write JSON Lines logs to `logs/gg-dev.log` under the project root, creating `logs/` automatically if it does not exist. Preserve the existing stdout sink, keep the implementation Bun-native, and ensure test runs do not write production-style logs to that file. Objective: give local development a stable, predictable place to inspect detailed logs.
+- [x] **[agent] Add debug-mode file logging**: Update `src/logger.ts` so debug-mode runs also write JSON Lines logs to `logs/codesmith-dev.log` under the project root, creating `logs/` automatically if it does not exist. Preserve the existing stdout sink, keep the implementation Bun-native, and ensure test runs do not write production-style logs to that file. Objective: give local development a stable, predictable place to inspect detailed logs.
 
 - [x] **[agent] Repair agent architecture docs**: Update `docs/context/ARCHITECTURE.md` so it reflects the implemented runtime surface. Remove stale claims that `src/api/pipeline.ts` is a Phase 1 stub, that the agent subsystem is not wired into the API pipeline, and that the publisher/full pipeline wiring are still pending. Objective: make agent-facing architecture docs trustworthy again for future implementation agents.
 
@@ -37,7 +37,7 @@ Bring the structured logging plan to actual completion by adding a root-level de
 - [x] `bun run check`
 - [x] `bun run typecheck`
 - [x] `bun test`
-- [x] Manual verification that `LOG_LEVEL=debug` writes JSON Lines logs to `logs/gg-dev.log`
+- [x] Manual verification that `LOG_LEVEL=debug` writes JSON Lines logs to `logs/codesmith-dev.log`
 - [x] Grep/search verification that stale architecture and onboarding statements identified in the audit are removed from the affected docs
 - [x] Manual review of `docs/plans/implemented/structured-logging-plan.md` to confirm its body status and frontmatter status no longer contradict each other
 - [x] Manual review of test output to confirm suite-wide logging behavior is intentional and not leaking production-style JSON noise unexpectedly

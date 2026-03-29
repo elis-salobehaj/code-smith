@@ -6,7 +6,7 @@
 
 ### Summary
 
-Phase E5 now hardens same-branch freshness and concurrency. GitGandalf serializes
+Phase E5 now hardens same-branch freshness and concurrency. CodeSmith serializes
 same-branch runs across the full pipeline, re-reads MR state after earlier same-branch
 runs complete, validates the local clone HEAD against GitLab before review, refreshes
 cache mtimes after clone/update, and documents the retention policy as TTL-based cache reuse.

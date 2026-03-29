@@ -1,7 +1,7 @@
 ---
 name: review-plan-implementation
 description: >
-  Ruthless pre-implementation review of GitGandalf implementation plans. Evaluates
+  Ruthless pre-implementation review of CodeSmith implementation plans. Evaluates
   architecture and data flow, library and runtime choices, security and blast radius,
   resilience and edge cases. Categorizes findings as BLOCKER, RISK, or OPTIMIZATION
   with mandatory actionable alternatives. Use on a plan file before implementation

@@ -4,7 +4,7 @@ status: implemented
 priority: high
 estimated_hours: 24-40
 dependencies:
-  - docs/plans/active/git-gandalf-master-plan.md
+  - docs/plans/active/code-smith-master-plan.md
 created: 2026-03-17
 date_updated: 2026-03-21
 
@@ -80,7 +80,7 @@ completion:
 
 ## Executive Summary
 
-GitGandalf currently reviews the current MR diff as a whole and has no persistent
+CodeSmith currently reviews the current MR diff as a whole and has no persistent
 concept of what commit range was already reviewed successfully.
 
 That is acceptable for a simple one-shot MR flow, but it breaks down for real
@@ -93,13 +93,13 @@ GitLab usage patterns:
 - multiple webhook events arrive for the same MR or the same branch
 - branch history can be rewritten by rebase or force-push
 
-This plan hardens GitGandalf’s review lifecycle around those cases.
+This plan hardens CodeSmith’s review lifecycle around those cases.
 
 ## Product Goal
 
 ### Default behavior
 
-For automatic MR review triggers, GitGandalf should review only the aggregate
+For automatic MR review triggers, CodeSmith should review only the aggregate
 code delta that has not yet been reviewed successfully.
 
 That means:
@@ -112,7 +112,7 @@ That means:
 
 ### Manual behavior
 
-For `/ai-review`, GitGandalf should always execute a new review run even if the
+For `/ai-review`, CodeSmith should always execute a new review run even if the
 current MR head was already reviewed.
 
 This is a manual override path.
@@ -156,7 +156,7 @@ Observed from GitLab API:
 - current head SHA: `1f573e0d...`
 - MR contains a single commit
 - GitLab reports two MR versions that point to the same head SHA
-- the MR currently contains two identical GitGandalf APPROVE summary notes on the same head
+- the MR currently contains two identical CodeSmith APPROVE summary notes on the same head
 
 Why this matters:
 
@@ -284,14 +284,14 @@ Why this matters:
 
 ## 2. Add a machine-readable review-run ledger in GitLab notes
 
-GitGandalf needs durable, MR-local state without introducing a database.
+CodeSmith needs durable, MR-local state without introducing a database.
 
 The simplest durable store is GitLab notes with hidden machine-readable markers.
 
 Recommended marker concept:
 
 ```text
-<!-- git-gandalf:review-run
+<!-- code-smith:review-run
 format_version=1
 status=success
 trigger=automatic
@@ -317,7 +317,7 @@ Required properties:
 
 Why this matters:
 
-- GitGandalf can identify the last successful review checkpoint for the MR
+- CodeSmith can identify the last successful review checkpoint for the MR
 - failed runs do not accidentally advance the checkpoint
 - the system remains self-contained in GitLab
 
@@ -326,7 +326,7 @@ Why this matters:
 For automatic triggers:
 
 1. fetch MR commits and MR versions
-2. fetch GitGandalf review-run metadata from prior notes
+2. fetch CodeSmith review-run metadata from prior notes
 3. find the most recent successful checkpoint whose reviewed end SHA is still
    valid in current MR history
 4. if found and older than current head, review from that checkpoint end SHA to current head
@@ -441,7 +441,7 @@ every rerun into duplicate inline noise.
 
 Current branch-scoped cache update logic should fetch/reset to latest head on each run.
 
-That means GitGandalf should not stay stale across sequential runs on the same branch,
+That means CodeSmith should not stay stale across sequential runs on the same branch,
 assuming the fetch succeeds.
 
 Required hardening:
@@ -538,7 +538,7 @@ If a manual `/ai-review` arrives while an automatic review for the same head is 
 
 ### 6. Stale prior findings from older heads
 
-Older GitGandalf inline notes should not suppress valid new findings on later heads
+Older CodeSmith inline notes should not suppress valid new findings on later heads
 just because the body marker matches.
 
 Duplicate detection must become review-version-aware.
@@ -607,11 +607,11 @@ the E1–E3 window adds another one. This phase is a surgical minimum fix.
 Deliverables:
 
 - In `src/api/pipeline.ts`: after `getMRDetails()`, fetch existing MR notes for
-  automatic triggers and check whether any existing GitGandalf summary note embeds
+  automatic triggers and check whether any existing CodeSmith summary note embeds
   the same `headSha` as the current run; if found, skip the review before diff fetch,
   repo refresh, or agent execution and log at info level with the existing note id.
 - Embed `headSha` in the summary note body as a hidden HTML comment:
-  `<!-- git-gandalf:head sha=<headSha> -->` appended after the visible content but
+  `<!-- code-smith:head sha=<headSha> -->` appended after the visible content but
   before the closing `---` footer. The early automatic-skip check reads this field.
 - Do not add the full checkpoint marker yet — that is E2's responsibility.
 - Add tests that verify: (1) automatic same-head reruns skip before review execution;
@@ -688,8 +688,8 @@ Deliverables:
   invalid SHA format, marker with wrong format_version, marker from a failed run.
 - Test: `parseCheckpointMarker` ignores all malformed variants; picks the most recent
   success over an older one; ignores failed-run markers.
-- Operational note (O5): to reset all checkpoints on an MR, delete the GitGandalf
-  summary note(s) containing `git-gandalf:review-run` blocks via the GitLab API or UI.
+- Operational note (O5): to reset all checkpoints on an MR, delete the CodeSmith
+  summary note(s) containing `code-smith:review-run` blocks via the GitLab API or UI.
   The next automatic trigger falls back to full review. Document this in a comment
   inside `checkpoint.ts`.
 
@@ -698,7 +698,7 @@ Docs to update: `docs/context/ARCHITECTURE.md` (add "Review Ledger" subsection),
 
 ## Phase E3 — Incremental multi-commit review
 
-Teach GitGandalf how to review only the unreviewed aggregate delta.
+Teach CodeSmith how to review only the unreviewed aggregate delta.
 
 **Prerequisite**: E3.1 must be complete before E3.2–E3.5 can begin. Implement and test
 E3.1 with real API calls before starting E3.2 (O4 finding).
@@ -875,7 +875,7 @@ These tests should be treated as required coverage for the plan, not optional fo
 
 ## Repo Deletion Tradeoffs After Review Completion
 
-One design question is whether GitGandalf should delete the cloned repo from disk
+One design question is whether CodeSmith should delete the cloned repo from disk
 immediately after a review completes and the end note is posted.
 
 ### Benefits of immediate deletion
@@ -895,7 +895,7 @@ immediately after a review completes and the end note is posted.
 
 ### Operational tradeoff
 
-GitGandalf is a webhook-driven reviewer, not a long-lived code workspace. That argues
+CodeSmith is a webhook-driven reviewer, not a long-lived code workspace. That argues
 for bounded retention rather than indefinite caching.
 
 But immediate deletion is usually too aggressive for active MR workflows because:
@@ -948,7 +948,7 @@ Should `/ai-review` on an unchanged head:
 
 - post only a new summary note
 - repost inline findings as fresh notes
-- update/resolve prior GitGandalf notes instead of reposting
+- update/resolve prior CodeSmith notes instead of reposting
 
 ### 2. Checkpoint advance threshold
 
@@ -1043,14 +1043,14 @@ Should draft MRs be reviewed automatically, or only manually?
 #### O5: No rollback strategy if checkpoint format has a bug
 
 - **Status**: ✅ Resolved — Phase E2 now includes an operational note: delete the
-  GitGandalf summary note(s) containing `git-gandalf:review-run` blocks via the
+  CodeSmith summary note(s) containing `code-smith:review-run` blocks via the
   GitLab API or UI to reset; next automatic trigger falls back to full review.
 
 ---
 
 ## Success Criteria
 
-This plan is complete when GitGandalf can:
+This plan is complete when CodeSmith can:
 
 - automatically review only unreviewed commit ranges on multi-commit MRs
 - always rerun on `/ai-review`
@@ -1060,5 +1060,5 @@ This plan is complete when GitGandalf can:
 - avoid same-branch cache races
 - make review checkpoints auditable from GitLab notes alone
 
-If those conditions are not met, GitGandalf will still behave like a stateless
+If those conditions are not met, CodeSmith will still behave like a stateless
 single-shot reviewer, which is not sufficient for a real MR lifecycle.

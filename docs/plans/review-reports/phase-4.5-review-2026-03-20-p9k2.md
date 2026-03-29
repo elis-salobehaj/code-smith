@@ -1,6 +1,6 @@
-## Plan Review: GitGandalf Master Plan — Phase 4.5 (Jira Read-Only Context Enrichment)
+## Plan Review: CodeSmith Master Plan — Phase 4.5 (Jira Read-Only Context Enrichment)
 
-**Plan file**: `docs/plans/active/git-gandalf-master-plan.md`
+**Plan file**: `docs/plans/active/code-smith-master-plan.md`
 **Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, active plans
 **Verdict**: 🟡 CONDITIONAL — 1 BLOCKER, 2 RISKs. No human decisions needed. Remediating immediately.
 

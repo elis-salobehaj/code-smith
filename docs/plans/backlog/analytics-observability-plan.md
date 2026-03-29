@@ -68,7 +68,7 @@ completion:
 
 ## Executive Summary
 
-CodeRabbit provides a built-in analytics dashboard showing review trends, finding rates, and team metrics. GitLab Duo offers SDLC trends dashboards. Git Gandalf currently has structured JSON logs — useful for debugging but offering zero analytics or operational monitoring.
+CodeRabbit provides a built-in analytics dashboard showing review trends, finding rates, and team metrics. GitLab Duo offers SDLC trends dashboards. Code Smith currently has structured JSON logs — useful for debugging but offering zero analytics or operational monitoring.
 
 This plan adds two layers of observability:
 
@@ -77,7 +77,7 @@ This plan adds two layers of observability:
 
 CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric definitions, instrumentation, and `/metrics` endpoint. CP6 consumes that foundation for deployment wiring, scrape configuration, runbooks, and autoscaling follow-on work. The review analytics database reuses the schema from CP3 (Organizational Learning) `review_runs` table and follows the same singleton ops ownership model for writes.
 
-Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a permanent architectural commitment. CP7 is the explicit future path if Git Gandalf later needs PostgreSQL-backed HA, external SQL/reporting consumers, or semantic retrieval with `pgvector`.
+Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a permanent architectural commitment. CP7 is the explicit future path if Code Smith later needs PostgreSQL-backed HA, external SQL/reporting consumers, or semantic retrieval with `pgvector`.
 
 ## Technology Decisions
 
@@ -103,18 +103,18 @@ Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a 
 
 | Metric Name | Type | Labels | Description |
 |---|---|---|---|
-| `gitgandalf_reviews_total` | Counter | `trigger`, `verdict`, `range_mode` | Total review runs |
-| `gitgandalf_review_duration_seconds` | Histogram | `trigger`, `verdict` | End-to-end review duration |
-| `gitgandalf_llm_calls_total` | Counter | `provider`, `agent`, `status` | LLM API calls |
-| `gitgandalf_llm_call_duration_seconds` | Histogram | `provider`, `agent` | Per-call LLM latency |
-| `gitgandalf_llm_tokens_total` | Counter | `provider`, `agent`, `direction` | Token usage (input/output) |
-| `gitgandalf_findings_total` | Counter | `severity`, `type` | Findings generated |
-| `gitgandalf_publications_total` | Counter | `type`, `status` | Inline/summary publications |
-| `gitgandalf_linter_duration_seconds` | Histogram | `linter` | Linter execution time |
-| `gitgandalf_linter_findings_total` | Counter | `linter`, `severity` | Linter findings |
-| `gitgandalf_webhook_requests_total` | Counter | `status`, `event_type` | Webhook requests received |
-| `gitgandalf_queue_depth` | Gauge | — | Current queue size (when queue enabled) |
-| `gitgandalf_feedback_events_total` | Counter | `signal_type` | Learning feedback events |
+| `codesmith_reviews_total` | Counter | `trigger`, `verdict`, `range_mode` | Total review runs |
+| `codesmith_review_duration_seconds` | Histogram | `trigger`, `verdict` | End-to-end review duration |
+| `codesmith_llm_calls_total` | Counter | `provider`, `agent`, `status` | LLM API calls |
+| `codesmith_llm_call_duration_seconds` | Histogram | `provider`, `agent` | Per-call LLM latency |
+| `codesmith_llm_tokens_total` | Counter | `provider`, `agent`, `direction` | Token usage (input/output) |
+| `codesmith_findings_total` | Counter | `severity`, `type` | Findings generated |
+| `codesmith_publications_total` | Counter | `type`, `status` | Inline/summary publications |
+| `codesmith_linter_duration_seconds` | Histogram | `linter` | Linter execution time |
+| `codesmith_linter_findings_total` | Counter | `linter`, `severity` | Linter findings |
+| `codesmith_webhook_requests_total` | Counter | `status`, `event_type` | Webhook requests received |
+| `codesmith_queue_depth` | Gauge | — | Current queue size (when queue enabled) |
+| `codesmith_feedback_events_total` | Counter | `signal_type` | Learning feedback events |
 
 ### Analytics Queries (REST API)
 
@@ -141,7 +141,7 @@ Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a 
 - `bun add prom-client`
 - Create `src/metrics/registry.ts`:
   - Export default `Registry` instance
-  - Register explicit Git Gandalf application metrics first
+  - Register explicit Code Smith application metrics first
   - Gate `collectDefaultMetrics()` behind a Bun compatibility check and tests before enabling it by default
   - Disable any default metrics that failed during the A1.0 spike
 
@@ -153,15 +153,15 @@ Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a 
   - LLM call duration: `[0.5, 1, 2, 5, 10, 30, 60]` seconds
 
 **A1.3** — Instrument pipeline (`src/api/pipeline.ts`):
-- Record `gitgandalf_reviews_total` at pipeline completion (success and failure)
-- Record `gitgandalf_review_duration_seconds` with timer around pipeline
-- Record `gitgandalf_findings_total` per verified finding
-- Record `gitgandalf_publications_total` at publication time
+- Record `codesmith_reviews_total` at pipeline completion (success and failure)
+- Record `codesmith_review_duration_seconds` with timer around pipeline
+- Record `codesmith_findings_total` per verified finding
+- Record `codesmith_publications_total` at publication time
 
 **A1.4** — Instrument LLM client (`src/agents/llm-client.ts`):
-- Record `gitgandalf_llm_calls_total` per call (label: provider, agent stage, success/failure)
-- Record `gitgandalf_llm_call_duration_seconds` per call
-- Record `gitgandalf_llm_tokens_total` if token counts are available from provider response
+- Record `codesmith_llm_calls_total` per call (label: provider, agent stage, success/failure)
+- Record `codesmith_llm_call_duration_seconds` per call
+- Record `codesmith_llm_tokens_total` if token counts are available from provider response
 
 **A1.5** — Create `/metrics` endpoint:
 - Add `GET /metrics` route to Hono router

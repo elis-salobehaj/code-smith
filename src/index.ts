@@ -22,7 +22,7 @@ const app = new Hono();
 
 app.use(
   honoLogger({
-    category: ["gandalf", "http"],
+    category: ["codesmith", "http"],
     level: "info",
     format: "combined",
     skip: (c) => c.req.path === "/api/v1/health",

@@ -1,7 +1,7 @@
 import picomatch from "picomatch";
 import { z } from "zod";
 
-export const REPO_CONFIG_FILENAMES = [".gitgandalf.yaml", ".gitgandalf.yml"] as const;
+export const REPO_CONFIG_FILENAMES = [".codesmith.yaml", ".codesmith.yml"] as const;
 
 const severityLevelSchema = z.enum(["low", "medium", "high", "critical"]);
 

@@ -1,6 +1,6 @@
-# Plan Review: The Crown Plan — Git Gandalf Feature Parity & Beyond (Final Re-review)
+# Plan Review: The Crown Plan — Code Smith Feature Parity & Beyond (Final Re-review)
 
-**Plan file**: `docs/plans/active/git-gandalf-crown-plan.md` + attached child plans CP1–CP6
+**Plan file**: `docs/plans/active/code-smith-crown-plan.md` + attached child plans CP1–CP6
 **Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, active plans, current source code
 **Verdict**: 🟢 READY
 
@@ -38,7 +38,7 @@ None.
 4. The dependency-audit workflow is now aligned with AGENTS.md and with the repo's actual working Bun capabilities.
 5. CP5 and CP6 now have a clean responsibility split: CP5 owns metrics implementation; CP6 owns deployment integration and operations.
 6. CP4's walkthrough design is now decisive rather than ambiguous, which removes one of the main sources of likely implementation drift.
-7. Cross-plan coordination with the Gandalf Awakening plan is documented, which reduces the chance of overlapping-file collisions during implementation.
+7. Cross-plan coordination with the CodeSmith Awakening plan is documented, which reduces the chance of overlapping-file collisions during implementation.
 
 ## Verdict Details
 

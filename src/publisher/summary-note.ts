@@ -3,8 +3,8 @@ export interface SummaryNoteRecord {
   body: string;
 }
 
-export const SUMMARY_MARKER = "<!-- git-gandalf:summary -->";
-export const HEAD_MARKER_PREFIX = "<!-- git-gandalf:head sha=";
+export const SUMMARY_MARKER = "<!-- code-smith:summary -->";
+export const HEAD_MARKER_PREFIX = "<!-- code-smith:head sha=";
 
 export function findExistingSummaryNote(notes: SummaryNoteRecord[], headSha: string): SummaryNoteRecord | null {
   if (!headSha) {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Discussion, Note } from "../gitlab-client/types";
 
-export const CHECKPOINT_MARKER_OPEN = "<!-- git-gandalf:review-run";
+export const CHECKPOINT_MARKER_OPEN = "<!-- code-smith:review-run";
 export const CHECKPOINT_FORMAT_VERSION = "1";
 
 const shaSchema = z.string().regex(/^[0-9a-f]{40}$/);
@@ -48,8 +48,8 @@ export interface CheckpointSummaryContext {
   source?: CheckpointRecord["source"];
 }
 
-// Operational note: to reset checkpoints for an MR, delete GitGandalf summary
-// notes containing git-gandalf:review-run markers in GitLab. The next automatic
+// Operational note: to reset checkpoints for an MR, delete CodeSmith summary
+// notes containing code-smith:review-run markers in GitLab. The next automatic
 // run will fall back to a full review because no valid successful checkpoint
 // will remain.
 export function buildCheckpointMarker(context: CheckpointSummaryContext): string {
@@ -76,7 +76,7 @@ export function buildCheckpointMarker(context: CheckpointSummaryContext): string
 }
 
 export function parseCheckpointMarker(noteBody: string): CheckpointRecord | null {
-  const match = noteBody.match(/<!-- git-gandalf:review-run\n([\s\S]*?)\n-->/);
+  const match = noteBody.match(/<!-- code-smith:review-run\n([\s\S]*?)\n-->/);
   if (!match) {
     return null;
   }

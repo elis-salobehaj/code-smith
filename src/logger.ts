@@ -18,7 +18,7 @@ import { config } from "./config";
 
 export { getLogger, withContext };
 
-export const DEV_LOG_RELATIVE_PATH = path.join("logs", "gg-dev.log");
+export const DEV_LOG_RELATIVE_PATH = path.join("logs", "codesmith-dev.log");
 
 let configured = false;
 
@@ -82,7 +82,7 @@ export async function initLogging(): Promise<void> {
     sinks,
     loggers: [
       {
-        category: ["gandalf"],
+        category: ["codesmith"],
         lowestLevel: LEVEL_MAP[config.LOG_LEVEL] ?? "info",
         sinks: appSinkNames,
       },

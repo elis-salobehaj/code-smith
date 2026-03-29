@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// GitGandalf internal agent protocol.
+// CodeSmith internal agent protocol.
 //
 // Agents depend on this contract. Provider SDKs adapt to and from it.
 // ---------------------------------------------------------------------------

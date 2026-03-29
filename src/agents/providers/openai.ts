@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // OpenAI Chat Completions provider adapter (Phase 5.3)
 //
-// Adapts the GitGandalf internal protocol (AgentMessage[], AgentResponse) to
+// Adapts the CodeSmith internal protocol (AgentMessage[], AgentResponse) to
 // and from the OpenAI Chat Completions API. Client is lazily initialised so
 // importing this module does not fail if OPENAI_API_KEY is absent — the
 // error only surfaces when the provider is actually invoked.

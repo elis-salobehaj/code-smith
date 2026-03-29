@@ -120,6 +120,6 @@ Thumbs.db
 bun.lockb
 bun.lock
 
-# GitGandalf specifics
+# CodeSmith specifics
 repo_cache/
 /tmp/

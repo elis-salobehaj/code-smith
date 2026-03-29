@@ -2,10 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-git-gandalf}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-code-smith}"
 KUBE_CONTEXT="kind-${CLUSTER_NAME}"
-NAMESPACE="${K8S_NAMESPACE:-git-gandalf}"
-IMAGE_TAG="${KIND_IMAGE_TAG:-git-gandalf:latest}"
+NAMESPACE="${K8S_NAMESPACE:-code-smith}"
+IMAGE_TAG="${KIND_IMAGE_TAG:-code-smith:latest}"
 ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
 
 require_command() {
@@ -82,7 +82,7 @@ echo "Applying namespace"
 kubectl apply -f "${ROOT_DIR}/k8s/namespace.yaml"
 
 configmap_args=(
-  create configmap git-gandalf-config
+  create configmap code-smith-config
   --namespace "${NAMESPACE}"
   --from-literal=GITLAB_URL="${GITLAB_URL}"
   --from-literal=AWS_REGION="${AWS_REGION}"
@@ -115,7 +115,7 @@ fi
 kubectl "${configmap_args[@]}" --dry-run=client -o yaml | kubectl apply -f -
 
 secret_args=(
-  create secret generic git-gandalf-secrets
+  create secret generic code-smith-secrets
   --namespace "${NAMESPACE}"
   --from-literal=GITLAB_TOKEN="${GITLAB_TOKEN}"
   --from-literal=GITLAB_WEBHOOK_SECRET="${GITLAB_WEBHOOK_SECRET}"
@@ -164,20 +164,20 @@ kubectl apply -f "${ROOT_DIR}/k8s/deployment.yaml"
 kubectl apply -f "${ROOT_DIR}/k8s/worker-deployment.yaml"
 
 if [[ -n "${GITLAB_CA_FILE:-}" ]]; then
-  kubectl patch deployment git-gandalf-webhook --namespace "${NAMESPACE}" --type merge -p '{"spec":{"template":{"spec":{"volumes":[{"name":"gitlab-ca-bundle","secret":{"secretName":"gitlab-ca-bundle"}}],"containers":[{"name":"webhook","env":[{"name":"GITLAB_CA_FILE","value":"/etc/gitlab-ca/ca.pem"}],"volumeMounts":[{"name":"gitlab-ca-bundle","mountPath":"/etc/gitlab-ca","readOnly":true}]}]}}}}'
-  kubectl patch deployment git-gandalf-worker --namespace "${NAMESPACE}" --type merge -p '{"spec":{"template":{"spec":{"volumes":[{"name":"gitlab-ca-bundle","secret":{"secretName":"gitlab-ca-bundle"}}],"containers":[{"name":"worker","env":[{"name":"GITLAB_CA_FILE","value":"/etc/gitlab-ca/ca.pem"}],"volumeMounts":[{"name":"gitlab-ca-bundle","mountPath":"/etc/gitlab-ca","readOnly":true}]}]}}}}'
+  kubectl patch deployment code-smith-webhook --namespace "${NAMESPACE}" --type merge -p '{"spec":{"template":{"spec":{"volumes":[{"name":"gitlab-ca-bundle","secret":{"secretName":"gitlab-ca-bundle"}}],"containers":[{"name":"webhook","env":[{"name":"GITLAB_CA_FILE","value":"/etc/gitlab-ca/ca.pem"}],"volumeMounts":[{"name":"gitlab-ca-bundle","mountPath":"/etc/gitlab-ca","readOnly":true}]}]}}}}'
+  kubectl patch deployment code-smith-worker --namespace "${NAMESPACE}" --type merge -p '{"spec":{"template":{"spec":{"volumes":[{"name":"gitlab-ca-bundle","secret":{"secretName":"gitlab-ca-bundle"}}],"containers":[{"name":"worker","env":[{"name":"GITLAB_CA_FILE","value":"/etc/gitlab-ca/ca.pem"}],"volumeMounts":[{"name":"gitlab-ca-bundle","mountPath":"/etc/gitlab-ca","readOnly":true}]}]}}}}'
 fi
 
-kubectl set image deployment/git-gandalf-webhook webhook="${IMAGE_TAG}" --namespace "${NAMESPACE}" >/dev/null
-kubectl set image deployment/git-gandalf-worker worker="${IMAGE_TAG}" --namespace "${NAMESPACE}" >/dev/null
+kubectl set image deployment/code-smith-webhook webhook="${IMAGE_TAG}" --namespace "${NAMESPACE}" >/dev/null
+kubectl set image deployment/code-smith-worker worker="${IMAGE_TAG}" --namespace "${NAMESPACE}" >/dev/null
 
-kubectl rollout restart deployment/git-gandalf-webhook --namespace "${NAMESPACE}" >/dev/null
-kubectl rollout restart deployment/git-gandalf-worker --namespace "${NAMESPACE}" >/dev/null
+kubectl rollout restart deployment/code-smith-webhook --namespace "${NAMESPACE}" >/dev/null
+kubectl rollout restart deployment/code-smith-worker --namespace "${NAMESPACE}" >/dev/null
 
 echo "Waiting for rollouts"
 kubectl rollout status deployment/valkey --namespace "${NAMESPACE}" --timeout=180s
-kubectl rollout status deployment/git-gandalf-webhook --namespace "${NAMESPACE}" --timeout=180s
-kubectl rollout status deployment/git-gandalf-worker --namespace "${NAMESPACE}" --timeout=180s
+kubectl rollout status deployment/code-smith-webhook --namespace "${NAMESPACE}" --timeout=180s
+kubectl rollout status deployment/code-smith-worker --namespace "${NAMESPACE}" --timeout=180s
 
 echo
 echo "KinD environment is ready."

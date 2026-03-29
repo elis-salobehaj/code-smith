@@ -1,5 +1,5 @@
 services:
-  git-gandalf:
+  code-smith:
     build: .
     env_file: .env
     ports:

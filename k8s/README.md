@@ -25,7 +25,7 @@ bun run kind:up
 bun run kind:port-forward
 ```
 
-`bun run kind:up` creates a KinD cluster, builds and loads the local `git-gandalf:latest`
+`bun run kind:up` creates a KinD cluster, builds and loads the local `code-smith:latest`
 image, generates the ConfigMap and Secret from your local `.env`, deploys the manifests,
 and waits for rollouts to complete. `bun run kind:port-forward` then exposes the ClusterIP
 Service on `http://127.0.0.1:8020`.
@@ -40,7 +40,7 @@ bun run kind:down
 
 | File | Purpose |
 |---|---|
-| `namespace.yaml` | `git-gandalf` namespace |
+| `namespace.yaml` | `code-smith` namespace |
 | `configmap.yaml` | Non-sensitive config (GitLab URL, LLM model, queue settings) |
 | `secret.yaml` | Sensitive values — replace `REPLACE_ME` placeholders before applying |
 | `deployment.yaml` | Webhook server (2 replicas, readiness/liveness probes) |
@@ -68,7 +68,7 @@ Secret from `.env` at apply time instead of applying `k8s/secret.yaml` directly.
 ## Ingress
 
 No Ingress manifest is included — cluster ingress setup varies too much between
-environments. Expose the `git-gandalf-webhook` Service via an Ingress or LoadBalancer
+environments. Expose the `code-smith-webhook` Service via an Ingress or LoadBalancer
 Service appropriate for your cluster.
 
 See [docs/guides/GETTING_STARTED.md](../docs/guides/GETTING_STARTED.md) for full

@@ -17,5 +17,5 @@ EXPOSE 8020
 
 # Default: run the webhook server.
 # Override CMD to run the worker process for the BullMQ consumer container:
-#   docker run git-gandalf bun run src/worker.ts
+#   docker run code-smith bun run src/worker.ts
 CMD ["bun", "run", "src/index.ts"]

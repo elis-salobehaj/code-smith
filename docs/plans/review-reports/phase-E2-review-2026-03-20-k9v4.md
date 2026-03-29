@@ -6,7 +6,7 @@
 
 ### Summary
 
-Phase E2 is implemented to the plan’s intended checkpointing shape. GitGandalf now
+Phase E2 is implemented to the plan’s intended checkpointing shape. CodeSmith now
 persists machine-readable review-run metadata inside summary notes, parses those
 markers with strict Zod validation, ignores malformed or non-success checkpoints when
 selecting the active checkpoint, and validates the behavior with fixtures plus unit tests.

@@ -1,18 +1,18 @@
 # Tech Stack Evaluation — Current Decision Record
 
-This document records the current GitGandalf stack decision after the live Bedrock
+This document records the current CodeSmith stack decision after the live Bedrock
 integration work and the internal protocol refactor.
 
 ## Current Verdict
 
-GitGandalf standardizes on:
+CodeSmith standardizes on:
 
 - **Runtime**: Bun
 - **Framework**: Hono
 - **Language**: TypeScript
 - **Validation**: Zod
 - **LLM transport**: AWS Bedrock Runtime Converse via `@aws-sdk/client-bedrock-runtime`
-- **Agent contract**: GitGandalf-owned internal message and tool schema in `src/agents/protocol.ts`
+- **Agent contract**: CodeSmith-owned internal message and tool schema in `src/agents/protocol.ts`
 - **GitLab client**: `@gitbeaker/rest`
 - **Repo access**: native `git` + `ripgrep` via `Bun.spawn()`
 
@@ -36,7 +36,7 @@ The repo now uses the official AWS Bedrock Runtime SDK directly because:
 
 ### Internal contract first
 
-GitGandalf uses an app-owned protocol in `src/agents/protocol.ts` for:
+CodeSmith uses an app-owned protocol in `src/agents/protocol.ts` for:
 
 - agent messages
 - tool calls
@@ -52,7 +52,7 @@ Provider SDKs are adapters around this boundary.
 
 `src/agents/llm-client.ts` converts between:
 
-- GitGandalf internal protocol
+- CodeSmith internal protocol
 - AWS Bedrock Runtime Converse request/response shapes
 
 This keeps the provider integration replaceable without forcing the rest of the
@@ -60,7 +60,7 @@ pipeline to understand Bedrock-specific or framework-specific types.
 
 ### Tool system stays internal
 
-The tool manifest in `src/context/tools/` now also uses the internal GitGandalf
+The tool manifest in `src/context/tools/` now also uses the internal CodeSmith
 tool-definition schema. The investigator loop depends on the app-owned protocol,
 not on provider SDK tool types.
 
@@ -69,7 +69,7 @@ not on provider SDK tool types.
 Vercel AI SDK remains a reasonable future adapter candidate, but it is not the
 right domain boundary for this repo.
 
-GitGandalf is not a generic text-generation app. It is a backend review system with:
+CodeSmith is not a generic text-generation app. It is a backend review system with:
 
 - a structured multi-agent workflow
 - persisted tool-calling state
@@ -79,7 +79,7 @@ GitGandalf is not a generic text-generation app. It is a backend review system w
 
 That means the app should own its own protocol first.
 
-If Vercel AI SDK is evaluated later, it should sit **under** the GitGandalf
+If Vercel AI SDK is evaluated later, it should sit **under** the CodeSmith
 protocol as an adapter option, not replace the protocol itself.
 
 ## Current Recommendation

@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Google Gemini provider adapter (Phase 5.3)
 //
-// Adapts the GitGandalf internal protocol (AgentMessage[], AgentResponse) to
+// Adapts the CodeSmith internal protocol (AgentMessage[], AgentResponse) to
 // and from the Google Generative AI (Gemini) API. Client is lazily initialised
 // so importing this module does not fail if GOOGLE_AI_API_KEY is absent.
 //

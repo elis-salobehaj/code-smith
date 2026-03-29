@@ -1,4 +1,4 @@
-# GitGandalf
+# CodeSmith
 
 > AI-assisted, agentic code reviewer for GitLab merge requests.
 
@@ -7,9 +7,9 @@
 ![Language](https://img.shields.io/badge/language-TypeScript-3178C6.svg)
 ![Deployment](https://img.shields.io/badge/deployment-Docker%20%7C%20KinD%20%7C%20Kubernetes-326CE5.svg)
 
-![GitGandalf Review Summary](docs/images/readme/git-gandalf-review-summary.png)
+![CodeSmith Review Summary](docs/images/readme/code-smith-review-summary.png)
 
-GitGandalf is a self-hosted review service that listens to GitLab merge request events,
+CodeSmith is a self-hosted review service that listens to GitLab merge request events,
 runs an agentic code-review pipeline against the diff and repository context, and posts
 high-signal inline comments back to the MR.
 
@@ -65,7 +65,6 @@ bun run kind:up
 bun run kind:port-forward
 bun run kind:down
 ```
-
 ---
 
 ## Features
@@ -73,11 +72,6 @@ bun run kind:down
 - 🤖 **Agentic review pipeline** — context agent, investigator loop, and reflection agent work together before anything is published.
 - 🛠️ **Repo-aware tools** — the investigator can read files, search the codebase, and inspect directory structure inside a sandboxed repo clone.
 - 🧠 **Multi-provider LLM fallback** — AWS Bedrock first, with optional OpenAI and Google Gemini fallback ordering.
-- 📨 **GitLab-native feedback** — publishes inline MR discussions when findings can be anchored and always posts a summary note.
-- 🔁 **Incremental review ledger** — machine-readable checkpoints let automatic runs review only unreviewed MR ranges while manual `/ai-review` reruns still force a full pass.
-- 🛡️ **Idempotent delivery handling** — same-head automatic reruns are skipped, metadata-only updates can be ignored, and same-branch runs serialize across the pipeline.
-- 🧵 **Queued review execution** — BullMQ + Valkey decouple webhook ingestion from long-running review jobs.
-- ⏱️ **Timeout and dead-letter handling** — bounded worker attempts with retry policy and terminal-failure routing to `review-dead-letter`.
 - ☸️ **Kubernetes-ready** — raw manifests for webhook, worker, service, config, secrets, and local Valkey validation on KinD.
 - 🔎 **Jira enrichment** — optionally pulls linked Jira ticket context from MR title and description.
 - 📜 **Structured logging** — LogTape JSON logs with request correlation, pipeline context, and debug-file output.
@@ -86,20 +80,19 @@ bun run kind:down
 
 ## Independent Evaluation
 
-If you want the honest build-vs-buy view before trying GitGandalf, read the full evaluation:
+If you want the honest build-vs-buy view before trying CodeSmith, read the full evaluation:
 
 - [docs/AI-Code-Review-Tool-Evaluation.md](docs/AI-Code-Review-Tool-Evaluation.md)
-
-That document is intentionally not a sales sheet. It compares GitGandalf against GitLab Duo and CodeRabbit, covers where each option is stronger or weaker, and explains why GitGandalf is compelling for teams that care about:
+That document is intentionally not a sales sheet. It compares CodeSmith against GitLab Duo and CodeRabbit, covers where each option is stronger or weaker, and explains why CodeSmith is compelling for teams that care about:
 
 - self-hosted control over the review runtime and provider stack
 - stronger data-sovereignty posture than SaaS review platforms
 - prompt and workflow customization without vendor dependency
 - agentic, repository-aware review instead of diff-only analysis
 
-It also states the current limitations directly: GitGandalf is still pre-production, has no built-in organizational learning yet, and still needs the production-hardening work tracked in the Crown Plan.
+It also states the current limitations directly: CodeSmith is still pre-production, has no built-in organizational learning yet, and still needs the production-hardening work tracked in the Crown Plan.
 
-If that tradeoff profile fits your team, the evaluation should give you a realistic picture of what GitGandalf already does well and what is still being built.
+If that tradeoff profile fits your team, the evaluation should give you a realistic picture of what CodeSmith already does well and what is still being built.
 
 ---
 
@@ -107,19 +100,10 @@ If that tradeoff profile fits your team, the evaluation should give you a realis
 
 ### Review Surface
 
-| Inline Finding 1 | Inline Finding 2 |
 |---|---|
-| ![Inline Review Comment 1](docs/images/readme/git-gandalf-inline-comment-1.png) | ![Inline Review Comment 2](docs/images/readme/git-gandalf-inline-comment-2.png) |
+| ![Inline Review Comment 1](docs/images/readme/code-smith-inline-comment-1.png) | ![Inline Review Comment 2](docs/images/readme/code-smith-inline-comment-2.png) |
 |  Off-by-one breaks TooMuchDataException boundary check and existing test. |  Inverted health check condition reports healthy as errored and vice versa. |
 
-| Inline Finding 3 | Inline Finding 4 | Review Summary |
-|---|---|---|
-| ![Inline Review Comment 3](docs/images/readme/git-gandalf-inline-comment-3.png) | ![Inline Review Comment 3](docs/images/readme/git-gandalf-inline-comment-4.png) | ![GitGandalf Review Summary](docs/images/readme/git-gandalf-summary-review.png) |
-| Plaintext password echoed in login response — credential leak. | Wrong HTTP status 400 breaks API contract and two tests expecting 413. | Final verdict summary with severity counts and linked findings back into the MR. |
-
----
-
-## Review Flow
 
 ```text
 GitLab webhook -> router -> queue or inline dispatch -> pipeline -> Jira enrichment -> agents -> GitLab comments
@@ -134,7 +118,6 @@ GitLab webhook -> router -> queue or inline dispatch -> pipeline -> Jira enrichm
 7. Verified findings are published back to GitLab as inline discussions and a summary note.
 
 ---
-
 ## Deployment Modes
 
 | Mode | Use Case | Command / Entry |
@@ -217,7 +200,7 @@ Full configuration reference: [docs/guides/GETTING_STARTED.md](docs/guides/GETTI
 
 ## Local Kubernetes
 
-GitGandalf includes helper scripts for local KinD validation.
+CodeSmith includes helper scripts for local KinD validation.
 
 What the bootstrap does:
 
@@ -253,7 +236,7 @@ If GitLab cannot reach your workstation directly, use an SSH reverse tunnel:
 ssh -N -R 127.0.0.1:8020:localhost:8020 gitlab-user@gitlab.example.com
 ```
 
-Use `ssh -R`, not `ssh -L`, when the goal is to expose your local GitGandalf process to the remote side.
+Use `ssh -R`, not `ssh -L`, when the goal is to expose your local CodeSmith process to the remote side.
 
 ---
 
@@ -264,7 +247,7 @@ Use `ssh -R`, not `ssh -L`, when the goal is to expose your local GitGandalf pro
 - Review jobs use exponential backoff, enforce `REVIEW_JOB_TIMEOUT_MS`, and copy terminal failures into the `review-dead-letter` queue.
 - Individual Agent 2 tool failures are returned to the model as error `tool_result` blocks instead of aborting the full review.
 - Findings that cannot be anchored to the diff are skipped for inline publication and preserved in the summary verdict flow.
-- When `LOG_LEVEL=debug`, logs are also written to `logs/gg-dev.log`.
+- When `LOG_LEVEL=debug`, logs are also written to `logs/codesmith-dev.log`.
 - Jira errors degrade safely: they are logged as warnings and never abort a review.
 
 ---
@@ -273,13 +256,13 @@ Use `ssh -R`, not `ssh -L`, when the goal is to expose your local GitGandalf pro
 
 | Guide | Description |
 |---|---|
-| [docs/AI-Code-Review-Tool-Evaluation.md](docs/AI-Code-Review-Tool-Evaluation.md) | Evidence-backed, non-sales comparison of GitGandalf vs GitLab Duo vs CodeRabbit |
+| [docs/AI-Code-Review-Tool-Evaluation.md](docs/AI-Code-Review-Tool-Evaluation.md) | Evidence-backed, non-sales comparison of CodeSmith vs GitLab Duo vs CodeRabbit |
 | [docs/README.md](docs/README.md) | Main documentation index and phase status |
 | [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | Setup, env config, queueing, provider fallback, and KinD bootstrap |
 | [docs/guides/DEVELOPMENT.md](docs/guides/DEVELOPMENT.md) | Bun commands, testing strategy, and development workflow |
-| [docs/guides/REPO_REVIEW_CONFIG.md](docs/guides/REPO_REVIEW_CONFIG.md) | Repo-author guide for `.gitgandalf.yaml`, including examples and troubleshooting |
 | [docs/context/ARCHITECTURE.md](docs/context/ARCHITECTURE.md) | Unified architecture walkthrough |
-| [docs/context/CONFIGURATION.md](docs/context/CONFIGURATION.md) | Environment variables and `.gitgandalf.yaml` reference |
+| [docs/guides/REPO_REVIEW_CONFIG.md](docs/guides/REPO_REVIEW_CONFIG.md) | Repo-author guide for `.codesmith.yaml`, including examples and troubleshooting |
+| [docs/context/CONFIGURATION.md](docs/context/CONFIGURATION.md) | Environment variables and `.codesmith.yaml` reference |
 | [docs/context/WORKFLOWS.md](docs/context/WORKFLOWS.md) | End-to-end operational workflows |
 
 ---

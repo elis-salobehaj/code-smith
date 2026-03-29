@@ -4,7 +4,7 @@ status: backlog
 priority: medium
 estimated_hours: 60-100
 dependencies:
-  - docs/plans/active/git-gandalf-master-plan.md
+  - docs/plans/active/code-smith-master-plan.md
 created: 2026-03-17
 date_updated: 2026-03-17
 
@@ -74,7 +74,7 @@ completion:
 
 ## Executive Summary
 
-This plan evaluates whether GitGandalf should move from Bun to Deno.
+This plan evaluates whether CodeSmith should move from Bun to Deno.
 
 The core attraction is real: Deno offers a much stronger default security posture
 than Bun because filesystem, environment, network, and subprocess access are
@@ -83,7 +83,7 @@ webhooks, clones repositories, reads arbitrary code within a sandbox, calls LLM
 providers, and posts data back to GitLab, that is a meaningful platform-level
 control.
 
-At the same time, GitGandalf is currently a Bun-first backend with several
+At the same time, CodeSmith is currently a Bun-first backend with several
 intentional Bun-native choices:
 
 - Bun runtime bootstrap in `src/index.ts`
@@ -106,11 +106,11 @@ Approve a bounded feasibility spike first.
 
 That recommendation is based on four facts about the current system:
 
-1. GitGandalf's architecture is portable in some important places.
+1. CodeSmith's architecture is portable in some important places.
    Hono, Zod, the internal agent protocol, and the thin wrapper boundaries around
    Bedrock and GitLab are all good foundations for runtime portability.
 
-2. GitGandalf's implementation is still materially Bun-specific.
+2. CodeSmith's implementation is still materially Bun-specific.
    The repo manager, search tool, prompt loader, server bootstrap, logger setup,
    tests, and operator workflow all assume Bun today.
 
@@ -135,13 +135,13 @@ Decision guidance:
 - If the team wants the security benefits, the right path is: spike first,
   compare objectively, then decide.
 
-## Why Deno Is Attractive For GitGandalf
+## Why Deno Is Attractive For CodeSmith
 
 ### 1. Permission-based security model
 
 Deno starts with no ambient access and requires explicit permissions.
 
-For GitGandalf, the relevant controls are:
+For CodeSmith, the relevant controls are:
 
 - `--allow-net` for GitLab API, Bedrock API, inbound HTTP listen, and optionally
   Jira in future phases
@@ -155,7 +155,7 @@ refuse access outside the declared envelope.
 
 ### 2. Better alignment with “sandbox the reviewer” goals
 
-GitGandalf is a code-review system that:
+CodeSmith is a code-review system that:
 
 - clones external repositories
 - reads source trees
@@ -184,11 +184,11 @@ embrace Deno fully rather than only using it as a JS runtime.
 
 ## Why Deno Is Not An Automatic Win
 
-### 1. GitGandalf needs broad permissions in practice
+### 1. CodeSmith needs broad permissions in practice
 
 This is not a read-only HTTP JSON service.
 
-GitGandalf needs to:
+CodeSmith needs to:
 
 - listen on a port
 - call GitLab over the network
@@ -225,7 +225,7 @@ This is an operations and workflow migration, not just a runtime migration.
 
 ### 3. Deno Deploy is not the target runtime
 
-GitGandalf shells out to `git` and `rg`, uses a writable repo cache, and expects
+CodeSmith shells out to `git` and `rg`, uses a writable repo cache, and expects
 full local filesystem access within controlled paths.
 
 That means the relevant target is self-hosted Deno runtime in Docker or VMs,
@@ -233,7 +233,7 @@ not Deno Deploy. The move does not buy “edge-native deployment” for this app
 
 ## Current Architecture Traits That Help A Deno Move
 
-GitGandalf is better-positioned for a runtime migration than many backend repos.
+CodeSmith is better-positioned for a runtime migration than many backend repos.
 
 ### Architecture strengths
 
@@ -255,7 +255,7 @@ Those boundaries limit how much business logic would need to change.
 - Logging setup assumes Bun env behavior.
 - The entire test suite is Bun-shaped.
 
-So GitGandalf is architecturally portable, but implementation-portability is only partial.
+So CodeSmith is architecturally portable, but implementation-portability is only partial.
 
 ## Bun-To-Deno Compatibility Matrix
 
@@ -641,7 +641,7 @@ Required rewrite:
 
 ### Security conclusion
 
-Deno would improve GitGandalf's runtime security posture, but only if the team
+Deno would improve CodeSmith's runtime security posture, but only if the team
 actually treats permission scoping as a first-class deployment artifact.
 
 If the final deployment simply grants broad network, read, write, env, and run
@@ -780,7 +780,7 @@ Reject or defer the migration if any of the following is true:
 
 ## Final Assessment
 
-A Deno migration is plausible for GitGandalf.
+A Deno migration is plausible for CodeSmith.
 
 The architecture is not trapped in Bun. Hono, Zod, the internal protocol, and the
 wrapper boundaries around Bedrock and GitLab all help.
@@ -797,7 +797,7 @@ The best next move is not “rewrite everything for Deno now.”
 
 The best next move is a focused feasibility spike that answers one decisive question:
 
-> Does Deno give GitGandalf a materially better security and operations story,
+> Does Deno give CodeSmith a materially better security and operations story,
 > after accounting for the broad permissions this service still requires?
 
 If the answer is yes, this plan becomes the migration roadmap.
