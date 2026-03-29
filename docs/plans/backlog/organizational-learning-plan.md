@@ -1,500 +1,618 @@
 ---
-title: "CP3 — Organizational Learning System"
+title: "CP3 — Organizational Learning & Review Memory"
 status: backlog
 priority: high
-estimated_hours: 40-60
+estimated_hours: 55-80
 dependencies:
   - docs/plans/implemented/repo-review-config-plan.md
   - docs/plans/backlog/production-hardening-plan.md
 created: 2026-03-21
-date_updated: 2026-03-22
+date_updated: 2026-03-29
 
 related_files:
+  - src/api/router.ts
+  - src/api/schemas.ts
+  - src/api/trigger.ts
   - src/api/pipeline.ts
   - src/agents/state.ts
   - src/agents/investigator-agent.ts
   - src/agents/reflection-agent.ts
   - src/agents/prompt-loader.ts
+  - src/gitlab-client/client.ts
   - src/publisher/gitlab-publisher.ts
   - src/config.ts
+  - src/ops.ts
   - src/learning/store.ts
-  - src/learning/sqlite-store.ts
+  - src/learning/mem0-client.ts
+  - src/learning/postgres-store.ts
+  - src/learning/mention-processor.ts
+  - src/learning/memory-extractor.ts
+  - src/learning/retrieval.ts
   - docs/context/ARCHITECTURE.md
   - docs/context/CONFIGURATION.md
   - docs/context/WORKFLOWS.md
+  - docs/guides/LEARNING.md
   - docs/README.md
 
 tags:
   - learning
+  - memory
   - feedback
   - organizational
   - crown-plan
   - CP3
 
 completion:
-  - "# Phase OL0 — Admin Surface & Control Plane Foundation"
-  - [ ] OL0.1 Verify PH0 admin surface and register learning-specific admin routes
-  - [ ] OL0.2 Register learning job types on the ops BullMQ consumer (verify PH0.2b first)
-  - [ ] OL0.3 Define cached internal read path for learned patterns consumed by review workers
-  - [ ] OL0.4 Update CONFIGURATION.md and ARCHITECTURE.md
-  - "# Phase OL1 — Database Schema & Storage Layer"
-  - [ ] OL1.1 Create learning database module with bun:sqlite and WAL mode
-  - [ ] OL1.2 Define schema: feedback_events, learned_patterns, review_runs tables
-  - [ ] OL1.3 Create migration system (versioned SQL, forward-only)
-  - [ ] OL1.4 Add database path configuration to env schema
-  - [ ] OL1.5 Unit tests for database creation, migrations, CRUD operations
+  - "# Phase OL0 — Decision Lock, Bot Identity & Control Plane Boundary"
+  - [ ] OL0.1 Lock CP3 to Mem0 OSS backed by PostgreSQL plus pgvector and remove the SQLite-first storage assumption from this plan
+  - [ ] OL0.2 Verify CP6 PH0 admin and ops prerequisites, then define the learning-specific queues, internal read surface, and read-only service credentials
+  - [ ] OL0.3 Expand the webhook trigger model so merge-request note events can route both `/ai-review` commands and `@code-smith` memory-teaching interactions without overlap
+  - [ ] OL0.4 Define the dedicated GitLab bot identity, note markers, duplicate-suppression contract, and acknowledgment-reply semantics for memory creation or update
+  - [ ] OL0.5 Update CONFIGURATION.md and ARCHITECTURE.md
+  - "# Phase OL1 — Memory Substrate & PostgreSQL Foundation"
+  - [ ] OL1.1 Add PostgreSQL, pgvector, Mem0, and bot-identity configuration to `src/config.ts` with strict Zod validation
+  - [ ] OL1.2 Create the CodeSmith learning service boundary (`store.ts`, `mem0-client.ts`, `postgres-store.ts`) so review code depends on domain interfaces rather than Mem0-specific calls
+  - [ ] OL1.3 Define PostgreSQL migrations for CodeSmith-owned memory registry, source-event deduplication, sync cursors, usage tracking, and audit trails while allowing Mem0 to own semantic memory storage and retrieval on the same database
+  - [ ] OL1.4 Implement the ops-owned bootstrap path for Mem0 plus PostgreSQL plus pgvector, including health checks, migration ordering, and transactional write guarantees
+  - [ ] OL1.5 Add tests for config validation, migrations, CRUD operations, idempotent writes, and Mem0-backed semantic retrieval with metadata filters
   - [ ] OL1.6 Update CONFIGURATION.md and ARCHITECTURE.md
-  - "# Phase OL2 — Feedback Ingestion"
-  - [ ] OL2.1 Create feedback polling service (GitLab reaction tracking)
-  - [ ] OL2.2 Create suggestion tracking (applied vs dismissed via GitLab API)
-  - [ ] OL2.3 Create feedback event normalization and storage
-  - [ ] OL2.4 Add polling scheduler (periodic, configurable interval)
-  - [ ] OL2.5 Unit tests for feedback ingestion, normalization, idempotency
+  - "# Phase OL2 — GitLab Mention Capture, Thread Context & Acknowledgment Replies"
+  - [ ] OL2.1 Expand note-event schemas, router filtering, and trigger metadata to accept merge-request comments that mention the configured CodeSmith bot or reply directly to a CodeSmith-authored discussion note
+  - [ ] OL2.2 Add discussion-context loading and eligibility filters so only human-authored, merge-request-scoped, non-duplicate, non-bot notes become memory candidates
+  - [ ] OL2.3 Add learning queue jobs and ops consumers for note-triggered memory extraction, acknowledgment posting, and failure-safe retry behavior
+  - [ ] OL2.4 Implement same-thread acknowledgment replies with hidden markers so CodeSmith can respond "Got it, I added that to my memory" exactly once per source note when a durable memory is created or updated
+  - [ ] OL2.5 Add tests for note-trigger routing, mention detection, duplicate suppression, queue handoff, and acknowledgment publication
   - [ ] OL2.6 Update WORKFLOWS.md
-  - "# Phase OL3 — Pattern Extraction & Learning"
-  - [ ] OL3.1 Create pattern extraction engine (group feedback by file pattern, category, language)
-  - [ ] OL3.2 Create learning rules from aggregated feedback signals
-  - [ ] OL3.3 Define confidence scoring (minimum signal threshold before a pattern is trusted)
-  - [ ] OL3.4 Add learning scope management (per-project vs cross-project)
-  - [ ] OL3.5 Unit tests for pattern extraction, confidence scoring, scoping
+  - "# Phase OL3 — Memory Extraction, Scope Resolution & Reinforcement Signals"
+  - [ ] OL3.1 Create the memory-extraction workflow that converts a human correction plus thread context into a normalized memory candidate or a no-op decision
+  - [ ] OL3.2 Derive memory scope and filters from project, repository, file path, language, finding category, and thread position metadata rather than coarse SQL-only aggregation
+  - [ ] OL3.3 Implement memory lifecycle behavior: create, merge, update, supersede, archive, or ignore, with provenance back to the GitLab note and author
+  - [ ] OL3.4 Treat reactions, applied suggestions, and thread resolution as reinforcement and usage signals for existing memories instead of the primary memory-creation mechanism
+  - [ ] OL3.5 Add tests for one-off versus durable corrections, scope derivation, merge and supersede behavior, and reinforcement updates
   - [ ] OL3.6 Update ARCHITECTURE.md
-  - "# Phase OL4 — Learning Injection Into Reviews"
-  - [ ] OL4.1 Query relevant learned patterns during pipeline startup
-  - [ ] OL4.2 Inject learned patterns into investigator agent prompt
-  - [ ] OL4.3 Inject learned patterns into reflection agent filtering rules
-  - [ ] OL4.4 Tag review findings with learning-influenced metadata
-  - [ ] OL4.5 Unit tests for learning injection and prompt composition
+  - "# Phase OL4 — Memory Retrieval & Injection Into Reviews"
+  - [ ] OL4.1 Query relevant memories during pipeline startup through the internal read-only learning client with short-lived TTL caching and repository-safe metadata filters
+  - [ ] OL4.2 Inject memory-backed review guidance into the investigator prompt with caps, provenance labels, and path-specific filtering
+  - [ ] OL4.3 Inject suppressive or corrective memories into the reflection stage so previously corrected review behavior can veto stale or noisy findings
+  - [ ] OL4.4 Tag reviews and findings with memory-hit metadata, memory ids, and usage updates for evaluation and later operator inspection
+  - [ ] OL4.5 Add tests for retrieval filtering, semantic ranking, prompt composition, reflection filtering, and memory-hit tagging
   - [ ] OL4.6 Update WORKFLOWS.md
-  - "# Phase OL5 — Management API & Docs"
-  - [ ] OL5.1 Create API endpoints for viewing learned patterns
-  - [ ] OL5.2 Create API endpoints for editing/deleting learned patterns
-  - [ ] OL5.3 Create API endpoint for feedback statistics
-  - [ ] OL5.4 Respect .codesmith.yaml learning configuration
-  - [ ] OL5.5 Add learning system documentation to guides
-  - [ ] OL5.6 Update docs/README.md
-  - [ ] OL5.7 Run review-plan-phase audit
+  - "# Phase OL5 — Memory Management API, Docs & Final Audit"
+  - [ ] OL5.1 Create admin APIs for listing, searching, editing, deleting, archiving, and superseding memories with usage and provenance metadata
+  - [ ] OL5.2 Create stats and export surfaces for memory creation, usage, reinforcement, stale memories, and per-project adoption
+  - [ ] OL5.3 Respect `.codesmith.yaml` learning controls for capture, retrieval scope, and project-level opt-out
+  - [ ] OL5.4 Add `docs/guides/LEARNING.md` covering the GitLab mention flow, memory lifecycle, admin operations, privacy, and retention
+  - [ ] OL5.5 Update docs/README.md and any affected plan references to reflect the memory-first design and the GitLab bot-teaching workflow
+  - [ ] OL5.6 Run review-plan-phase audit
 ---
 
-# CP3 — Organizational Learning System
+# CP3 — Organizational Learning & Review Memory
+
+```mermaid
+---
+title: CP3 memory-first architecture
+config:
+  look: classic
+  markdownAutoWrap: false
+  flowchart:
+    curve: linear
+---
+flowchart TD
+  User["Reviewer replies in GitLab\n@code-smith ..."] --> NoteWebhook["note webhook"]
+  NoteWebhook --> Router["router trigger split\n/review vs memory-teach"]
+  Router -->|memory-teach| Queue["BullMQ learning jobs"]
+  Queue --> Ops["singleton ops service"]
+  Ops --> ThreadLoad["load full discussion + MR context"]
+  ThreadLoad --> Extract["memory extraction\ncreate/update/ignore"]
+  Extract --> Registry[("PostgreSQL\nCodeSmith registry + audit")]
+  Extract --> Mem0[("Mem0 OSS\nPostgreSQL + pgvector")]
+  Extract --> Ack["reply in same thread\nGot it, I added that to my memory"]
+  Mem0 --> ReadAPI["internal read-only learning API"]
+  Registry --> ReadAPI
+  ReadAPI --> Pipeline["review pipeline startup"]
+  Pipeline --> Investigator["investigator prompt\n<learned_review_rules>"]
+  Pipeline --> Reflection["reflection filters\ncorrective memory hits"]
+  Registry --> Admin["/api/v1/admin/learning/*"]
+```
 
 ## Executive Summary
 
-CodeRabbit's "Learnings" system is their most impactful competitive differentiator. Teams can correct review comments in natural language, and those corrections are retained and applied to all future reviews across the organization. Over time, reviews become more accurate and less noisy because the system learns what matters to each team.
+CodeRabbit's strongest product behavior is not generic feedback analytics. It is the ability for a human to correct the bot in natural language during a review thread and have that correction become durable future behavior. That is the capability CodeSmith should replicate.
 
-Code Smith currently has no feedback mechanism. Every review runs fresh — the system learns nothing from prior interactions. A finding that was dismissed 50 times will be raised a 51st time.
+This plan replaces the earlier SQLite-first, aggregation-first learning design with a memory-first architecture built on Mem0 OSS backed by PostgreSQL plus pgvector. Human replies to CodeSmith review comments become first-class memory candidates with scope, provenance, lifecycle state, and semantic retrieval. Reactions and applied suggestions still matter, but only as reinforcement signals for existing memories rather than the primary learning mechanism.
 
-This plan introduces a complete learning feedback loop:
-1. **Capture** — track developer reactions (👍/👎) and suggestion application/dismissal
-2. **Store** — persist feedback in a singleton ops-owned relational database, starting with SQLite behind a storage abstraction
-3. **Learn** — extract patterns from aggregated feedback signals
-4. **Inject** — feed relevant learned patterns into future reviews through a cached internal read path
-5. **Manage** — provide API endpoints for viewing and curating learned patterns behind a dedicated admin route group
+The result is a review system that can be taught in-thread, acknowledge that it learned, and then use those memories safely in future reviews without replatforming CodeSmith around a separate agent runtime.
 
-This is the most technically complex child plan and the highest-impact competitive differentiator.
-
-Phase-one storage uses `bun:sqlite` because it is Bun-native and operationally cheap, but this plan treats SQLite as an implementation choice rather than the permanent architecture. The learning subsystem must expose storage interfaces so CP7 can migrate the source of truth to PostgreSQL later without rewriting queue contracts, route contracts, or prompt-injection logic.
-
-## Architecture
-
-```mermaid
-flowchart TD
-  subgraph Feedback Capture
-    MR["GitLab MR"] --> Reactions["Poll reactions on\nCode Smith comments"]
-    MR --> Applied["Track applied\nsuggestions"]
-    MR --> Dismissed["Track resolved/dismissed\nthreads"]
-  end
-
-  subgraph Storage
-    Reactions --> Normalize["Normalize\nfeedback events"]
-    Applied --> Normalize
-    Dismissed --> Normalize
-    Normalize --> DB[(bun:sqlite\nlearning.db)]
-  end
-
-  subgraph Learning
-    DB --> Extract["Pattern extraction\n(aggregate by file pattern,\ncategory, language)"]
-    Extract --> Score["Confidence scoring\n(min 5 signals per pattern)"]
-    Score --> Patterns["Learned patterns\n(rules + context)"]
-  end
-
-  subgraph Injection
-    Patterns --> Investigator["Investigator prompt\n+ learned context"]
-    Patterns --> Reflection["Reflection agent\n+ learned filters"]
-  end
-
-  subgraph Management
-    API["/api/v1/admin/learning/*"] --> DB
-  end
-```
-
-## Technology Decisions
+## Locked Decisions
 
 | Concern | Choice | Rationale |
 |---|---|---|
-| Database | `bun:sqlite` with WAL mode | Built-in, zero deps, 3-6x faster than better-sqlite3, concurrent reads |
-| Phase-one deployment constraint | Singleton ops pod with block-backed `ReadWriteOnce` storage only | SQLite is acceptable only when the DB file shares safe local/block-attached semantics with the app server |
-| DB ownership | Singleton ops service | Prevents multi-writer contention across replicated webhook and worker pods |
-| Write transport | BullMQ jobs on existing Valkey | Reuses the repo's durable queue pattern; webhook and worker pods enqueue write intents instead of touching SQLite |
-| Storage abstraction | Domain store interfaces over DB-specific calls | Keeps PostgreSQL migration additive instead of forcing CP3/CP5 rewrites |
-| Schema migrations | Versioned SQL files, forward-only | Simple, no ORM dependency, matches Bun-native philosophy |
-| Feedback polling | Periodic timer (setInterval + GitLab API) | Simpler than webhooks for reactions; GitLab doesn't webhook emoji reactions |
-| Feedback sync strategy | Cursor-based bounded polling | Avoids rescanning broad time windows and reduces GitLab API fan-out |
-| Pattern extraction | SQL aggregation + heuristic rules | No ML needed; simple frequency/ratio analysis suffices |
-| Confidence threshold | Minimum 5 signals before trusting a pattern | Prevents overfitting on a single developer's preference |
-| Learning scope | Per-project (default) with opt-in cross-project | Respects different team conventions across projects |
-| Admin auth | Dedicated bearer token or mTLS | Keeps operator surfaces separate from webhook auth |
-| Future scale-up target | PostgreSQL; add `pgvector` only if semantic retrieval becomes a requirement | Preserves a clean path to HA and richer retrieval without forcing vector infrastructure early |
+| Memory engine | Mem0 OSS | Best product fit for CodeSmith: focused memory layer, OSS, active development, and practical TypeScript integration |
+| Durable storage | PostgreSQL plus pgvector from the start | Avoids a disposable SQLite phase for the memory system and matches the semantic retrieval requirement |
+| Primary learning source | Human replies to CodeSmith-authored review threads and explicit `@code-smith` mentions on MR notes | Highest-signal input, closest to competitor behavior, and the only path that naturally supports in-thread teaching |
+| Secondary learning source | Reactions, suggestion application, and thread-resolution state | Useful reinforcement and memory-health signals, but too weak and ambiguous to be the main memory-creation surface |
+| Write ownership | Singleton ops service behind BullMQ jobs | Keeps write authority aligned with CP6 PH0 and avoids multi-writer drift |
+| Read path | Internal read-only learning API plus short TTL cache in review workers | Keeps webhook and worker pods away from admin credentials and direct storage mutation |
+| Bot identity | Dedicated GitLab service account for CodeSmith | Required for mention detection, same-thread acknowledgments, and clear user expectations |
+| Lifecycle model | Create, merge, supersede, archive, and reinforce explicit memories | Better match for evolving team conventions than one-shot heuristic aggregates |
+| Prompt usage | Semantic retrieval plus metadata filtering, capped and provenance-labeled | Preserves relevance while limiting prompt bloat and stale global instructions |
 
-**Storage boundary note:** The relational store is the system of record for feedback events, learned patterns, and review-run facts. Valkey remains queue/cache infrastructure. Dedicated vector indexing is explicitly future scope only if Code Smith later needs semantic retrieval across free-form review memory.
+## Problem Statement
 
-## Database Schema
+CodeSmith currently has no durable review memory. Every review is stateless beyond repo configuration and checkpoint state. If a human replies to a CodeSmith finding with a correction such as "@code-smith we do not want stub implementations here," that preference is lost after the thread ends.
 
-```sql
--- Tracks individual feedback events
-CREATE TABLE feedback_events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id INTEGER NOT NULL,
-  mr_iid INTEGER NOT NULL,
-  discussion_id TEXT,
-  note_id TEXT,
-  source_kind TEXT NOT NULL,          -- 'reaction' | 'suggestion' | 'thread_resolution'
-  source_cursor TEXT,                 -- provider-specific cursor/watermark captured at ingest time
-  finding_file TEXT NOT NULL,
-  finding_line_start INTEGER NOT NULL,
-  finding_line_end INTEGER NOT NULL,
-  finding_title TEXT NOT NULL,
-  finding_risk_level TEXT NOT NULL,
-  finding_category TEXT,              -- Derived from title/description keywords
-  signal_type TEXT NOT NULL,          -- 'thumbs_up' | 'thumbs_down' | 'applied' | 'dismissed' | 'resolved'
-  signal_value INTEGER NOT NULL,      -- +1 for positive, -1 for negative
-  gitlab_user_id INTEGER,
-  file_pattern TEXT,                  -- Derived glob pattern (e.g., "**/*.test.ts")
-  language TEXT,                      -- Detected from file extension
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+The previous CP3 draft improved observability around feedback, but it still treated learning as a relational analytics problem:
 
-CREATE UNIQUE INDEX idx_feedback_dedup
-  ON feedback_events(project_id, mr_iid, source_kind, COALESCE(discussion_id, ''), COALESCE(note_id, ''), signal_type, COALESCE(gitlab_user_id, -1));
+- reactions and applied suggestions were the main signals
+- SQLite was the phase-one store
+- learned output was primarily aggregated pattern extraction
+- explicit comment-based teaching was future work
 
--- Aggregated learned patterns (derived from feedback_events)
-CREATE TABLE learned_patterns (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id INTEGER,                 -- NULL for cross-project patterns
-  scope TEXT NOT NULL DEFAULT 'project', -- 'project' | 'global'
-  file_pattern TEXT,                  -- Glob pattern this applies to (NULL = all files)
-  language TEXT,                      -- Language this applies to (NULL = all)
-  category TEXT,                      -- Finding category this applies to
-  pattern_type TEXT NOT NULL,         -- 'suppress' | 'emphasize' | 'instruction'
-  description TEXT NOT NULL,          -- Human-readable rule description
-  confidence REAL NOT NULL,           -- 0.0–1.0 confidence score
-  positive_signals INTEGER NOT NULL DEFAULT 0,
-  negative_signals INTEGER NOT NULL DEFAULT 0,
-  total_signals INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+That design is too indirect for the product behavior we actually want. A modern review-memory system needs to treat human corrections as first-class memories, not as weak signals waiting to accumulate into a heuristic rule.
 
--- Review run metadata for analytics (feeds into CP5)
-CREATE TABLE review_runs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id INTEGER NOT NULL,
-  mr_iid INTEGER NOT NULL,
-  head_sha TEXT NOT NULL,
-  trigger_mode TEXT NOT NULL,         -- 'automatic' | 'manual'
-  review_range_mode TEXT NOT NULL,    -- 'full' | 'incremental' | 'skip'
-  findings_count INTEGER NOT NULL,
-  verdict TEXT NOT NULL,
-  linter_findings_count INTEGER DEFAULT 0,
-  duration_ms INTEGER,
-  llm_provider TEXT,
-  llm_tokens_used INTEGER,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+## Why The Earlier SQLite-First Design Is Replaced
 
--- Persisted polling state so feedback sync resumes deterministically after restarts.
-CREATE TABLE feedback_sync_state (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id INTEGER NOT NULL,
-  mr_iid INTEGER NOT NULL,
-  source_kind TEXT NOT NULL,          -- 'reaction' | 'suggestion' | 'thread_resolution'
-  last_cursor TEXT,
-  last_note_id TEXT,
-  last_discussion_id TEXT,
-  last_synced_at TEXT NOT NULL DEFAULT (datetime('now')),
-  sync_status TEXT NOT NULL DEFAULT 'idle', -- 'idle' | 'running' | 'error'
-  last_error TEXT,
-  UNIQUE(project_id, mr_iid, source_kind)
-);
+The earlier plan was defensible for low-cost feedback analytics, but it is the wrong primary architecture for durable agent memory.
 
-CREATE INDEX idx_feedback_project ON feedback_events(project_id);
-CREATE INDEX idx_feedback_file_pattern ON feedback_events(file_pattern);
-CREATE INDEX idx_patterns_project ON learned_patterns(project_id, is_active);
-CREATE INDEX idx_patterns_scope ON learned_patterns(scope, is_active);
-CREATE INDEX idx_runs_project ON review_runs(project_id);
-CREATE INDEX idx_sync_state_project ON feedback_sync_state(project_id, mr_iid, source_kind);
+Why it is replaced:
+
+- it optimized for storing events, not for retrieving semantic corrections later
+- it made explicit comment-based learning secondary even though that is the highest-value workflow
+- it assumed SQLite phase-one storage despite the repo already anticipating PostgreSQL plus pgvector for semantic retrieval
+- it pushed the real memory problem into a later migration plan instead of solving the correct product surface now
+
+This plan therefore supersedes the earlier storage direction for CP3. If CP7 remains in the roadmap, it should be narrowed later to analytics-store evolution and any future dedicated-memory scaling work rather than serving as the activation gate for CP3's core memory substrate.
+
+## Architecture Boundary
+
+CodeSmith owns the review-specific behavior. Mem0 owns the memory substrate.
+
+CodeSmith remains responsible for:
+
+- deciding whether a note should become memory
+- deriving memory scope from GitLab context
+- storing provenance, idempotency, and usage audit records
+- choosing which memories enter prompts and how
+- replying in-thread when a memory is added or updated
+- exposing operator APIs for inspection and curation
+
+Mem0 is responsible for:
+
+- durable semantic memory storage
+- embedding-backed retrieval
+- metadata-filtered search
+- long-term memory update primitives
+
+## Directory Impact
+
+```text
+src/
+  api/
+    router.ts                     # note-event routing for memory-teach triggers
+    schemas.ts                    # webhook schema expansion for MR note memory events
+    trigger.ts                    # new memory-teach trigger context
+  learning/
+    store.ts                      # domain interfaces for learning registry and retrieval
+    mem0-client.ts                # Mem0 OSS integration boundary
+    postgres-store.ts             # PostgreSQL registry, audit, usage, and sync-state adapter
+    mention-processor.ts          # note-event eligibility, thread loading, and ack orchestration
+    memory-extractor.ts           # structured memory extraction and lifecycle decisions
+    retrieval.ts                  # memory query and ranking for review startup
+  publisher/
+    gitlab-publisher.ts           # same-thread memory acknowledgments and markers
+  config.ts                       # Postgres, pgvector, bot identity, learning toggles
+  ops.ts                          # ops-owned job consumers and learning bootstrap
+
+tests/
+  learning-mentions.test.ts
+  learning-extractor.test.ts
+  learning-retrieval.test.ts
+  learning-admin.test.ts
+
+docs/
+  context/
+    ARCHITECTURE.md
+    CONFIGURATION.md
+    WORKFLOWS.md
+  guides/
+    LEARNING.md
 ```
+
+## Memory Record Model
+
+Memories should be durable records with semantic retrieval plus explicit provenance.
+
+Each memory should carry:
+
+- canonical memory text
+- project id and repository scope
+- optional file glob or path prefix
+- optional language and finding category
+- source MR iid, discussion id, and note id
+- creating GitLab user id and username
+- lifecycle state: active, archived, superseded
+- usage count and last-used timestamp
+- reinforcement counters from reactions, applied suggestions, and later thread corrections
+- Mem0 memory id plus CodeSmith registry id
+
+Mem0 should store the semantic memory content and metadata. CodeSmith should keep its own PostgreSQL registry and audit tables so admin queries, idempotency, and provenance do not depend on Mem0 internals.
+
+## Exact GitLab Interaction Flow
+
+The interaction model should be explicit and deterministic.
+
+### Example target behavior
+
+1. CodeSmith posts an inline finding.
+2. A reviewer replies on the same thread: `@code-smith we don't want stub implementations, that is not ok.`
+3. CodeSmith processes the reply as a memory candidate.
+4. If the reply expresses a durable preference, CodeSmith replies on the same thread:
+   `Got it, I added that to my memory for future reviews in this project.`
+5. Future reviews on relevant files retrieve that memory and avoid recommending stub implementations unless the context explicitly calls for scaffolding.
+
+### Event eligibility rules
+
+A merge-request note event becomes a memory candidate only when all of the following are true:
+
+- `object_kind` is `note`
+- `noteable_type` is `MergeRequest`
+- the author is not the CodeSmith bot user
+- the note either mentions the configured CodeSmith bot username or is a reply in a discussion that already contains a CodeSmith-authored note
+- the body is not just `/ai-review`
+- the note id has not already produced a completed memory action
+- project learning is enabled and the repo has not opted out in `.codesmith.yaml`
+
+### Trigger precedence
+
+- `/ai-review` remains a manual review trigger.
+- `@code-smith` teaching replies become learning triggers.
+- If both appear in the same note, manual review wins and the memory path is skipped unless a future explicit dual-action command is defined.
+
+### Processing steps
+
+1. Router validates the note event and emits a `memory-teach` trigger context.
+2. Webhook process enqueues a `learning-thread-memory` BullMQ job instead of invoking the review pipeline directly.
+3. Ops consumer loads the full MR discussion and identifies:
+   - the source human note
+   - the CodeSmith note being corrected, if any
+   - path and line metadata from the discussion position
+   - MR title and relevant repo context
+4. Mention processor runs deterministic filters to reject:
+   - bot-authored notes
+   - duplicate note ids
+   - non-review chatter with no corrective intent
+   - unsafe oversized payloads or marker abuse
+5. Memory extractor converts the thread into one of these outcomes:
+   - `create_memory`
+   - `update_memory`
+   - `supersede_memory`
+   - `ignore_one_off`
+   - `clarify_needed`
+6. On create, update, or supersede, CodeSmith writes:
+   - semantic memory into Mem0
+   - registry and audit metadata into PostgreSQL
+   - usage and dedupe markers into PostgreSQL
+7. CodeSmith replies in the same discussion with a memory-ack note carrying a hidden marker so retries cannot double-post.
+8. On ignore or clarify outcomes, CodeSmith may optionally post a short explanation, but it must not claim a memory was stored when none was written.
+
+### Acknowledgment reply contract
+
+When a durable memory is written, CodeSmith posts a same-thread reply with:
+
+- a concise acknowledgment sentence
+- optional scope context such as "for future reviews in this project" or "for files under src/api/**"
+- a hidden marker containing source note id, memory registry id, and head SHA for duplicate suppression
+
+Example:
+
+```text
+Got it, I added that to my memory for future reviews in this project.
+<!-- code-smith:memory-ack source_note_id=12345 memory_id=987 head_sha=abc123 -->
+```
+
+### Retrieval flow in future reviews
+
+1. Pipeline startup computes the review's changed file set and repo metadata.
+2. Review worker queries the internal learning API with:
+   - project id
+   - repo path and changed files
+   - optional language and finding-category hints
+   - a semantic query built from MR context plus file content summary
+3. Internal learning service retrieves candidate memories from Mem0 with metadata filters.
+4. CodeSmith applies additional ranking and caps before prompt injection.
+5. Investigator and reflection stages receive only the highest-value memories, with provenance labels and hard caps.
+6. Memory-hit usage is written back asynchronously through ops jobs.
+
+## Technology Decisions And Tradeoffs
+
+| Concern | Option A | Option B | Recommendation | Rationale |
+|---|---|---|---|---|
+| Memory engine | Mem0 OSS | Graphiti | Mem0 OSS | Graphiti is more advanced but heavier to operate and less natural for a Bun-native TS service |
+| Base store | PostgreSQL plus pgvector | SQLite first, migrate later | PostgreSQL plus pgvector | Semantic retrieval is a core requirement, not future scope |
+| Primary learning input | Explicit thread corrections and mentions | Reactions and applied suggestions only | Explicit thread corrections | Higher signal and directly matches the desired product behavior |
+| Runtime shape | Keep CodeSmith architecture and add a memory subsystem | Replatform around a full stateful-agent platform | Keep CodeSmith architecture | Lower blast radius and better fit with existing Hono and BullMQ surfaces |
+| Memory lifecycle | First-class memory records with provenance | Aggregated heuristic patterns only | First-class memory records | Better operator control, editability, and future semantic retrieval |
+| Retrieval | Semantic plus metadata filters | Exact-match rules only | Semantic plus metadata | Required for applying learnings outside near-identical phrasing |
 
 ## Phased Implementation
 
-### Phase OL0 — Admin Surface & Control Plane Foundation
+## Phase OL0 — Decision Lock, Bot Identity & Control Plane Boundary
 
-**Goal:** Wire learning-specific surfaces and job types onto the admin/ops foundation created by CP6 Phase PH0. OL0 does not create the admin route group, ops service entrypoint, or BullMQ write transport — those are delivered by PH0 and must be verified complete before OL0 begins.
+**Goal:** Lock the architecture, establish the GitLab bot contract, and align CP3 with CP6's control-plane design before storage or extraction work begins.
 
-> **Hard dependency**: CP6 PH0 (PH0.1 admin surface, PH0.2/PH0.2a/PH0.2b ops entrypoint and write transport) must be **fully implemented** before OL0 begins. Verify: `src/ops.ts` exists, `DEPLOYMENT_ROLE=ops` starts a functional Hono server with the admin route group, and BullMQ consumers are draining at least one test job type.
+**OL0.1** — Lock the memory architecture:
+- Replace the SQLite-first assumption in CP3 with Mem0 OSS on PostgreSQL plus pgvector
+- Record that reactions and applied suggestions are reinforcement, not the primary memory-creation path
+- Record that explicit note-based teaching is in scope from the start, not future work
 
-**OL0.1** — Verify PH0 admin surface and register learning routes:
-- Confirm `/api/v1/admin/` route group exists with dedicated bearer token auth (delivered by PH0.1)
-- Register learning-specific admin routes under `/api/v1/admin/learning/*` on the ops Hono instance
-- Disabled by default in non-ops deployments (enforced by `DEPLOYMENT_ROLE` check)
-- Reserve `/api/v1/admin/learning/*` for operator-only management and statistics actions; worker pods must never authenticate against or read through this surface
+**OL0.2** — Verify PH0 prerequisites and define learning boundaries:
+- Confirm CP6 PH0.1, PH0.2, and PH0.2b are the required control-plane prerequisites
+- Define the learning-specific BullMQ jobs consumed by the ops role:
+  - `learning-thread-memory`
+  - `learning-reinforcement-event`
+  - `learning-memory-usage`
+  - `learning-retention`
+- Keep worker and webhook surfaces as producers only
 
-**OL0.2** — Register learning job types on the ops BullMQ consumer:
-- Verify PH0.2b's BullMQ consumer infrastructure is operational (delivered by PH0.2a/PH0.2b)
-- Register learning-specific job schemas: `learning-feedback-event`, `learning-review-run`, `learning-retention`, `learning-pattern-extraction`
-- Ops service validates payloads with Zod, applies writes transactionally, and records dead-letter failures for operator review
+**OL0.3** — Expand trigger design:
+- Add a `memory-teach` trigger context alongside the current merge-request and `/ai-review` trigger paths
+- Document precedence between manual review commands and memory-teach note events
+- Ensure note events can route to learning without accidentally invoking the full review pipeline
 
-**OL0.3** — Cached internal read path:
-- Define an internal `LearningClient` used by review workers to fetch active learned patterns with a short TTL cache
-- Avoid direct cross-pod SQLite reads as the default production design
-- Read path uses a separate internal read-only service contract (for example `/api/v1/internal/learning/patterns` or an ops-only ClusterIP endpoint), not the operator admin bearer-token surface and not direct DB mounts on webhook or worker pods
-- Internal read-path auth must be distinct from operator admin auth; worker pods receive only read-only service credentials or platform identity, never mutation-capable admin credentials
+**OL0.4** — Define bot identity and publication contract:
+- Add a dedicated GitLab bot username or user id to config
+- Define memory-ack markers and duplicate-suppression semantics
+- Specify exact acknowledgment language and when it may be emitted
 
-**OL0.4** — Update CONFIGURATION.md and ARCHITECTURE.md.
+**OL0.5** — Documentation update:
+- Update `docs/context/CONFIGURATION.md` and `docs/context/ARCHITECTURE.md` with the new locked design decisions and control-plane boundary
 
-### Phase OL1 — Database Schema & Storage Layer
+### Acceptance Criteria
 
-**Goal:** Set up the SQLite database, schema, and basic CRUD operations.
+- CP3 no longer depends on SQLite as the default learning store
+- GitLab note-based teaching is explicitly first-class scope
+- The bot-user requirement and acknowledgment behavior are documented clearly enough to implement without ambiguity
 
-**Phase-one storage constraint:** SQLite in this phase is supported only on the singleton ops deployment with block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem mounts are unsupported for the SQLite file.
+## Phase OL1 — Memory Substrate & PostgreSQL Foundation
 
-**Migration seam requirement:** OL1 must define store interfaces now so CP7 can introduce PostgreSQL later without changing BullMQ job schemas or API route contracts.
+**Goal:** Stand up the durable memory substrate and the CodeSmith-owned registry around it.
 
-**OL1.0** — Create storage contracts:
-- Create `src/learning/store.ts`
-- Define interfaces such as `FeedbackEventStore`, `LearnedPatternStore`, and `ReviewRunStore`
-- Keep public method signatures DB-neutral so SQLite and PostgreSQL implementations can satisfy the same contract
-- Route handlers, queue consumers, and prompt-injection code must depend on these contracts rather than importing SQLite-specific helpers directly
+**OL1.1** — Configuration and validation:
+- Add env vars for PostgreSQL, pgvector, Mem0 enablement, learning capture toggles, bot identity, and internal read credentials
+- Validate all learning-related config with Zod in `src/config.ts`
 
-**OL1.1** — Create `src/learning/database.ts`:
-- `initLearningDB(dbPath: string): Database`
-- Open with `bun:sqlite`, enable WAL mode, set busy timeout
-- Run migrations on first open
-- Export singleton `getLearningDB()` accessor used only by the ops service in production
+**OL1.2** — Service boundary:
+- Create `src/learning/store.ts` with DB-neutral interfaces for:
+  - memory registry writes
+  - memory audit writes
+  - sync cursor and dedupe reads
+  - memory usage updates
+  - memory retrieval calls used by the internal learning API
+- Create `src/learning/mem0-client.ts` as the only Mem0-specific integration boundary
+- Create `src/learning/postgres-store.ts` as the CodeSmith-owned registry adapter
 
-**OL1.1a** — Create `src/learning/sqlite-store.ts`:
-- Implement the OL1.0 interfaces using `bun:sqlite`
-- Treat this as the phase-one adapter, not the architectural boundary
+**OL1.3** — PostgreSQL schema and migrations:
+- Add forward-only migrations for:
+  - `memory_registry`
+  - `memory_source_events`
+  - `memory_usage_events`
+  - `feedback_sync_state`
+  - `review_memory_hits`
+- Enable pgvector as part of the ops bootstrap path
+- Keep Mem0 and CodeSmith registry migrations ordered and deterministic
 
-**OL1.2** — Create `src/learning/schema.ts`:
-- Zod schemas for `FeedbackEvent`, `LearnedPattern`, `ReviewRun`, and `FeedbackSyncState`
-- Type exports: `type FeedbackEvent = z.infer<typeof feedbackEventSchema>`
-- CRUD functions:
-  - `insertFeedbackEvent(db, event)`
-  - `insertLearnedPattern(db, pattern)`
-  - `insertReviewRun(db, run)`
-  - `upsertFeedbackSyncState(db, state)`
-  - `getFeedbackSyncState(db, projectId, mrIid, sourceKind)`
-  - `getLearnedPatterns(db, projectId, options?)` — returns active patterns for a project
-  - `updatePatternConfidence(db, patternId, confidence)`
-  - `deactivatePattern(db, patternId)`
-
-**OL1.3** — Create `src/learning/migrations/`:
-- `001_initial.sql` — creates feedback, pattern, review-run, and sync-state tables and indexes
-- Migration runner: reads SQL files in order, tracks applied migrations in a `_migrations` table
-- Forward-only (no rollback mechanism — keep simple)
-- **Transaction wrapping (review-driven O4):** Each migration file execution must be wrapped in `BEGIN/COMMIT` with `ROLLBACK` on failure. Record the migration as applied in the `_migrations` table only after the transaction commits. This prevents partial schema states if a migration crashes mid-execution.
-
-**OL1.4** — Add to config:
-- `LEARNING_DB_PATH`: string, default `./data/learning.db`
-- `LEARNING_ENABLED`: boolean string, default `"false"` (opt-in until stable)
-- Add `data/` to `.gitignore` and `.dockerignore`
+**OL1.4** — Ops bootstrap:
+- Initialize PostgreSQL, pgvector checks, Mem0 client wiring, and migration order in `src/ops.ts`
+- Expose health diagnostics for the learning service without leaking secrets
+- Preserve transactional guarantees for CodeSmith-owned audit writes around Mem0 operations where possible
 
 **OL1.5** — Tests:
-- Database creation and WAL mode verification
-- Migration execution (fresh DB, already-migrated DB)
-- CRUD operations for all four tables
-- Prepared statement caching behavior
-- Concurrent read verification
+- Config validation and startup failure cases
+- Migration order and idempotency
+- CRUD for registry and audit tables
+- Mem0-backed retrieval with metadata filters and deterministic limits
+- Retry-safe write behavior
 
-**OL1.6** — Update CONFIGURATION.md (new env vars) and ARCHITECTURE.md (learning subsystem overview).
+**OL1.6** — Documentation update:
+- Update `docs/context/CONFIGURATION.md` and `docs/context/ARCHITECTURE.md`
 
-**OL1.7** — Create a storage ADR:
-- Record SQLite as the phase-one store
-- Record PostgreSQL as the default scale-up target for CP7
-- Record that `pgvector` is future optional scope only when semantic retrieval becomes a demonstrated requirement
+### Acceptance Criteria
 
-### Phase OL2 — Feedback Ingestion
+- Learning storage is PostgreSQL-backed from the start
+- Mem0 integration is isolated behind a CodeSmith-owned boundary
+- Registry, provenance, and dedupe behavior do not depend on opaque third-party internals
 
-**Goal:** Capture developer feedback signals from GitLab and store them.
+## Phase OL2 — GitLab Mention Capture, Thread Context & Acknowledgment Replies
 
-**OL2.1** — Create `src/learning/feedback-poller.ts`:
-- `pollReactions(projectId, mrIid, gitlabClient): Promise<FeedbackEvent[]>`
-- Fetch discussions on the MR
-- For each Code Smith inline comment (identified by `<!-- code-smith:finding ... -->` marker):
-  - Check for 👍 and 👎 emoji reactions via `GET /projects/:id/merge_requests/:iid/discussions/:disc_id/notes/:note_id/award_emoji`
-  - Map to feedback events with `signal_type: 'thumbs_up'` or `'thumbs_down'`, plus `discussion_id`, `note_id`, and source cursor metadata
-- Idempotency: enforce dedup through the `feedback_events` unique index and sync-state watermarks rather than best-effort in-memory checks
+**Goal:** Turn merge-request discussion replies into safe, idempotent memory-teaching events.
 
-**OL2.2** — Create `src/learning/suggestion-tracker.ts`:
-- `trackSuggestions(projectId, mrIid, gitlabClient): Promise<FeedbackEvent[]>`
-- Fetch MR discussions with Code Smith suggestion comments
-- Check if suggestions were applied (GitLab marks applied suggestions differently in the API)
-- Check if threads were resolved (resolved without applying = dismissed)
-- Map to feedback events: `signal_type: 'applied'` (+1) or `'dismissed'` (-1), with stable source identifiers for replay-safe deduplication
+**OL2.1** — Note-event schema and routing:
+- Expand `src/api/schemas.ts` to capture note-event fields required for memory routing
+- Expand `src/api/router.ts` to accept eligible merge-request note events for memory-teach processing
+- Preserve existing `/ai-review` behavior unchanged
 
-**OL2.3** — Create `src/learning/feedback-normalizer.ts`:
-- `normalizeFeedbackEvent(rawEvent): FeedbackEvent`
-- Derive `file_pattern` from file path (e.g., `src/api/router.ts` → `src/api/**`)
-- Derive `language` from file extension
-- Derive `category` from finding title keywords (security → "security", test → "testing", etc.)
+**OL2.2** — Thread-context loading and filters:
+- Add discussion loaders in `src/gitlab-client/client.ts` or equivalent helpers for fetching source discussions and notes by id
+- Build deterministic eligibility filters in `src/learning/mention-processor.ts`
+- Reject duplicate, bot-authored, or irrelevant notes before any LLM extraction path
 
-**OL2.4** — Create `src/learning/feedback-scheduler.ts`:
-- Schedule periodic polling (configurable interval, default: 5 minutes)
-- On each tick: load `feedback_sync_state`, advance per-MR cursors for Code Smith-authored notes, and poll only unseen feedback surfaces
-- Enforce bounded batch sizes, backoff on GitLab 429s, and idempotent resume from persisted cursors after restarts
-- Update sync-state rows transactionally with write ingestion so cursor advance and event persistence stay consistent
-- Graceful shutdown integration (cancel timer on SIGTERM)
-- Skip when `LEARNING_ENABLED=false`
-- Run only in the singleton ops service
-- **Polling bounds (review-driven):**
-  - Only poll MRs that were reviewed by Code Smith in the last `FEEDBACK_POLL_MR_AGE_DAYS` days (default: 14); remove merged/closed MRs from the active set after that window
-  - Cap active polling set at `FEEDBACK_POLL_MAX_MRS` per cycle (default: 50); prioritize most recently reviewed MRs
-  - Cap per-cycle GitLab API calls at `FEEDBACK_POLL_API_BUDGET` (default: 100); terminate the cycle early if the budget exhausts
-  - For deployments with >50 active MRs, document that the polling interval should be lengthened (e.g., 10-15 minutes) to avoid rate-limit pressure
+**OL2.3** — Queue jobs and ops consumers:
+- Define Zod-validated job payloads for note-triggered memory writes and acknowledgment publication
+- Route all learning writes through ops-owned consumers
+- Add dead-letter handling and retry-safe idempotency keys keyed by source note id and action type
+
+**OL2.4** — Acknowledgment publication:
+- Extend publisher support so CodeSmith can post same-thread memory acknowledgments with hidden markers
+- Ensure retries do not double-post
+- Keep acknowledgment phrasing concise and factual
 
 **OL2.5** — Tests:
-- Reaction polling with mocked GitLab API responses
-- Suggestion tracking with applied/dismissed scenarios
-- Feedback normalization (file pattern derivation, language detection)
-- Idempotency (duplicate events not inserted)
-- Restart-resume behavior from persisted sync state
-- Scheduler lifecycle (start, poll, stop)
+- Mention detection and routing
+- Discussion-context loading
+- Duplicate suppression for source notes and ack replies
+- Queue handoff and retry behavior
+- Same-thread acknowledgment publication
 
-**OL2.6** — Update WORKFLOWS.md: add feedback ingestion workflow.
+**OL2.6** — Documentation update:
+- Update `docs/context/WORKFLOWS.md`
 
-### Phase OL3 — Pattern Extraction & Learning
+### Acceptance Criteria
 
-**Goal:** Derive actionable learned patterns from accumulated feedback signals.
+- A valid `@code-smith` teaching reply reaches ops as a learning job without starting a review run
+- A durable memory action emits exactly one acknowledgment note in the same discussion
+- Duplicate webhook deliveries do not create duplicate memories or duplicate acknowledgments
 
-**OL3.1** — Create `src/learning/pattern-extractor.ts`:
-- `extractPatterns(db, projectId): Promise<LearnedPattern[]>`
-- Query feedback events grouped by: `(file_pattern, category, language)`
-- For each group with sufficient signals (≥ 5 total):
-  - Calculate positive ratio: `positive / total`
-  - If ratio < 0.3 → `pattern_type: 'suppress'` ("team consistently dismisses this type of finding")
-  - If ratio > 0.8 → `pattern_type: 'emphasize'` ("team consistently values this type of finding")
-  - Between 0.3–0.8 → no pattern (insufficient consensus)
+## Phase OL3 — Memory Extraction, Scope Resolution & Reinforcement Signals
 
-**OL3.2** — Pattern rule generation:
-- `suppress` patterns translate to: "Do not report {category} findings on files matching {file_pattern}. Historical feedback shows the team considers these noise."
-- `emphasize` patterns translate to: "Pay special attention to {category} findings on files matching {file_pattern}. Historical feedback shows the team values these highly."
-- `instruction` patterns (manually created via API) translate to: "{description}" — injected as explicit review instruction
+**Goal:** Convert thread corrections into durable memories with explicit lifecycle behavior.
 
-**OL3.3** — Confidence scoring:
-- `confidence = (total_signals / 20) * consistency_ratio`
-  - `consistency_ratio = max(positive/total, negative/total)` — how one-sided the signal is
-  - Cap at 1.0
-  - Minimum threshold to activate: `confidence >= 0.5`
-- Patterns below threshold exist in DB but are marked `is_active = 0`
+**OL3.1** — Memory extraction workflow:
+- Create `src/learning/memory-extractor.ts`
+- Input includes:
+  - source human note
+  - corrected CodeSmith note
+  - MR title and relevant file path
+  - discussion position metadata
+  - any matching existing memories for that scope
+- Output is a strict structured decision:
+  - create
+  - update
+  - supersede
+  - ignore one-off
+  - clarify needed
 
-**OL3.4** — Scope management:
-- Per-project patterns: derived from that project's feedback events only
-- Cross-project patterns: derived from all projects (when scope = 'global')
-- `.codesmith.yaml` `features.learning` controls opt-in
-- Cross-project patterns require explicit opt-in at instance level (`LEARNING_CROSS_PROJECT=true`)
+**OL3.2** — Scope derivation:
+- Infer project scope by default
+- Add repo, file-pattern, language, and finding-category filters when context supports them
+- Keep scope conservative when context is weak rather than over-generalizing
+
+**OL3.3** — Lifecycle behavior:
+- Normalize memory text into reusable review guidance rather than storing raw user prose only
+- Merge near-duplicate memories where appropriate
+- Supersede stale memories when a new correction clearly replaces an older one
+- Archive memories rather than hard-deleting them when operator history matters
+
+**OL3.4** — Reinforcement events:
+- Keep reaction polling and suggestion-state tracking, but use them to:
+  - reinforce existing memories
+  - update usage or confidence
+  - flag stale or contradicted memories for operator review
+- Do not let weak reinforcement alone create broad new memories without a human correction path
 
 **OL3.5** — Tests:
-- Pattern extraction from various feedback distributions
-- Confidence scoring edge cases (few signals, perfectly split, unanimously positive/negative)
-- Scope isolation (project patterns don't leak to other projects)
-- Pattern deactivation when signal distribution changes
+- One-off versus durable correction classification
+- Scope derivation from file path, language, and category
+- Create, merge, supersede, and archive behavior
+- Reinforcement updates for reactions and applied suggestions
 
-**OL3.6** — Update ARCHITECTURE.md: add pattern extraction algorithm documentation.
+**OL3.6** — Documentation update:
+- Update `docs/context/ARCHITECTURE.md`
 
-### Phase OL4 — Learning Injection Into Reviews
+### Acceptance Criteria
 
-**Goal:** Use learned patterns to improve review quality by injecting relevant context into agent prompts.
+- Human thread corrections can become durable review memories with clear provenance
+- One-off thread-specific exceptions are not over-promoted into broad project rules
+- Reinforcement signals improve memory health without replacing explicit teaching
 
-**OL4.1** — In `src/api/pipeline.ts`, after loading repo config and before `executeReview()`:
-- Query the internal `LearningClient` for active patterns through the read-only internal learning endpoint owned by the singleton ops service
-- Filter to patterns relevant to the current review's changed file set (match `file_pattern`)
-- Attach to ReviewState as `learnedPatterns: LearnedPattern[]`
-- Keep the `LearningClient` contract retrieval-oriented and backend-neutral so CP7 can change the underlying store without changing review-worker call sites
+## Phase OL4 — Memory Retrieval & Injection Into Reviews
 
-**OL4.2** — Investigator agent injection:
-- Add a `<learned_review_rules>` section to the investigator prompt
-- Include relevant `suppress` and `emphasize` patterns as explicit instructions
-- Format:
-  ```
-  <learned_review_rules>
-  Based on historical team feedback on this project:
-  - DO NOT report unused-import findings on test files (pattern: **/*.test.ts). This team marks these as noise. [confidence: 0.85]
-  - PAY ATTENTION to error handling in API routes (pattern: src/api/**). This team values these findings highly. [confidence: 0.92]
-  </learned_review_rules>
-  ```
-- Cap at 10 most confident patterns to avoid prompt bloat
+**Goal:** Retrieve the right memories at review time and inject them safely into CodeSmith's existing agents.
 
-**OL4.3** — Reflection agent injection:
-- `suppress` patterns inform the reflection agent's filtering:
-  - "The following finding types should be discarded based on organizational feedback: {list}"
-  - The reflection agent already filters weak findings; this adds a data-driven filter
+**OL4.1** — Retrieval path:
+- Query the internal learning API during pipeline startup
+- Filter by project, changed files, repo path, language hints, and category hints before semantic ranking
+- Apply short TTL caching inside review workers
 
-**OL4.4** — Tag findings with learning metadata:
-- When a finding is influenced by a learned pattern (either suppressed or emphasized), add metadata
-- Extend `Finding` schema with optional `learningInfluenced?: boolean`
-- Useful for feedback loop validation (did learning actually improve outcomes?)
+**OL4.2** — Investigator prompt injection:
+- Add a `<learned_review_rules>` section containing the highest-confidence, most relevant memories
+- Label each memory with enough provenance to be explainable without bloating the prompt
+- Hard-cap count and total characters
+
+**OL4.3** — Reflection-stage correction:
+- Feed corrective memories into reflection so previously corrected behavior can suppress noisy findings or adjust confidence
+- Keep deterministic policy authoritative when memories conflict with hard security or config rules
+
+**OL4.4** — Usage tagging:
+- Add memory-hit metadata to `ReviewState` and final findings where relevant
+- Emit asynchronous usage updates so memories track last-used time and hit counts
 
 **OL4.5** — Tests:
-- Pattern injection with various pattern types and scopes
-- Prompt composition with learned rules
-- Reflection agent filtering with suppress patterns
-- Finding tagging with learning metadata
-- Empty patterns → no injection (no change to behavior)
+- Retrieval with semantic plus metadata filtering
+- Prompt injection caps and formatting
+- Reflection suppression or correction behavior
+- Memory-hit tagging and usage updates
 
-**OL4.6** — Update WORKFLOWS.md: add learning injection step to pipeline flow.
+**OL4.6** — Documentation update:
+- Update `docs/context/WORKFLOWS.md`
 
-### Phase OL5 — Management API & Docs
+### Acceptance Criteria
 
-**Goal:** Provide API endpoints for managing learned patterns and complete documentation.
+- Relevant memories are retrieved without requiring exact wording matches
+- Prompt injection remains bounded and explainable
+- Memory usage can be observed and audited later
 
-**OL5.1** — Create API endpoints in `src/api/router.ts` (or new `src/api/learning-router.ts`):
-- `GET /api/v1/admin/learning/patterns?project_id=N` — list active patterns for a project
-- `GET /api/v1/admin/learning/patterns/:id` — get pattern details
-- `GET /api/v1/admin/learning/patterns/global` — list cross-project patterns
+## Phase OL5 — Memory Management API, Docs & Final Audit
 
-**OL5.2** — Management endpoints:
-- `PUT /api/v1/admin/learning/patterns/:id` — update pattern description or toggle `is_active`
-- `DELETE /api/v1/admin/learning/patterns/:id` — soft-delete (set `is_active = 0`)
-- `POST /api/v1/admin/learning/patterns` — manually create an `instruction`-type pattern
-  - Body: `{ project_id?, file_pattern?, language?, description }`
-  - This allows teams to add explicit review rules via API (like CodeRabbit's manual learning input)
+**Goal:** Make memories inspectable, editable, and operationally safe.
 
-**OL5.3** — Statistics endpoint:
-- `GET /api/v1/admin/learning/stats?project_id=N` — feedback statistics
-  - Total feedback events, positive/negative ratio, pattern count, most active rules
+**OL5.1** — Admin APIs:
+- Add endpoints under `/api/v1/admin/learning/*` for:
+  - list memories
+  - semantic search memories
+  - get memory details
+  - edit memory text and scope
+  - archive or restore memory
+  - supersede one memory with another
 
-**OL5.4** — Respect `.codesmith.yaml`:
-- `features.learning: false` → skip feedback polling and pattern injection for this project
-- `features.learning: true` (or default when `LEARNING_ENABLED=true`) → full learning loop
+**OL5.2** — Stats and export:
+- Add endpoints for:
+  - memory counts by project and status
+  - most-used memories
+  - stale or never-used memories
+  - reinforcement event summaries
+  - export of memory registry with provenance and usage metadata
 
-**OL5.5** — Add `docs/guides/LEARNING.md`:
-- How the learning system works (capture → store → learn → inject)
-- How to view and manage learned patterns
-- How to manually add team-specific review rules
-- Configuration options (env vars + repo config)
-- Privacy considerations (what data is stored, retention)
+**OL5.3** — Repo-config controls:
+- Respect `.codesmith.yaml` learning settings for capture, retrieval scope, and opt-out
+- Keep project opt-out authoritative over instance defaults
 
-**OL5.6** — Update `docs/README.md`.
+**OL5.4** — Guide documentation:
+- Add `docs/guides/LEARNING.md` covering:
+  - how to teach CodeSmith in a thread
+  - what gets remembered and what does not
+  - how acknowledgment replies work
+  - admin management and privacy controls
+  - retention and memory hygiene
 
-**OL5.7** — Run `review-plan-phase` audit.
+**OL5.5** — Docs index and plan references:
+- Update `docs/README.md` and any affected cross-plan summaries to reflect the memory-first design and `@code-smith` teaching workflow
+
+**OL5.6** — Final audit:
+- Run `review-plan-phase`
+- Save the audit report under `docs/plans/review-reports/`
+- Do not mark the plan complete until implementation, tests, docs, and acknowledgment behavior all pass review
+
+### Acceptance Criteria
+
+- Operators can inspect and correct memories without touching storage internals
+- Users have a documented and predictable way to teach CodeSmith in review threads
+- The plan is not presented as complete until the full audit verifies behavior, docs, and controls
 
 ## Privacy & Security Considerations
 
-- Feedback events store GitLab user IDs for attribution but no personal information beyond that
-- All data stays local to the Code Smith instance (SQLite file on disk)
-- Learning patterns are derived from aggregated signals, not individual feedback events
-- The management API must use dedicated admin auth and never reuse webhook secrets; worker/service-to-service reads must use a separate read-only internal auth mechanism
-- Data retention: configurable (`LEARNING_RETENTION_DAYS`, default 365)
-- Database file should be excluded from Docker image builds; mounted only into the singleton ops service by default
-- Feedback and analytics writes flow through queue-backed ops jobs with idempotency keys; webhook and worker pods do not inherit DB write authority
+- Memory capture must ignore bot-authored notes and never learn from CodeSmith's own text alone
+- Raw source notes should be retained only as needed for provenance and audit; prompt injection should use normalized memories rather than replaying full thread history
+- Learning writes must stay behind ops-owned credentials and queue boundaries
+- Internal read credentials for workers must be separate from operator admin credentials
+- Memory extraction must apply bounded input sizes and marker sanitization before any LLM step
+- Retention and archival behavior must be explicit and operator-controlled
+- Project opt-out via `.codesmith.yaml` must disable both capture and retrieval for that project
+
+## Open Questions Resolved By This Revision
+
+These are no longer open decisions in CP3:
+
+- SQLite is not the default memory store for CP3
+- explicit comment-based teaching is not future work
+- semantic retrieval is not deferred behind a later migration gate
+- reactions and applied suggestions are not the main learning mechanism

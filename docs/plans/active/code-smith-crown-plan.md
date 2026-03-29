@@ -12,10 +12,12 @@ related_files:
   - docs/plans/implemented/repo-review-config-plan.md
   - docs/plans/backlog/linter-sast-integration-plan.md
   - docs/plans/backlog/organizational-learning-plan.md
+  - docs/plans/active/cp3-review-memory-foundation-plan.md
   - docs/plans/backlog/enhanced-review-output-plan.md
   - docs/plans/backlog/analytics-observability-plan.md
   - docs/plans/backlog/production-hardening-plan.md
   - docs/plans/backlog/postgresql-pgvector-migration-plan.md
+  - docs/designs/review-memory-foundation.md
 
 tags:
   - master-plan
@@ -31,7 +33,7 @@ completion:
   - [ ] CP4 — Enhanced Review Output plan implemented
   - [ ] CP5 — Analytics & Observability plan implemented
   - [ ] CP6 — Production Hardening & Developer Experience plan implemented
-  - [ ] CP7 — PostgreSQL & pgvector Migration Path plan implemented when activation criteria are met
+  - [ ] CP7 — Storage Evolution & Advanced Memory Infrastructure plan implemented when activation criteria are met
   - "# Crown Validation"
   - [ ] CV1 — Re-run competitive evaluation scoring with evidence
   - [ ] CV2 — Update AI-Code-Review-Tool-Evaluation.md with new scores
@@ -46,10 +48,10 @@ The crown plan now assumes the following implementation constraints. They are no
 - Repo configuration lives in `.codesmith.yaml` at repo root.
 - Repo configuration may select behavior, thresholds, and named linter profiles, but it may never define executable commands.
 - Initial linter scope is Biome and other instance-owned standalone binaries only. ESLint is explicitly deferred to a future dependency-hydration and sandbox design.
-- Learning and analytics data use `bun:sqlite`, but write ownership belongs to a singleton internal ops/control-plane service rather than multi-writer shared pods.
-- Webhook and worker pods send learning and analytics write intents to the ops service through durable internal BullMQ jobs with idempotency keys; only the ops service writes SQLite.
-- SQLite is phase-one relational storage, not a permanent architectural boundary. Learning and analytics code must sit behind storage interfaces so PostgreSQL can replace SQLite later without queue-payload or route-contract churn.
-- Learning feedback starts with GitLab reactions and suggestion-state tracking. Explicit comment commands are future work.
+- Learning memory is planned as a Mem0-backed subsystem on PostgreSQL plus pgvector, while analytics and audit data still sit behind ops-owned storage interfaces rather than multi-writer shared pods.
+- Webhook and worker pods send learning and analytics write intents to the ops service through durable internal BullMQ jobs with idempotency keys; only the ops service owns learning-memory and analytics mutations.
+- Storage boundaries remain explicit: CodeSmith keeps learning and analytics code behind domain interfaces so future storage evolution does not force queue-payload or route-contract churn.
+- Learning feedback starts with explicit GitLab thread teaching through `@code-smith` replies and discussion corrections; reactions and suggestion-state tracking act as reinforcement signals rather than the primary memory-creation path.
 - Admin and analytics routes use a dedicated bearer-auth or mTLS-protected internal route group, disabled by default, and never reuse webhook auth.
 - Feedback polling stores persisted sync cursors and source identifiers so resume and deduplication are deterministic after restarts.
 - Operational observability uses Prometheus metrics; leadership analytics use SQLite-backed APIs behind the admin route group.
@@ -60,13 +62,13 @@ The crown plan now assumes the following implementation constraints. They are no
 - Dependency-introducing phases must include a `bun audit` remediation or explicit risk-acceptance step before merge. `bun audit` is the canonical gate; optional wrappers may assist CI reporting but must not replace it.
 - Standalone linter profiles run with an explicit sandbox contract: minimal inherited environment, stripped credentials, bounded output, bounded time, and isolated temp storage.
 - Readiness is role-specific across webhook, worker, and ops deployments; external dependency reachability stays on diagnostics only.
-- Storage roles are explicit: relational storage is the source of truth for feedback, learned patterns, and analytics facts; Valkey remains queue/cache infrastructure; vector indexing is future optional infrastructure only if semantic retrieval becomes a real requirement.
+- Storage roles are explicit: PostgreSQL is the planned source of truth for learning registries and analytics facts, pgvector underpins semantic memory retrieval for CP3, Mem0 provides the memory layer, and Valkey remains queue/cache infrastructure.
 
 ## Strategic Vision
 
 Code Smith's corrected evaluation score is **7.3/10** — marginally behind GitLab Duo (7.4) and above CodeRabbit (6.9). The score is honest: Code Smith leads on data sovereignty and cost but gets hammered on production readiness (4/10), ease of setup (5/10), and operational maturity. The gap to GitLab Duo is 0.1 points — closing it requires meaningful gains in readiness, operations, and integration depth.
 
-This plan closes every competitive gap through six primary child plans plus one threshold-driven future migration plan. The target is a legitimate **9.0/10** — earned through real capabilities, not marketing.
+This plan closes every competitive gap through six primary child plans plus one threshold-driven storage-evolution plan. The target is a legitimate **9.0/10** — earned through real capabilities, not marketing.
 
 ```mermaid
 ---
@@ -81,7 +83,7 @@ flowchart LR
   CP4["CP4: Enhanced\nReview Output"]
   CP5["CP5: Analytics &\nObservability"]
   CP6["CP6: Production\nHardening & DX"]
-  CP7["CP7: PostgreSQL +\npgvector Migration"]
+  CP7["CP7: Storage Evolution +\nAdvanced Memory Infra"]
 
   CP1 --> CP2
   CP1 --> CP3
@@ -102,7 +104,7 @@ flowchart LR
   style CP7 fill:#9C27B0,color:#fff
 ```
 
-**Legend:** Green = start immediately (no dependencies); Blue = start after CP1; Orange = start after prerequisites; Purple = threshold-driven future migration path.
+**Legend:** Green = start immediately (no dependencies); Blue = start after CP1; Orange = start after prerequisites; Purple = threshold-driven storage-evolution path.
 
 ---
 
@@ -177,23 +179,25 @@ Each child plan targets specific scoring improvements. The rightmost column show
 ### CP3 — Organizational Learning System
 
 **File:** [`docs/plans/backlog/organizational-learning-plan.md`](../backlog/organizational-learning-plan.md)
+**Active slice:** [`docs/plans/active/cp3-review-memory-foundation-plan.md`](./cp3-review-memory-foundation-plan.md)
 **Priority:** HIGH
 **Estimated hours:** 40–60
 **Depends on:** CP1 (learning config in `.codesmith.yaml`), CP6 (admin route group and singleton ops foundation)
 
-**What it does:** Captures feedback signals from developers (reactions and applied/dismissed suggestions), stores them in a singleton ops-owned SQLite database, and injects relevant learned patterns into future reviews through a safe internal read path. This is the single biggest competitive differentiator CodeRabbit has — and the most impactful feature Code Smith can build.
+**What it does:** Lets developers teach CodeSmith directly in GitLab review threads by replying to CodeSmith comments or mentioning `@code-smith`, stores those corrections as durable review memories in a Mem0-backed PostgreSQL plus pgvector subsystem, reinforces them with reactions and suggestion outcomes, and injects the most relevant memories into future reviews through a safe internal read path. This is the single biggest competitive differentiator CodeRabbit has — and the most impactful feature Code Smith can build.
 
 **Competitive gap closed:** Learns from feedback across MRs (CodeRabbit: "Learnings" system; GitLab Duo: none; Code Smith: none → full learning loop)
 
 **Key capabilities:**
-- Feedback ingestion: poll GitLab for reactions on Code Smith comments, track applied suggestions
-- `bun:sqlite` learning database with WAL mode and singleton write ownership
-- Durable internal write-job transport from webhook/worker surfaces to the ops service
-- Pattern extraction: group feedback by file pattern, language, finding category
-- Learning injection: add relevant learned patterns to investigator agent's system prompt per review via an internal cached read API
-- Learning management: API endpoints to view, edit, and delete learned patterns behind the dedicated admin route group
-- Per-project and cross-project learning scopes
-- Configurable via `.codesmith.yaml` (opt-in/out, scope, retention)
+- Feedback ingestion: capture explicit `@code-smith` thread corrections plus reaction and suggestion reinforcement signals
+- Mem0-backed memory layer on PostgreSQL plus pgvector with singleton ops-owned write authority
+- Durable internal write-job transport from webhook and worker surfaces to the ops service
+- Active implementation slice: review-memory foundation for note-webhook expansion, same-thread acknowledgments, and the CodeSmith-owned Mem0/PostgreSQL service boundary
+- Memory extraction and lifecycle: create, merge, supersede, archive, and reinforce memories with provenance back to GitLab threads
+- Learning injection: add relevant memories to investigator and reflection stages through an internal cached read API
+- Learning management: API endpoints to view, edit, archive, search, and supersede memories behind the dedicated admin route group
+- Per-project default scope with path, language, category, and optional broader scope controls
+- Configurable via `.codesmith.yaml` (capture opt-in/out, retrieval scope, retention)
 
 ---
 
@@ -224,7 +228,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 **File:** [`docs/plans/backlog/analytics-observability-plan.md`](../backlog/analytics-observability-plan.md)
 **Priority:** MEDIUM
 **Estimated hours:** 30–45
-**Depends on:** CP3 (learning database schema), CP6 (deployment wiring and operationalization for Prometheus metrics)
+**Depends on:** CP3 (memory/provenance schema), CP6 (deployment wiring and operationalization for Prometheus metrics)
 
 **What it does:** Adds review-level analytics (finding trends, severity distributions, per-project stats, false positive rates) and operational metrics (Prometheus endpoint for request latency, queue depth, LLM call duration). Provides API endpoints for querying analytics data for dashboards or reports.
 
@@ -272,24 +276,24 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 ---
 
-### CP7 — PostgreSQL & pgvector Migration Path
+### CP7 — Storage Evolution & Advanced Memory Infrastructure
 
 **File:** [`docs/plans/backlog/postgresql-pgvector-migration-plan.md`](../backlog/postgresql-pgvector-migration-plan.md)
 **Priority:** FUTURE / THRESHOLD-DRIVEN
 **Estimated hours:** 40–70
 **Depends on:** CP3, CP5, CP6
 
-**What it does:** Defines the additive migration path from the phase-one singleton SQLite design to PostgreSQL as the long-term system of record, with optional `pgvector` only if Code Smith later needs semantic retrieval over free-form review memory.
+**What it does:** Defines the additive storage-evolution path after CP3's direct Mem0 plus PostgreSQL plus pgvector memory design is already in place. CP7 now governs analytics scale-up from the phase-one singleton SQLite design to PostgreSQL and the later evaluation of more specialized memory infrastructure only if the baseline memory path proves insufficient.
 
-**Competitive gap closed:** Long-term operational maturity, HA storage, and future semantic memory without locking the product into a premature specialized database.
+**Competitive gap closed:** Long-term operational maturity, analytics scale headroom, and a disciplined path for future memory specialization without prematurely adding infrastructure.
 
-**Activation criteria:** Start CP7 only when one or more thresholds are met: multi-writer or HA pressure on the ops service, external SQL/reporting consumers, sustained queue lag from analytics writes, multi-GB growth with degraded admin queries, stronger PITR/backup expectations, or a proven need for semantic retrieval beyond heuristic learning rules.
+**Activation criteria:** Start CP7 only when one or more thresholds are met: multi-writer or HA pressure on analytics/admin workloads, external SQL/reporting consumers, sustained queue lag from analytics writes, multi-GB growth with degraded admin queries, stronger PITR/backup expectations, or measured evidence that the Mem0 plus PostgreSQL plus pgvector memory path is no longer sufficient.
 
 **Key capabilities:**
-- Storage abstraction seam across CP3 and CP5 so migration is additive rather than invasive
-- PostgreSQL foundation for transactional learning and analytics data
-- Dual-write/backfill/cutover plan with verification gates
-- Optional `pgvector` extension only when semantic retrieval becomes a justified product requirement
+- Storage abstraction seam across CP3 and CP5 so storage evolution is additive rather than invasive
+- PostgreSQL foundation for scaled analytics and shared admin data
+- Dual-write/backfill/cutover plan with verification gates for analytics workloads
+- Evidence-gated evaluation of dedicated vector or graph memory infrastructure only if the baseline memory path proves insufficient
 
 ---
 
@@ -314,11 +318,11 @@ With CP1 complete and CP6's admin/control-plane and durable-write foundation in 
 
 With CP3 and CP6 complete, start CP5 (Analytics & Observability).
 
-- **CP5** builds on CP6's Prometheus foundation and CP3's learning database
+- **CP5** builds on CP6's Prometheus foundation and CP3's memory/provenance model
 
 ### Phase 4 — Storage Validation & Future Scale Path (Week 10+)
 
-With CP3, CP5, and CP6 implemented, review the storage activation criteria. If the thresholds are not met, keep the phase-one SQLite design. If they are met, activate CP7 and migrate to PostgreSQL, adding `pgvector` only if semantic retrieval is part of the requirement.
+With CP3, CP5, and CP6 implemented, review the storage activation criteria. If the thresholds are not met, keep the phase-one SQLite analytics design and the baseline Mem0 plus PostgreSQL plus pgvector memory stack. If they are met, activate CP7 for analytics migration and, only if evidence justifies it, for later advanced memory infrastructure work.
 
 ### Phase 5 — Crown Validation (after required child plans)
 

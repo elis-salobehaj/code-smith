@@ -12,6 +12,7 @@ Unified reference documentation for both humans and agents. These docs lean towa
 
 - [Multi-Agent Architecture](./designs/multi-agent-architecture.md) — Agent pipeline diagram, per-agent inputs/outputs, data flow, known issues, and proposed improvements
 - [Repo Config Security Gate](./designs/repo-config-security-gate.md) — Threat model and concrete design for screening `.codesmith.yaml` prompt content before it reaches the review agents
+- [Review Memory Foundation](./designs/review-memory-foundation.md) — Concrete design for `@code-smith` note capture, same-thread acknowledgments, and the CodeSmith-owned Mem0/PostgreSQL memory boundary
 - [Tech Stack Design](./designs/tech-stack-evaluation.md) — Current stack decision record and provider-boundary rationale
 
 ## 📚 Guides (`docs/guides/`)
@@ -23,14 +24,15 @@ Unified reference documentation for both humans and agents. These docs lean towa
 ## 📋 Implementation Plans (`docs/plans/`)
 
 - **Active**: [The Crown Plan](./plans/active/code-smith-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 primary child plans plus a threshold-driven PostgreSQL/pgvector migration path
+- **Active**: [CP3.A1 — Review Memory Foundation](./plans/active/cp3-review-memory-foundation-plan.md) — First implementation slice for review-memory webhook expansion, same-thread acknowledgments, and the Mem0/PostgreSQL service boundary
 - **Backlog**: [CodeSmith Master Plan](./plans/backlog/code-smith-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
 - **Backlog**: [CodeSmith Awakening Personality Plan](./plans/backlog/CodeSmith-awakening-personality-plan.md) — Trigger alias expansion, CodeSmith-mode acknowledgements, and tone-aware top-level summary behavior
 - **Backlog**: [CP2 — Linter & SAST Integration](./plans/backlog/linter-sast-integration-plan.md) — Auto-detect and run Biome plus instance-owned standalone analysis profiles against changed files, with explicit subprocess sandbox controls, normalized findings, and agent/publisher integration
-- **Backlog**: [CP3 — Organizational Learning](./plans/backlog/organizational-learning-plan.md) — Feedback capture (reactions, applied suggestions), singleton ops-owned SQLite learning DB, persisted sync cursors, durable write jobs, and prompt injection for future reviews
+- **Backlog**: [CP3 — Organizational Learning](./plans/backlog/organizational-learning-plan.md) — Mem0-backed review memory on PostgreSQL plus pgvector, `@code-smith` thread teaching with same-thread acknowledgments, reinforcement signals from reactions and suggestion outcomes, and prompt injection for future reviews
 - **Backlog**: [CP4 — Enhanced Review Output](./plans/backlog/enhanced-review-output-plan.md) — Smart MR summaries, file-by-file walkthroughs, improved suggestion formatting and one-click fix UX
 - **Backlog**: [CP5 — Analytics & Observability](./plans/backlog/analytics-observability-plan.md) — Prometheus metrics, SQLite analytics, REST API for review trends, Grafana dashboard template
 - **Backlog**: [CP6 — Production Hardening & DX](./plans/backlog/production-hardening-plan.md) — Helm chart, HPA, health probes, circuit breakers, benchmarks, E2E tests, contributor guide, operational runbook
-- **Backlog**: [CP7 — PostgreSQL & pgvector Migration Path](./plans/backlog/postgresql-pgvector-migration-plan.md) — Threshold-driven migration from phase-one SQLite storage to PostgreSQL, with optional pgvector only when semantic retrieval is justified
+- **Backlog**: [CP7 — Storage Evolution & Advanced Memory Infrastructure](./plans/backlog/postgresql-pgvector-migration-plan.md) — Threshold-driven plan for analytics scale-up to PostgreSQL and later evaluation of more specialized memory infrastructure only if Mem0 plus PostgreSQL plus pgvector proves insufficient
 - **Backlog**: [Deno Runtime Evaluation And Migration Plan](./plans/backlog/deno-runtime-evaluation-and-migration-plan.md) — Security-first runtime evaluation, Bun-to-Deno rewrite scope, replacement matrix, and spike-first migration path
 - **Implemented**: [Review Edge Cases Hardening](./plans/implemented/review-edge-cases-hardening.md) — Same-head idempotency, review ledger + incremental ranges, publication semantics, full-pipeline branch serialization, repo freshness validation, metadata-only update skipping, and explicit draft policy
 - **Implemented**: [CP1 — Repo-Based Review Configuration](./plans/implemented/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config foundation, pipeline integration, prompt injection, dogfooding sample, setup documentation, and audit closure delivered across Phases C1 through C4
@@ -51,7 +53,7 @@ Unified reference documentation for both humans and agents. These docs lean towa
 | **Phase 4.6** | ✅ Complete | `GITLAB_CA_FILE` TLS/custom-CA support for self-hosted GitLab; `buildGitEnv()` injects `GIT_SSL_CAINFO` into git spawns; `NODE_EXTRA_CA_CERTS` set at startup for API client; host validation and auth documented; deployment matrix in GETTING_STARTED.md |
 | **Logging** | ✅ Complete | LogTape structured logging, `LOG_LEVEL` wired, `@logtape/hono` middleware, request correlation via `withContext()`, debug log file at `logs/codesmith-dev.log` |
 | **Phase 5** | ✅ Complete | BullMQ+Valkey task queue with retries, timeout boundary, dead-letter handling, Kubernetes manifests, and multi-provider LLM fallback (OpenAI/Google) |
-| **Crown Plan** | ⬜ Planned | 6 primary child plans to close competitive gaps, plus CP7 as the threshold-driven future migration path from SQLite to PostgreSQL/pgvector |
+| **Crown Plan** | ⬜ Planned | 6 primary child plans to close competitive gaps, plus CP7 as the threshold-driven storage-evolution path for analytics scale-up and later advanced memory infrastructure |
 
 ## Current State Summary
 
@@ -83,4 +85,4 @@ Implemented today:
 
 Planned next:
 
-- Crown Plan: deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector
+- Crown Plan: deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 storage-evolution path for analytics scale-up and later advanced memory infrastructure

@@ -1,24 +1,26 @@
 ---
-title: "CP7 — PostgreSQL & pgvector Migration Path"
+title: "CP7 — Storage Evolution & Advanced Memory Infrastructure"
 status: backlog
 priority: medium
-estimated_hours: 40-70
+estimated_hours: 36-60
 dependencies:
   - docs/plans/backlog/organizational-learning-plan.md
   - docs/plans/backlog/analytics-observability-plan.md
   - docs/plans/backlog/production-hardening-plan.md
 created: 2026-03-22
-date_updated: 2026-03-22
+date_updated: 2026-03-29
 
 related_files:
   - src/config.ts
   - src/ops.ts
   - src/api/pipeline.ts
-  - src/agents/state.ts
   - src/learning/store.ts
-  - src/learning/sqlite-store.ts
+  - src/learning/mem0-client.ts
+  - src/learning/postgres-store.ts
+  - src/learning/retrieval.ts
   - src/analytics/store.ts
   - src/analytics/sqlite-store.ts
+  - src/analytics/postgres-store.ts
   - docs/context/ARCHITECTURE.md
   - docs/context/CONFIGURATION.md
   - docs/context/WORKFLOWS.md
@@ -29,88 +31,91 @@ tags:
   - pgvector
   - migration
   - storage
+  - memory
   - crown-plan
   - CP7
 
 completion:
-  - "# Phase M0 — Activation Criteria & Architecture Boundary"
-  - [ ] M0.1 Record activation criteria for leaving SQLite phase-one storage
-  - [ ] M0.2 Verify CP3/CP5 storage interfaces exist and are SQLite-agnostic
-  - [ ] M0.3 Create ADR naming PostgreSQL as default scale-up target and pgvector as optional semantic extension
-  - [ ] M0.4 Update crown-plan docs and architecture docs
-  - "# Phase M1 — PostgreSQL Foundation"
-  - [ ] M1.1 Add PostgreSQL configuration and Zod validation to config.ts
-  - [ ] M1.2 Add PostgreSQL connectivity module and health checks for ops role
-  - [ ] M1.3 Implement PostgreSQL learning and analytics store adapters
-  - [ ] M1.4 Port schema and migrations from SQLite to PostgreSQL
-  - [ ] M1.5 Add tests for PostgreSQL stores, migrations, and idempotent writes
-  - "# Phase M2 — Dual-Write, Backfill & Verification"
-  - [ ] M2.1 Add optional dual-write mode in ops consumers (SQLite + PostgreSQL)
-  - [ ] M2.2 Create backfill tooling from SQLite to PostgreSQL
-  - [ ] M2.3 Add parity verification for counts, hashes, and sample query outputs
-  - [ ] M2.4 Add rollback plan and cutover gate checklist
-  - [ ] M2.5 Add tests for backfill and parity verification
-  - "# Phase M3 — Cutover To PostgreSQL System Of Record"
-  - [ ] M3.1 Switch read paths and admin APIs to PostgreSQL adapters
-  - [ ] M3.2 Disable SQLite writes and retain read-only fallback for rollback window
-  - [ ] M3.3 Update backup, restore, and operational runbooks for PostgreSQL
-  - [ ] M3.4 Update performance, readiness, and dashboard docs
-  - [ ] M3.5 Run review-plan-phase audit for relational migration
-  - "# Phase M4 — Optional pgvector Semantic Retrieval"
-  - [ ] M4.1 Confirm semantic retrieval is actually required beyond heuristic learning
-  - [ ] M4.2 Enable pgvector extension and create embedding storage schema
-  - [ ] M4.3 Add embedding generation/backfill pipeline with bounded cost controls
-  - [ ] M4.4 Add hybrid retrieval evaluation against heuristic-only baseline
-  - [ ] M4.5 Gate production rollout on measured quality improvement and operational cost review
+  - "# Phase S0 — Activation Criteria & Architecture Boundary"
+  - [ ] S0.1 Record the revised CP7 mandate: CP3 memory already starts on PostgreSQL plus pgvector, while CP7 governs analytics scale-up and later memory-infrastructure evolution only when thresholds are met
+  - [ ] S0.2 Verify CP3 and CP5 store interfaces are backend-agnostic and that Mem0 is isolated behind CodeSmith-owned boundaries before any storage evolution begins
+  - [ ] S0.3 Create an ADR describing when to keep Mem0 plus PostgreSQL, when to migrate analytics off SQLite, and when to evaluate dedicated vector or graph memory infrastructure
+  - [ ] S0.4 Update crown-plan docs, ARCHITECTURE.md, WORKFLOWS.md, and docs/README.md
+  - "# Phase S1 — PostgreSQL Foundation For Analytics & Admin Workloads"
+  - [ ] S1.1 Add PostgreSQL analytics configuration and Zod validation to config.ts without changing CP3's direct PostgreSQL memory design
+  - [ ] S1.2 Add PostgreSQL connectivity, pooling, migrations, and health checks for ops-owned analytics workloads
+  - [ ] S1.3 Implement PostgreSQL analytics and admin-query store adapters while preserving CodeSmith's domain interfaces
+  - [ ] S1.4 Port analytics schema, retention state, and admin query surfaces from SQLite to PostgreSQL
+  - [ ] S1.5 Add tests for PostgreSQL analytics stores, migrations, rollback safety, and idempotent writes
+  - "# Phase S2 — Dual-Write, Backfill & Verification"
+  - [ ] S2.1 Add optional analytics dual-write mode in ops consumers (SQLite plus PostgreSQL) while keeping CP3 memory writes unchanged
+  - [ ] S2.2 Create backfill tooling from SQLite analytics data into PostgreSQL with checkpoints and retry-safe semantics
+  - [ ] S2.3 Add parity verification for counts, hashes, and representative admin queries
+  - [ ] S2.4 Add rollback and cutover checklists for analytics reads and writes
+  - [ ] S2.5 Add tests for dual-write behavior, backfill idempotency, and parity verification
+  - "# Phase S3 — Cutover To PostgreSQL For Analytics & Shared Admin Data"
+  - [ ] S3.1 Switch analytics APIs, internal admin reads, and reporting queries to PostgreSQL adapters
+  - [ ] S3.2 Disable SQLite analytics writes and retain read-only fallback only for a bounded rollback window
+  - [ ] S3.3 Update backup, restore, failover, and runbook guidance for PostgreSQL-backed analytics workloads
+  - [ ] S3.4 Revalidate readiness, latency budgets, and queue throughput under the new storage plan
+  - [ ] S3.5 Run review-plan-phase audit for storage evolution
+  - "# Phase S4 — Advanced Memory Infrastructure Options"
+  - [ ] S4.1 Define activation criteria for moving beyond Mem0 plus PostgreSQL plus pgvector, including query latency, memory volume, HA requirements, and model-quality limits
+  - [ ] S4.2 Benchmark the existing CP3 memory path and document whether dedicated vector or graph infrastructure is actually justified
+  - [ ] S4.3 Evaluate bounded alternatives such as a dedicated vector store or Graphiti-backed temporal memory only if the evidence shows Mem0 plus PostgreSQL is insufficient
+  - [ ] S4.4 Add an optional extraction path for a separate memory service or dedicated retrieval backend without changing webhook, queue, or admin contracts
+  - [ ] S4.5 Gate any advanced-memory rollout on measured quality improvement, operational cost review, and final audit
 ---
 
-# CP7 — PostgreSQL & pgvector Migration Path
+# CP7 — Storage Evolution & Advanced Memory Infrastructure
 
 ## Executive Summary
 
-CP3 and CP5 intentionally start with `bun:sqlite` because it is Bun-native, cheap to ship, and acceptable when writes are isolated to a singleton ops service on safe block-backed storage. That is the correct phase-one tradeoff.
+CP3 no longer starts on SQLite. Review memory is planned directly on Mem0 OSS backed by PostgreSQL plus pgvector because semantic retrieval and first-class memory records are core product requirements, not future nice-to-haves.
 
-This plan exists so SQLite does not become an accidental forever-dependency.
+CP7 therefore changes scope. It is no longer the plan that migrates learning memory from SQLite to PostgreSQL. Instead, it governs two later-stage evolution paths: first, moving analytics and admin-query workloads off the phase-one SQLite design when the thresholds justify it; second, evaluating whether CodeSmith ever needs memory infrastructure beyond the baseline Mem0 plus PostgreSQL plus pgvector design.
 
-CP7 defines the threshold-driven migration path to PostgreSQL as the long-term system of record for organizational learning and analytics, with `pgvector` reserved as an optional extension only if Code Smith later proves it needs semantic retrieval over free-form review memory. This is not a big-bang rewrite plan. It is an additive migration plan that assumes CP3 and CP5 were implemented behind storage interfaces.
+This remains a threshold-driven, additive plan. It exists so analytics storage and future memory infrastructure can evolve without forcing queue-payload, webhook, prompt-injection, or admin-contract rewrites.
 
 ## Activation Criteria
 
-Do not start CP7 just because PostgreSQL is more powerful. Start it only when at least one of the following becomes true:
+Do not start CP7 just because PostgreSQL or a graph backend looks more sophisticated. Start it only when at least one of the following becomes true:
 
-- the ops role needs HA beyond a singleton writer and queue-based downtime tolerance
-- operator or BI consumers need direct SQL access or richer external reporting
-- analytics or learning writes create sustained queue lag or unacceptable maintenance windows
-- the SQLite database grows into multi-GB or tens-of-GB territory and admin queries degrade despite indexes and bounded windows
-- backup and recovery expectations exceed file-copy plus restore workflows
-- semantic retrieval across free-form feedback text or review corpora becomes a real product requirement that heuristic pattern extraction cannot satisfy
+- analytics or admin-query workloads create sustained queue lag or unacceptable maintenance windows on the phase-one SQLite path
+- operator, BI, or external reporting consumers need richer SQL access, replication, or stronger recovery guarantees than file-based workflows allow
+- analytics retention size grows into multi-GB territory and bounded admin queries degrade despite indexes and pruning
+- the ops role needs stronger HA or maintenance characteristics than the singleton SQLite design can safely provide for analytics and admin facts
+- the Mem0 plus PostgreSQL plus pgvector memory path shows clear limits in latency, retrieval quality, lifecycle flexibility, or operational isolation
+- a dedicated vector or graph memory system is justified by measured product quality, not by architectural curiosity
 
-If none of those conditions are true, keep SQLite and do not spend the migration cost yet.
+If none of those conditions are true, keep the current CP3 and CP5 storage choices and do not spend the migration cost yet.
 
 ## Technology Decisions
 
 | Concern | Choice | Rationale |
 |---|---|---|
-| Default scale-up relational store | PostgreSQL | Best long-term system of record for concurrency, replication, PITR, and external SQL/reporting |
-| Vector extension | `pgvector` only when needed | Keeps transactional and semantic memory in one operational plane instead of adding a dedicated vector service immediately |
-| Migration style | Additive and threshold-driven | Avoids rewriting CP3/CP5 and allows SQLite to remain phase-one storage until pressure is real |
+| Memory baseline | Mem0 OSS on PostgreSQL plus `pgvector` | CP3 requires semantic memory from day one, so this is now the starting point rather than the migration target |
+| Analytics scale-up relational store | PostgreSQL | Best long-term system of record for concurrency, replication, PITR, and external SQL/reporting |
+| Advanced memory alternatives | Dedicated vector DB or temporal graph only when proven necessary | Avoids overbuilding until Mem0 plus PostgreSQL plus pgvector is shown to be insufficient |
+| Migration style | Additive and threshold-driven | Avoids rewriting CP3/CP5 and lets each subsystem evolve only under real pressure |
 | Queue contracts | Remain DB-neutral | Producers should not care whether ops writes to SQLite or PostgreSQL |
 | Rollout safety | Dual-write, backfill, parity verification, controlled cutover | Reduces migration blast radius and preserves rollback options |
-| Dedicated vector DBs | Deferred | Qdrant or similar should be evaluated only if pgvector proves operationally or performance-wise insufficient |
+| Dedicated vector DBs and graph memory | Deferred | Qdrant, Weaviate, or Graphiti should be evaluated only if the baseline memory design proves insufficient |
 
 ## Architecture Target
 
 ### Phase-One State
 
-- SQLite is the relational system of record for learning and analytics
+- CP3 learning memory uses Mem0 OSS on PostgreSQL plus `pgvector`
+- SQLite remains the phase-one store for analytics and some admin-reporting facts owned by the ops role
 - Valkey handles BullMQ job transport and cache duties
-- Workers read learned patterns through an internal read-only service contract
+- Workers read memories and analytics-derived state through internal read-only service contracts
 
 ### Post-Migration State
 
-- PostgreSQL becomes the relational system of record for learning, analytics, and admin CRUD
+- PostgreSQL becomes the system of record for analytics and shared admin-query workloads as well
 - Valkey remains queue/cache infrastructure only
-- `pgvector` is enabled only if semantic retrieval is approved by activation criteria and quality evaluation
+- Mem0 plus PostgreSQL plus `pgvector` remains the default memory baseline unless later evidence justifies a more specialized retrieval backend
 - Queue producers, route contracts, and review-worker consumers keep the same domain-level interfaces
 
 ## Migration Principles
@@ -118,6 +123,141 @@ If none of those conditions are true, keep SQLite and do not spend the migration
 1. Do not change producer payloads just because the backend changes.
 2. Do not couple route handlers to SQL engine details.
 3. Keep learning and analytics behind repository/query interfaces.
+4. Do not re-open CP3's direct PostgreSQL plus pgvector decision unless measured evidence justifies it.
+5. Prove value before adding a dedicated vector or graph system on top of the baseline memory path.
+
+## Phased Implementation
+
+### Phase S0 — Activation Criteria & Architecture Boundary
+
+**Goal:** Confirm the revised CP7 scope is justified and the codebase has the right seams before any further storage evolution begins.
+
+**S0.1** — Record the revised mandate:
+- Document that CP3 already starts with Mem0 plus PostgreSQL plus pgvector
+- Narrow CP7 to analytics scale-up and advanced-memory evolution only
+- Remove stale wording that implies CP7 is the gateway to semantic memory
+
+**S0.2** — Verify interfaces and boundaries:
+- Confirm CP3 memory code depends on CodeSmith-owned interfaces rather than raw Mem0 calls scattered through the codebase
+- Confirm CP5 analytics code depends on backend-agnostic store interfaces rather than direct SQLite calls in handlers or queue consumers
+
+**S0.3** — Create ADR:
+- Record the baseline memory architecture
+- Record PostgreSQL as the default analytics scale-up target
+- Record dedicated vector DBs and graph memory as future evaluation scope only
+
+**S0.4** — Update docs:
+- Add the activation criteria above to docs and the runbook
+- Require a short evidence note before CP7 starts
+
+### Phase S1 — PostgreSQL Foundation For Analytics & Admin Workloads
+
+**Goal:** Add PostgreSQL support for analytics and shared admin workloads without changing CP3's baseline memory behavior.
+
+**S1.1** — Config and validation:
+- Add PostgreSQL analytics env vars to `src/config.ts` with Zod validation
+- Keep the config model explicit about which settings apply to analytics/admin storage versus the CP3 memory substrate
+
+**S1.2** — Connectivity and health:
+- Add PostgreSQL connectivity and pooling for the ops role
+- Extend readiness diagnostics for analytics/admin relational health without leaking secrets
+
+**S1.3** — Store adapters:
+- Implement PostgreSQL versions of the CP5 analytics and admin-query store interfaces
+- Keep public interfaces unchanged from the SQLite adapters
+
+**S1.4** — Schema and migrations:
+- Port analytics tables, admin-query support tables, retention state, and reporting indexes from SQLite to PostgreSQL
+- Preserve uniqueness, idempotency, and transactional guarantees from the SQLite design
+
+**S1.5** — Tests:
+- Migration tests
+- CRUD and query tests against PostgreSQL analytics adapters
+- Idempotent queue-consumer write tests
+- Error-path tests for connectivity loss and transaction rollback
+
+### Phase S2 — Dual-Write, Backfill & Verification
+
+**Goal:** Prove parity before cutover for analytics and admin data.
+
+**S2.1** — Dual-write mode:
+- Add an ops-only feature flag that writes analytics/admin data to both SQLite and PostgreSQL from the same validated job payloads
+- CP3 memory writes remain on their existing path during this phase
+
+**S2.2** — Backfill:
+- Create a one-shot or resumable backfill tool that copies existing SQLite analytics and admin data into PostgreSQL
+- Include batching, checkpoints, and retry-safe semantics
+
+**S2.3** — Parity verification:
+- Verify row counts, uniqueness expectations, and representative admin queries between stores
+- Produce a parity report before cutover
+
+**S2.4** — Rollback checklist:
+- Document how to revert reads to SQLite if parity or stability checks fail after partial rollout
+
+**S2.5** — Tests:
+- Dual-write correctness
+- Backfill idempotency
+- Parity verification for key tables and aggregate queries
+
+### Phase S3 — Cutover To PostgreSQL For Analytics & Shared Admin Data
+
+**Goal:** Move analytics and shared admin data to PostgreSQL safely.
+
+**S3.1** — Cut over reads:
+- Switch analytics APIs, internal admin reads, and reporting queries to PostgreSQL adapters
+
+**S3.2** — Cut over writes:
+- Disable SQLite as the authoritative analytics writer
+- Keep SQLite read-only fallback for a bounded rollback window if operationally useful
+
+**S3.3** — Operational docs:
+- Update backup, restore, failover, and maintenance procedures for PostgreSQL-backed analytics
+- Update dashboards and alerts to include relational metrics and migration-specific failure cases
+
+**S3.4** — Performance and readiness:
+- Revalidate readiness rules, latency budgets, and queue throughput under PostgreSQL
+
+**S3.5** — Audit:
+- Run `review-plan-phase` and do not declare cutover complete until parity, rollback, and docs are all verified
+
+### Phase S4 — Advanced Memory Infrastructure Options
+
+**Goal:** Evaluate more specialized memory infrastructure only if the baseline Mem0 plus PostgreSQL plus pgvector path proves insufficient.
+
+**S4.1** — Confirm the use case:
+- Document the exact deficiency in the baseline memory stack
+- Examples: unacceptable latency at scale, inadequate temporal reasoning, hard provenance needs, or memory-isolation constraints that Mem0 plus PostgreSQL cannot satisfy cleanly
+
+**S4.2** — Benchmark the baseline:
+- Measure memory query latency, result quality, usage growth, and operator burden on the existing CP3 path
+- Record evidence before evaluating new infrastructure
+
+**S4.3** — Evaluate alternatives:
+- Compare bounded options such as a dedicated vector store or Graphiti-backed temporal memory only if evidence shows the baseline is insufficient
+- Require explicit tradeoff analysis for every new dependency and service added
+
+**S4.4** — Optional extraction path:
+- Add a path to extract memory retrieval into a dedicated internal service or backend without changing webhook, queue, or admin contracts
+
+**S4.5** — Release gate:
+- Do not enable advanced memory infrastructure in production without measured quality improvement and an explicit cost and operability sign-off
+
+## Out Of Scope
+
+- Replacing Valkey as queue/cache infrastructure
+- Re-arguing CP3's decision to start memory on Mem0 plus PostgreSQL plus pgvector without new evidence
+- Adding Qdrant, Weaviate, Graphiti, or another specialized memory backend by default
+
+## Success Criteria
+
+CP7 is complete when:
+
+1. Analytics and shared admin data can move off SQLite without changing queue-producer payloads or route contracts
+2. Backfill and dual-write verification prove parity before cutover
+3. Operational docs cover PostgreSQL backup, restore, and recovery for the evolved storage path
+4. CP3's baseline memory stack remains stable unless evidence justifies a more specialized memory backend
+5. Any advanced memory-infrastructure rollout is backed by measured quality improvement and acceptable operational cost
 4. Treat `pgvector` as optional scope, not a mandatory part of the relational migration.
 5. Prove value before adding embedding generation cost to the review system.
 

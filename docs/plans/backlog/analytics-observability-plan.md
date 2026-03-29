@@ -42,7 +42,7 @@ completion:
   - [ ] A1.6 Unit tests for metric recording and endpoint output
   - [ ] A1.7 Update CONFIGURATION.md and ARCHITECTURE.md
   - "# Phase A2 — Review Analytics Storage"
-  - [ ] A2.1 Extend learning database with analytics tables (or reuse review_runs)
+  - [ ] A2.1 Extend the CP3 memory/provenance relational substrate with analytics tables (or reuse review_runs)
   - [ ] A2.2 Record review metadata at pipeline completion (findings, verdict, timing, provider)
   - [ ] A2.3 Record per-finding publication status (posted, skipped, deduplicated)
   - [ ] A2.4 Add retention and cleanup for analytics data
@@ -75,7 +75,7 @@ This plan adds two layers of observability:
 1. **Operational metrics** (Prometheus) — request latency, queue depth, LLM call duration, error rates. For SRE teams with existing Grafana stacks.
 2. **Review analytics** (relational store + REST API, starting with SQLite) — finding trends, severity distributions, per-project stats, false positive rates, review quality scores. For engineering leadership visibility.
 
-CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric definitions, instrumentation, and `/metrics` endpoint. CP6 consumes that foundation for deployment wiring, scrape configuration, runbooks, and autoscaling follow-on work. The review analytics database reuses the schema from CP3 (Organizational Learning) `review_runs` table and follows the same singleton ops ownership model for writes.
+CP5 owns the Prometheus metrics foundation itself: the metrics registry, metric definitions, instrumentation, and `/metrics` endpoint. CP6 consumes that foundation for deployment wiring, scrape configuration, runbooks, and autoscaling follow-on work. The review analytics database reuses CP3's review-memory provenance substrate, including the `review_runs` table, and follows the same singleton ops ownership model for writes.
 
 Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a permanent architectural commitment. CP7 is the explicit future path if Code Smith later needs PostgreSQL-backed HA, external SQL/reporting consumers, or semantic retrieval with `pgvector`.
 
@@ -189,7 +189,7 @@ Phase-one analytics storage uses `bun:sqlite` behind store interfaces, not as a 
 - Define repository/query interfaces for review-run writes, review-finding writes, retention, and analytics query endpoints
 - Ensure queue payloads and HTTP response schemas do not expose SQLite-specific details
 
-**A2.1** — Extend learning database (from CP3):
+**A2.1** — Extend CP3 memory/provenance storage (from CP3):
 - If CP3 is not yet implemented, create standalone analytics DB with same pattern
 - `review_runs` table already defined in CP3 schema — reuse it
 - Add `review_findings` table:

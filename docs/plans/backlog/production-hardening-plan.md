@@ -45,7 +45,7 @@ completion:
   - [ ] PH1.1 Create Helm chart structure (Chart.yaml, values.yaml, templates/)
   - [ ] PH1.2 Template webhook deployment with configurable replicas, resources, probes
   - [ ] PH1.3 Template worker deployment with configurable concurrency and timeout
-  - [ ] PH1.4 Template singleton ops deployment and storage mount for learning/analytics state
+  - [ ] PH1.4 Template singleton ops deployment and storage mounts for analytics SQLite state plus memory-service dependencies
   - [ ] PH1.5 Template Valkey StatefulSet (optional, for dev/test only)
   - [ ] PH1.6 Template ConfigMap, Secret, Service, Ingress
   - [ ] PH1.7 Template HorizontalPodAutoscaler for webhook and worker
@@ -102,13 +102,13 @@ The plan has no dependencies on other Crown Plan children and can start immediat
 ## Operating Assumptions
 
 - The webhook and review-worker surfaces may scale horizontally.
-- Learning, retention, and analytics writes are owned by a singleton internal ops deployment.
-- Webhook and worker surfaces enqueue durable internal BullMQ jobs for ops-owned writes; they do not write SQLite directly.
-- Phase-one SQLite storage is supported only when the ops pod uses block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem mounts are unsupported for the SQLite file.
+- Learning-memory provenance, retention, and analytics writes are owned by a singleton internal ops deployment.
+- Webhook and worker surfaces enqueue durable internal BullMQ jobs for ops-owned writes; they do not write analytics SQLite state directly, and they do not own direct Mem0/PostgreSQL mutations.
+- Phase-one SQLite storage remains analytics-only and is supported only when the ops pod uses block-backed `ReadWriteOnce` storage. Shared RWX/network-filesystem mounts are unsupported for the SQLite file.
 - Admin and analytics APIs are disabled by default and exposed only through a dedicated admin route group with separate auth.
 - Readiness is based on local process health and critical local dependencies, not on transient GitLab reachability.
 - Every dependency-introducing phase must run `bun audit` and either remediate or explicitly record accepted risk. Optional reporting helpers may be used in CI, but they do not replace the Bun-native audit gate.
-- If Code Smith later requires HA beyond a singleton writer, external SQL/reporting consumers, or semantic retrieval over free-form feedback memory, activate CP7 and migrate the source of truth to PostgreSQL before trying to stretch SQLite past its intended role.
+- If Code Smith later requires HA beyond a singleton analytics writer, external SQL/reporting consumers, or more specialized memory infrastructure beyond Mem0 plus PostgreSQL plus pgvector, activate CP7 before stretching the phase-one analytics SQLite path or over-specializing the memory stack.
 
 ## Architecture — Target Deployment
 
@@ -128,7 +128,9 @@ flowchart TD
     Valkey --> Worker1["Worker Pod 1"]
     Valkey --> Worker2["Worker Pod 2"]
     Valkey --> Ops["Singleton Ops Pod"]
-    Ops --> LearningDB[(SQLite RWO PVC)]
+    Ops --> AnalyticsDB[(SQLite RWO PVC)]
+    Ops --> MemoryDB[(PostgreSQL + pgvector)]
+    Ops --> Mem0[Mem0 OSS]
     
     Worker1 --> LLM["LLM Provider\n(Bedrock/OpenAI/Gemini)"]
     Worker2 --> LLM
@@ -160,25 +162,25 @@ flowchart TD
 - Define a separate internal read-only surface for worker/service-to-service consumption (for example `/api/v1/internal/*` or an ops-only ClusterIP route group) so worker pods never receive the operator admin bearer token
 
 **PH0.2** — Singleton ops deployment:
-- Define a singleton internal ops deployment that owns SQLite writes for learning, analytics retention, and feedback polling
-- Webhook and worker pods do not mount the learning database by default
-- Require block-backed `ReadWriteOnce` storage for the SQLite volume; explicitly disallow shared RWX/network-filesystem mounts for the SQLite file
-- Document that SQLite support assumes the DB file shares local/block-attached storage semantics with the singleton ops service
+- Define a singleton internal ops deployment that owns analytics SQLite writes, learning-memory provenance writes, retention, and feedback polling
+- Webhook and worker pods do not mount analytics SQLite state or own direct memory-store mutation credentials by default
+- Require block-backed `ReadWriteOnce` storage for the analytics SQLite volume; explicitly disallow shared RWX/network-filesystem mounts for the SQLite file
+- Document that phase-one SQLite support is analytics-only and assumes the DB file shares local/block-attached storage semantics with the singleton ops service
 
 **PH0.2b** — Ops service entrypoint and role detection:
 - Create `src/ops.ts` as the ops process entrypoint (analogous to `src/worker.ts` for review workers)
 - Add `DEPLOYMENT_ROLE` env var to `src/config.ts` with values `webhook | worker | ops` (default: `webhook` for backward compatibility)
-- `src/ops.ts` initializes: SQLite database, BullMQ consumer for learning and analytics write-intent queues, feedback polling scheduler, admin Hono router, and graceful shutdown handlers
+- `src/ops.ts` initializes: analytics SQLite database, learning-memory service clients and provenance storage, BullMQ consumers for learning and analytics write-intent queues, feedback polling scheduler, admin Hono router, and graceful shutdown handlers
 - `src/ops.ts` does **not** initialize: the webhook router, the review worker, or the LLM client
 - `src/index.ts` and `src/worker.ts` detect their role via `DEPLOYMENT_ROLE` and skip ops-only subsystems
 - Define the BullMQ queue names consumed by the ops service: `learning-feedback-event`, `learning-review-run`, `learning-retention`, `analytics-write`
-- Each queue consumer validates job payloads with Zod before writing to SQLite
-- Graceful shutdown: drain BullMQ consumers, cancel feedback polling timer, close SQLite, log shutdown timeline
+- Each queue consumer validates job payloads with Zod before writing to analytics or memory storage
+- Graceful shutdown: drain BullMQ consumers, cancel feedback polling timer, close analytics and memory clients, log shutdown timeline
 
 **PH0.2a** — Durable internal write transport:
 - Reuse BullMQ/Valkey for internal ops-owned write jobs instead of inventing a new synchronous RPC surface
 - Define job schemas and idempotency keys for learning feedback writes, analytics writes, retention runs, and pattern extraction triggers
-- Webhook and worker services act as producers; ops service is the only consumer that mutates SQLite state
+- Webhook and worker services act as producers; ops service is the only consumer that mutates analytics state and owned learning-memory provenance state
 - Document backpressure behavior, retry policy, and dead-letter handling for these job types
 
 **PH0.3** — Dependency gate:
@@ -234,14 +236,14 @@ charts/code-smith/
 - Default: 1Gi memory, 1 CPU
 - `terminationGracePeriodSeconds: 660` (matches current docker-compose)
 - Shared volume for repo cache (emptyDir or PVC, configurable)
-- No direct learning DB mount by default; workers consume learned state through the internal read path
+- No direct analytics SQLite mount or memory-store mutation credentials by default; workers consume learned state through the internal read path
 
 **PH1.4** — Singleton ops deployment template:
-- Single replica, explicit PodDisruptionBudget, and RWO storage for learning/analytics state
+- Single replica, explicit PodDisruptionBudget, and RWO storage for analytics SQLite state plus configuration for memory-service dependencies
 - Hosts feedback polling, retention jobs, admin APIs, and analytics aggregation
 - Exposed only on an internal ClusterIP service
 - Consumes internal BullMQ job types for learning and analytics writes
-- Default to a block-backed `ReadWriteOnce` PVC and document shared RWX/network-filesystem storage as unsupported for the SQLite file
+- Default to a block-backed `ReadWriteOnce` PVC for analytics SQLite state and document shared RWX/network-filesystem storage as unsupported for that file
 
 **PH1.5** — Valkey StatefulSet (optional):
 - Enabled via `valkey.enabled: true` (default: false for production — use external Redis/Valkey)
@@ -281,7 +283,7 @@ charts/code-smith/
 - Implement role-specific readiness contracts instead of one generic probe:
   - Webhook pod: config parsed, HTTP router initialized, and queue enqueue dependency healthy when `QUEUE_ENABLED=true`
   - Worker pod: config parsed, worker initialized, Valkey connectivity healthy, and local job processor ready
-  - Ops pod: config parsed, SQLite accessible, scheduler initialized, admin routes mounted, and Valkey connectivity healthy
+  - Ops pod: config parsed, analytics SQLite and memory-service dependencies healthy, scheduler initialized, admin routes mounted, and Valkey connectivity healthy
 - Return 200 with role-specific JSON status or 503 with failures
   ```json
   { "status": "ready", "role": "ops", "checks": { "config": "ok", "database": "ok", "scheduler": "ok", "queue": "ok" } }
@@ -302,7 +304,7 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
 - Enhanced:
   - Webhook server: stop accepting new connections, drain in-flight requests (10s grace)
   - Worker: finish current job, don't pick new ones (already handled by BullMQ)
-  - Close SQLite database connections
+  - Close analytics SQLite and memory-service client connections
   - Close GitLab API client
   - Log shutdown timeline
 
@@ -386,7 +388,8 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
 - All LLM providers down → pipeline fails with clear error, dead-letter queue captures job
 - GitLab API down → review completes but publication fails → retry via queue (when enabled)
 - Jira down → already handled (returns empty tickets, logged as warning)
-- SQLite DB locked → WAL mode handles concurrent reads; write contention logged as warning
+- Analytics SQLite DB locked → WAL mode handles concurrent reads; write contention logged as warning
+- Memory-store dependency degraded → retryable ops failure; no acknowledgment is published until persistence succeeds
 
 **PH4.5** — Tests:
 - Circuit breaker state transitions
@@ -452,13 +455,14 @@ Add a separate diagnostics endpoint for external dependency reachability (`GitLa
   - Queue backlog growing → scale workers, check Valkey connectivity
   - Memory exceeded → check for repo cache growth, adjust TTL
 - Scaling guide (horizontal: add webhook/worker replicas; vertical: increase resources)
-- **SQLite backup and recovery** _(review-driven R6)_:
-  - Ops service runs a periodic `sqlite3 .backup()` call (configurable interval, default: daily) writing to a configurable object storage path or secondary PVC
-  - Maximum acceptable data loss window: 24 hours of feedback data; learned patterns are reconstructible from persisted feedback events
-  - Recovery procedure: restore from most recent backup, replay BullMQ dead-letter queue if needed
-  - Add `LEARNING_DB_BACKUP_INTERVAL_HOURS` (default: `24`) and `LEARNING_DB_BACKUP_PATH` (default: `./data/backups/`) to config
-  - Document the phase-one storage guardrail: block-backed `ReadWriteOnce` only, with shared RWX/network-filesystem mounts unsupported for the SQLite file
-  - Document the explicit activation criteria for CP7 migration to PostgreSQL
+- **Analytics SQLite backup and recovery** _(review-driven R6)_:
+  - Ops service runs a periodic `sqlite3 .backup()` call (configurable interval, default: daily) writing analytics backups to a configurable object storage path or secondary PVC
+  - Maximum acceptable data loss window for analytics SQLite: 24 hours unless operators choose a tighter backup interval
+  - Recovery procedure: restore the most recent analytics backup, then replay BullMQ dead-letter queue if needed
+  - Add `ANALYTICS_DB_BACKUP_INTERVAL_HOURS` (default: `24`) and `ANALYTICS_DB_BACKUP_PATH` (default: `./data/backups/`) to config
+  - Document the phase-one storage guardrail: block-backed `ReadWriteOnce` only, with shared RWX/network-filesystem mounts unsupported for the analytics SQLite file
+  - Document the separate recovery model for review memory backed by Mem0 plus PostgreSQL plus pgvector
+  - Document the explicit activation criteria for CP7 storage evolution
 - Valkey persistence guidance
 - Admin route-group access model and ops-service ownership
 - Log analysis guide (structured JSON queries, common patterns)
