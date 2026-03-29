@@ -1,6 +1,6 @@
 ## Plan Review: CodeSmith Master Plan — Phase 4.6 (GitLab Deployment Hardening) — Re-review
 
-**Plan file**: `docs/plans/active/code-smith-master-plan.md`
+**Plan file**: `docs/plans/backlog/code-smith-master-plan.md`
 **Reviewed against**: AGENTS.md, docs/context/ARCHITECTURE.md, docs/context/WORKFLOWS.md, docs/context/CONFIGURATION.md, docs/guides/GETTING_STARTED.md, docs/README.md
 **Supersedes**: `docs/plans/review-reports/phase-4.6-review-2026-03-20-r7n1.md`
 **Verdict**: 🟡 CONDITIONAL — 0 BLOCKERs · 2 RISKs · 2 OPTIMIZATIONs

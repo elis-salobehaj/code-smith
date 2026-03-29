@@ -330,7 +330,7 @@ Current state:
 - prompt injection from `review_instructions` and `file_rules.instructions`: not yet wired
 - severity-driven verdict behavior: not yet wired
 
-See CP1 in [docs/plans/backlog/repo-review-config-plan.md](../plans/backlog/repo-review-config-plan.md) for the remaining phases.
+See CP1 in [docs/plans/active/repo-review-config-plan.md](../plans/active/repo-review-config-plan.md) for the remaining phases.
 
 ### You tried to define a command under `linters`
 
@@ -342,4 +342,4 @@ CodeSmith only accepts a named deployment-owned linter profile from the repo con
 
 - [docs/context/CONFIGURATION.md](../context/CONFIGURATION.md) — schema and environment reference
 - [docs/context/ARCHITECTURE.md](../context/ARCHITECTURE.md) — current runtime architecture and repo-config loading details
-- [docs/plans/backlog/repo-review-config-plan.md](../plans/backlog/repo-review-config-plan.md) — CP1 implementation plan
+- [docs/plans/active/repo-review-config-plan.md](../plans/active/repo-review-config-plan.md) — CP1 implementation plan

@@ -1,11 +1,11 @@
 ---
 title: "CP1 — Repo-Based Review Configuration (.codesmith.yaml)"
-status: backlog
+status: active
 priority: high
 estimated_hours: 24-36
 dependencies: []
 created: 2026-03-21
-date_updated: 2026-03-28
+date_updated: 2026-03-29
 
 related_files:
   - src/config.ts
@@ -57,7 +57,7 @@ completion:
   - [x] C4.1 Create .codesmith.yaml reference documentation with examples
   - [ ] C4.2 Add sample .codesmith.yaml to repo root as a dogfooding example
   - [ ] C4.3 Update GETTING_STARTED.md with config setup instructions
-  - [ ] C4.4 Update docs/README.md
+  - [x] C4.4 Update docs/README.md
   - [ ] C4.5 Run review-plan-phase audit
 ---
 

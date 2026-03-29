@@ -1,11 +1,11 @@
 ---
 title: "CodeSmith — Master Implementation Plan"
-status: active
+status: backlog
 priority: high
 estimated_hours: 40-60
 dependencies: []
 created: 2026-03-14
-date_updated: 2026-03-20
+date_updated: 2026-03-29
 
 related_files:
   - package.json

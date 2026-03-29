@@ -4,12 +4,12 @@ status: active
 priority: high
 estimated_hours: 200-320
 dependencies:
-  - docs/plans/active/code-smith-master-plan.md
+  - docs/plans/backlog/code-smith-master-plan.md
 created: 2026-03-21
 date_updated: 2026-03-22
 
 related_files:
-  - docs/plans/backlog/repo-review-config-plan.md
+  - docs/plans/active/repo-review-config-plan.md
   - docs/plans/backlog/linter-sast-integration-plan.md
   - docs/plans/backlog/organizational-learning-plan.md
   - docs/plans/backlog/enhanced-review-output-plan.md
@@ -131,7 +131,7 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 ### CP1 — Repo-Based Review Configuration
 
-**File:** [`docs/plans/backlog/repo-review-config-plan.md`](../backlog/repo-review-config-plan.md)
+**File:** [`docs/plans/active/repo-review-config-plan.md`](./repo-review-config-plan.md)
 **Priority:** HIGH (foundational — CP2, CP3, CP4 depend on it)
 **Estimated hours:** 24–36
 
@@ -341,6 +341,6 @@ The Crown Plan is complete when:
 
 | Active Plan | Relationship |
 |---|---|
-| [Code Smith Master Plan](./code-smith-master-plan.md) | Predecessor. Crown Plan extends beyond Phase 5. No conflicts. |
-| [CodeSmith Awakening Personality Plan](./CodeSmith-awakening-personality-plan.md) | Independent. Personality work continues alongside Crown Plan. CP1 config may later include personality settings. **Coordination note (review-driven O6):** The Awakening plan modifies `src/api/router.ts`, `src/publisher/gitlab-publisher.ts`, and `src/api/pipeline.ts` — all files that CP1, CP4, and CP6 also modify. Strategy: either (a) complete the Awakening plan before Crown Plan implementation begins on CP4 (publisher changes), or (b) implement Crown Plan changes in a way that preserves Awakening's trigger-context and tone-split hooks. Implementers of CP4 and CP6 must check the Awakening plan's current status before modifying overlapping files. |
+| [Code Smith Master Plan](../backlog/code-smith-master-plan.md) | Predecessor. Crown Plan extends beyond Phase 5. No conflicts. |
+| [CodeSmith Awakening Personality Plan](../backlog/CodeSmith-awakening-personality-plan.md) | Independent. Personality work continues alongside Crown Plan. CP1 config may later include personality settings. **Coordination note (review-driven O6):** The Awakening plan modifies `src/api/router.ts`, `src/publisher/gitlab-publisher.ts`, and `src/api/pipeline.ts` — all files that CP1, CP4, and CP6 also modify. Strategy: either (a) complete the Awakening plan before Crown Plan implementation begins on CP4 (publisher changes), or (b) implement Crown Plan changes in a way that preserves Awakening's trigger-context and tone-split hooks. Implementers of CP4 and CP6 must check the Awakening plan's current status before modifying overlapping files. |
 | [Review Edge Cases Hardening](./review-edge-cases-hardening.md) | Predecessor (fully implemented). Crown Plan builds on the checkpoint, incremental review, and dedup infrastructure. |

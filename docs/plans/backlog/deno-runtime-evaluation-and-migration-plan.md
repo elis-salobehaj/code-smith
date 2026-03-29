@@ -4,7 +4,7 @@ status: backlog
 priority: medium
 estimated_hours: 60-100
 dependencies:
-  - docs/plans/active/code-smith-master-plan.md
+  - docs/plans/backlog/code-smith-master-plan.md
 created: 2026-03-17
 date_updated: 2026-03-17
 

@@ -1,12 +1,12 @@
 ---
 title: "CodeSmith Awakening Personality Plan"
-status: active
+status: backlog
 priority: high
 estimated_hours: 10-16
 dependencies:
-  - docs/plans/active/code-smith-master-plan.md
+  - docs/plans/backlog/code-smith-master-plan.md
 created: 2026-03-15
-date_updated: 2026-03-15
+date_updated: 2026-03-29
 
 related_files:
   - .env.example

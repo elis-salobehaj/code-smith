@@ -80,7 +80,7 @@ bunx biome ci .
 
 ### 1. Work from the active plan
 
-- use `docs/plans/active/code-smith-master-plan.md` as the implementation backlog
+- use `docs/plans/backlog/code-smith-master-plan.md` as the implementation backlog
 - update plan checkboxes as work completes
 - update `docs/README.md` when a phase status changes
 

@@ -21,10 +21,10 @@ Unified reference documentation for both humans and agents. These docs lean towa
 
 ## 📋 Implementation Plans (`docs/plans/`)
 
-- **Active**: [CodeSmith Master Plan](./plans/active/code-smith-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
-- **Active**: [CodeSmith Awakening Personality Plan](./plans/active/CodeSmith-awakening-personality-plan.md) — Trigger alias expansion, CodeSmith-mode acknowledgements, and tone-aware top-level summary behavior
+- **Active**: [CP1 — Repo-Based Review Configuration](./plans/active/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config foundation; Phase C1 is implemented and C2/C3 remain pending
 - **Active**: [The Crown Plan](./plans/active/code-smith-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 primary child plans plus a threshold-driven PostgreSQL/pgvector migration path
-- **Backlog**: [CP1 — Repo-Based Review Configuration](./plans/backlog/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config plan. Phase C1 is implemented today (schema, loader, defaults, validation, tests) and the repo-author guide now exists; pipeline integration and prompt injection remain pending.
+- **Backlog**: [CodeSmith Master Plan](./plans/backlog/code-smith-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
+- **Backlog**: [CodeSmith Awakening Personality Plan](./plans/backlog/CodeSmith-awakening-personality-plan.md) — Trigger alias expansion, CodeSmith-mode acknowledgements, and tone-aware top-level summary behavior
 - **Backlog**: [CP2 — Linter & SAST Integration](./plans/backlog/linter-sast-integration-plan.md) — Auto-detect and run Biome plus instance-owned standalone analysis profiles against changed files, with explicit subprocess sandbox controls, normalized findings, and agent/publisher integration
 - **Backlog**: [CP3 — Organizational Learning](./plans/backlog/organizational-learning-plan.md) — Feedback capture (reactions, applied suggestions), singleton ops-owned SQLite learning DB, persisted sync cursors, durable write jobs, and prompt injection for future reviews
 - **Backlog**: [CP4 — Enhanced Review Output](./plans/backlog/enhanced-review-output-plan.md) — Smart MR summaries, file-by-file walkthroughs, improved suggestion formatting and one-click fix UX
@@ -75,10 +75,10 @@ Implemented today:
 - Incremental review scope: automatic runs now compute `full`, `incremental`, or `skip` mode from GitLab commit history and use repository-compare diffs for unreviewed ranges while preserving current MR diff refs for inline publishing
 - Version-aware publication semantics: automatic same-head reruns are skipped before publication, manual reruns always post a visible summary, and inline duplicate suppression now keys on trigger mode plus discussion `headSha`
 - Repo freshness and delivery hardening: same-branch runs are serialized across the full pipeline, cached clones verify local HEAD against GitLab before review, active cache mtimes are refreshed after clone/update, metadata-only MR updates are ignored, and automatic draft reviews are configurable with `REVIEW_DRAFT_MRS`
-- Repo review config foundation: `.codesmith.yaml` / `.codesmith.yml` discovery, strict Zod schema validation, safe default fallback behavior, and glob-matching helpers are implemented under `src/config/`; config-driven pipeline behavior remains future CP1 work
+- Repo review config foundation: `.codesmith.yaml` / `.codesmith.yml` discovery, strict Zod schema validation, safe default fallback behavior, and glob-matching helpers are implemented under `src/config/`; CP1 is now active for pipeline integration and prompt injection work
 - Repo review config guide: repo authors now have a dedicated guide for `.codesmith.yaml` structure, examples, standards, and troubleshooting under `docs/guides/REPO_REVIEW_CONFIG.md`
 
 Planned next:
 
-- CodeSmith trigger and personality awakening for note-triggered reviews
-- Crown Plan: finish CP1 beyond the implemented schema/loader foundation (`.codesmith.yaml` pipeline integration, prompt injection, docs/examples), then deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector
+- CP1: finish repo-config pipeline integration, prompt injection, and remaining docs/examples
+- Crown Plan: deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector

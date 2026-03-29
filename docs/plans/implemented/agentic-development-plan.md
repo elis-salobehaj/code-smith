@@ -21,7 +21,7 @@ related_files:
   - docs/README.md
   - docs/context/ARCHITECTURE.md
   - docs/designs/tech-stack-evaluation.md
-  - docs/plans/active/code-smith-master-plan.md
+  - docs/plans/backlog/code-smith-master-plan.md
   - docs/guides/GETTING_STARTED.md
   - docs/guides/DEVELOPMENT.md
 tags:
@@ -49,7 +49,7 @@ completion:
   - [x] 5.2 Set up `biome.json`
   - [x] 5.3 Set Zod Strict Usage Policy
   - "# 6. File Movement Plan"
-  - [x] 6.1 Move `code-smith-master-plan.md` to `docs/plans/active/code-smith-master-plan.md`
+  - [x] 6.1 Move `code-smith-master-plan.md` to `docs/plans/backlog/code-smith-master-plan.md`
   - [x] 6.2 Move `tech-stack-evaluation-design-choices.md` to `docs/designs/tech-stack-evaluation.md`
   - [x] 6.3 Create `docs/designs/tech-stack-evaluation.md`
   - [x] 6.4 Move `gg-system-prompt.md` to `src/agents/prompts/system-prompt.md`
@@ -366,7 +366,7 @@ Bun's "all-in-one" covers runtime, package manager, bundler, and test runner —
 
 | Current Location | New Location | Notes |
 |-----------------|-------------|-------|
-| `code-smith-master-plan.md` | `docs/plans/active/code-smith-master-plan.md` | Move |
+| `code-smith-master-plan.md` | `docs/plans/backlog/code-smith-master-plan.md` | Move |
 | `tech-stack-evaluation-design-choices.md` | `docs/designs/tech-stack-evaluation.md` | Full version (humans) |
 | *(create new)* | `docs/designs/tech-stack-evaluation.md` | Compact summary (agents) |
 | `gg-system-prompt.md` | `src/agents/prompts/system-prompt.md` | Runtime asset |

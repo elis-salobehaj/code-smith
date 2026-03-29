@@ -1,6 +1,6 @@
 ## Plan Review: CodeSmith — Master Implementation Plan
 
-**Plan file**: `docs/plans/active/code-smith-master-plan.md`
+**Plan file**: `docs/plans/backlog/code-smith-master-plan.md`
 **Reviewed against**: AGENTS.md, docs/context/*, active plans
 **Verdict**: 🔴 NOT READY
 

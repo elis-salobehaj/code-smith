@@ -13,7 +13,7 @@ Bring the repository to true Phase 2.5 completion by making documentation reflec
 - [x] **[agent] Replace placeholder agent reference docs**: Rewrite `docs/context/ARCHITECTURE.md`, `docs/context/CONFIGURATION.md`, and `docs/context/WORKFLOWS.md` with concise, token-efficient references.
 - [x] **[agent] Replace placeholder human docs and guides**: Rewrite `docs/context/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md`, and `docs/guides/DEVELOPMENT.md` with implementation-accurate guidance.
 - [x] **[agent] Improve docs entry points**: Expand `docs/README.md`, `docs/README.md`, and `docs/README.md` so they point to real content and reflect Phase 2.5 completion.
-- [x] **[agent] Fix plan bookkeeping**: Update `docs/plans/active/code-smith-master-plan.md` `related_files` to reference the new `src/context/tools/` layout instead of the removed monolith.
+- [x] **[agent] Fix plan bookkeeping**: Update `docs/plans/backlog/code-smith-master-plan.md` `related_files` to reference the new `src/context/tools/` layout instead of the removed monolith.
 - [x] **[agent] Validate closure**: Run `bunx biome ci .`, `bun run typecheck`, and `bun test` to confirm docs and code remain clean.
 
 ### 4. Required Validations
@@ -26,7 +26,7 @@ Bring the repository to true Phase 2.5 completion by making documentation reflec
 - [x] Replace all remaining Phase 1 placeholder docs under `docs/context/`, `docs/context/`, and `docs/guides/`.
 - [x] Update `docs/README.md` implementation status and remove stale placeholder note.
 - [x] Update `docs/README.md` and `docs/README.md` to reflect the real docs structure.
-- [x] Update `docs/plans/active/code-smith-master-plan.md` `related_files` to match the modular tool layout.
+- [x] Update `docs/plans/backlog/code-smith-master-plan.md` `related_files` to match the modular tool layout.
 - [x] Save this remediation plan under `docs/plans/review-reports/`.
 
 ### 6. Human Decisions Needed
