@@ -71,6 +71,7 @@ bun run kind:down
 
 - 🤖 **Agentic review pipeline** — context agent, investigator loop, and reflection agent work together before anything is published.
 - 🛠️ **Repo-aware tools** — the investigator can read files, search the codebase, and inspect directory structure inside a sandboxed repo clone.
+- 🧩 **Repo-owned review config** — `.codesmith.yaml` supports repo-level exclusions, severity policy, and prompt guidance without redeploying CodeSmith.
 - 🧠 **Multi-provider LLM fallback** — AWS Bedrock first, with optional OpenAI and Google Gemini fallback ordering.
 - ☸️ **Kubernetes-ready** — raw manifests for webhook, worker, service, config, secrets, and local Valkey validation on KinD.
 - 🔎 **Jira enrichment** — optionally pulls linked Jira ticket context from MR title and description.
@@ -195,6 +196,18 @@ cp .env.example .env
 | `JIRA_ACCEPTANCE_CRITERIA_FIELD_ID` | Optional acceptance-criteria custom field |
 
 Full configuration reference: [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md), [docs/context/CONFIGURATION.md](docs/context/CONFIGURATION.md), and [docs/guides/REPO_REVIEW_CONFIG.md](docs/guides/REPO_REVIEW_CONFIG.md)
+
+### Repo-owned review config
+
+CodeSmith now supports repository-level review configuration through `.codesmith.yaml` or `.codesmith.yml` at the repo root.
+
+Current live consumers include:
+
+- diff filtering through `exclude` and `file_rules.skip`
+- repo-controlled severity thresholds through `severity.minimum`, `severity.block_on`, and per-rule overrides
+- prompt guidance through `review_instructions` and matching `file_rules.instructions`
+
+This repository includes a dogfooding example at [.codesmith.yaml](.codesmith.yaml). For authoring guidance and examples, see [docs/guides/REPO_REVIEW_CONFIG.md](docs/guides/REPO_REVIEW_CONFIG.md).
 
 ---
 

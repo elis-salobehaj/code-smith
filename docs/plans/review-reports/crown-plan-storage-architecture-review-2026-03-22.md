@@ -2,7 +2,7 @@
 
 **Plan file**: `docs/plans/active/code-smith-crown-plan.md`
 **Reviewed child plans**:
-- `docs/plans/active/repo-review-config-plan.md`
+- `docs/plans/implemented/repo-review-config-plan.md`
 - `docs/plans/backlog/linter-sast-integration-plan.md`
 - `docs/plans/backlog/organizational-learning-plan.md`
 - `docs/plans/backlog/enhanced-review-output-plan.md`

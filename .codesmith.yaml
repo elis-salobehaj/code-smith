@@ -1,0 +1,32 @@
+version: 1
+
+review_instructions: |
+  This is a Bun-native TypeScript service for GitLab merge request review.
+  Prioritize review integrity, security boundaries, failure handling, and
+  documentation accuracy. Prefer Bun-native workflows, Zod validation at
+  external boundaries, and architecture changes that preserve the internal
+  LLM protocol boundary.
+
+file_rules:
+  - pattern: "src/agents/**"
+    instructions: "Check prompt boundaries, tool access limits, and protocol consistency."
+  - pattern: "src/config/**"
+    instructions: "Verify Zod validation, safe defaults, and defensive config handling."
+  - pattern: "tests/**"
+    severity_threshold: high
+    instructions: "Focus on behavioral regressions, edge cases, and missing coverage rather than style."
+  - pattern: "docs/**"
+    instructions: "Keep docs aligned with shipped behavior, active plans, and audit status."
+
+exclude:
+  - "node_modules/**"
+  - "dist/**"
+  - "logs/**"
+  - "bun.lock"
+  - "package-lock.json"
+  - "pnpm-lock.yaml"
+  - "yarn.lock"
+
+severity:
+  minimum: low
+  block_on: high

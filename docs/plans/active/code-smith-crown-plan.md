@@ -6,10 +6,10 @@ estimated_hours: 200-320
 dependencies:
   - docs/plans/backlog/code-smith-master-plan.md
 created: 2026-03-21
-date_updated: 2026-03-22
+date_updated: 2026-03-29
 
 related_files:
-  - docs/plans/active/repo-review-config-plan.md
+  - docs/plans/implemented/repo-review-config-plan.md
   - docs/plans/backlog/linter-sast-integration-plan.md
   - docs/plans/backlog/organizational-learning-plan.md
   - docs/plans/backlog/enhanced-review-output-plan.md
@@ -25,7 +25,7 @@ tags:
 
 completion:
   - "# Child Plan Delivery Tracking"
-  - [ ] CP1 — Repo-Based Review Configuration plan implemented
+  - [x] CP1 — Repo-Based Review Configuration plan implemented
   - [ ] CP2 — Linter & SAST Integration plan implemented
   - [ ] CP3 — Organizational Learning System plan implemented
   - [ ] CP4 — Enhanced Review Output plan implemented
@@ -131,9 +131,11 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 ### CP1 — Repo-Based Review Configuration
 
-**File:** [`docs/plans/active/repo-review-config-plan.md`](./repo-review-config-plan.md)
+**File:** [`docs/plans/implemented/repo-review-config-plan.md`](../implemented/repo-review-config-plan.md)
 **Priority:** HIGH (foundational — CP2, CP3, CP4 depend on it)
 **Estimated hours:** 24–36
+
+**Status:** Implemented and audited. Follow-on security hardening is tracked separately in `CP1-SG`.
 
 **What it does:** Introduces `.codesmith.yaml` repo-level configuration. Projects can customize review behavior, severity thresholds, file exclusions, language-specific rules, and opt into features like enhanced summaries and linter integration — all without environment variables or Code Smith redeployment.
 
@@ -295,10 +297,10 @@ Each child plan targets specific scoring improvements. The rightmost column show
 
 ### Phase 1 — Foundation (Weeks 1–3)
 
-Start CP1 (Review Config) and CP6 (Production Hardening) in parallel. These have no cross-dependencies and are the highest-impact plans.
+CP1 is complete. Continue CP6 (Production Hardening) as the remaining foundation track while downstream plans build on the shipped `.codesmith.yaml` contract.
 
-- **CP1** unlocks CP2, CP3, and CP4 (they all read `.codesmith.yaml`)
-- **CP6** establishes the operational foundation (Helm, metrics, testing)
+- **CP1** now unlocks CP2, CP3, and CP4 through a shipped repo-config contract
+- **CP6** establishes the remaining operational foundation (Helm, metrics, testing)
 
 ### Phase 2 — Core Capabilities (Weeks 3–7)
 

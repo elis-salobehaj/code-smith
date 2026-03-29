@@ -37,6 +37,29 @@ Important:
 
 If you want to author repo-owned review config, see [`docs/guides/REPO_REVIEW_CONFIG.md`](./REPO_REVIEW_CONFIG.md). That guide explains what `.codesmith.yaml` is, how to structure it, and which parts of the contract are already active versus still planned.
 
+## 3. Configure repo-level review rules
+
+Repo-owned review configuration is already live. CodeSmith looks for `.codesmith.yaml`
+or `.codesmith.yml` at the repository root after cloning the target repo.
+
+This repository now ships a dogfooding example at [`/.codesmith.yaml`](../../.codesmith.yaml).
+It demonstrates the current recommended baseline:
+
+- repo-level `review_instructions` for CodeSmith's Bun, Zod, and security conventions
+- file-specific guidance for `src/agents/**`, `src/config/**`, `tests/**`, and `docs/**`
+- exclusion of `node_modules/**`, `dist/**`, `logs/**`, and common lockfiles
+- severity defaults that keep low findings visible while reserving `REQUEST_CHANGES` for `high` and above
+
+For your own repositories:
+
+1. Add `.codesmith.yaml` at the repo root.
+2. Start with `version: 1` and only the fields you actually need.
+3. Use `exclude` for generated, vendored, build, or snapshot output.
+4. Add short `review_instructions` and `file_rules[].instructions` that explain what correctness means in your codebase.
+5. Keep guidance specific and factual rather than trying to script the reviewer.
+
+See [`docs/guides/REPO_REVIEW_CONFIG.md`](./REPO_REVIEW_CONFIG.md) for the full field reference and more examples.
+
 ## GitLab personal access token (GLPAT)
 
 This service uses `GITLAB_TOKEN` in two places:

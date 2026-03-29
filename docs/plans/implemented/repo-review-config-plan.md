@@ -1,6 +1,6 @@
 ---
 title: "CP1 — Repo-Based Review Configuration (.codesmith.yaml)"
-status: active
+status: implemented
 priority: high
 estimated_hours: 24-36
 dependencies: []
@@ -8,6 +8,7 @@ created: 2026-03-21
 date_updated: 2026-03-29
 
 related_files:
+  - .codesmith.yaml
   - src/config.ts
   - src/api/pipeline.ts
   - src/agents/prompt-loader.ts
@@ -17,6 +18,7 @@ related_files:
   - src/agents/prompts/system-prompts.yaml
   - src/context/repo-manager.ts
   - .env.example
+  - docs/guides/GETTING_STARTED.md
   - docs/guides/REPO_REVIEW_CONFIG.md
   - docs/context/ARCHITECTURE.md
   - docs/context/CONFIGURATION.md
@@ -58,10 +60,12 @@ completion:
   - [x] Remediation complete — see `docs/plans/review-reports/c3-review-2026-03-29-v6p1.md`
   - "# Phase C4 — Docs, Validation & Audit"
   - [x] C4.1 Create .codesmith.yaml reference documentation with examples
-  - [ ] C4.2 Add sample .codesmith.yaml to repo root as a dogfooding example
-  - [ ] C4.3 Update GETTING_STARTED.md with config setup instructions
+  - [x] C4.2 Add sample .codesmith.yaml to repo root as a dogfooding example
+  - [x] C4.3 Update GETTING_STARTED.md with config setup instructions
   - [x] C4.4 Update docs/README.md
-  - [ ] C4.5 Run review-plan-phase audit
+  - [x] C4.5 Run review-plan-phase audit
+  - [x] Remediation complete — see `docs/plans/review-reports/c4-review-2026-03-29-n5r8.md`
+  - [x] Closeout review complete — see `docs/plans/review-reports/cp1-closeout-review-2026-03-29-t7k2.md`
 ---
 
 # CP1 — Repo-Based Review Configuration (.codesmith.yaml)

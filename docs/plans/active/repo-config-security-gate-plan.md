@@ -4,7 +4,7 @@ status: active
 priority: high
 estimated_hours: 12-18
 dependencies:
-  - docs/plans/active/repo-review-config-plan.md
+  - docs/plans/implemented/repo-review-config-plan.md
 created: 2026-03-29
 date_updated: 2026-03-29
 
@@ -66,7 +66,7 @@ completion:
   - [ ] SG4.1 Add a safe dogfooding example to `.codesmith.yaml` that exercises the gate without triggering quarantines
   - [ ] SG4.2 Add end-to-end regression coverage for malicious `.codesmith.yaml` samples flowing through the review pipeline
   - [ ] SG4.3 Run `bun run check` and `bun run ci`, then remediate any plan-related regressions
-  - [ ] SG4.4 Update `docs/README.md`, `docs/plans/active/repo-review-config-plan.md`, and any relevant guide text to reflect delivered security hardening status
+  - [ ] SG4.4 Update `docs/README.md`, `docs/plans/implemented/repo-review-config-plan.md`, and any relevant guide text to reflect delivered security hardening status
   - [ ] SG4.5 Run `review-plan-phase`, save the report under `docs/plans/review-reports/`, and only then mark this plan complete
 ---
 
@@ -305,7 +305,7 @@ tests/
 
 **SG4.4** — Update plan bookkeeping and user-facing docs:
 - Update `docs/README.md` current-state summary to reflect shipped hardening
-- Update `docs/plans/active/repo-review-config-plan.md` to reference the delivered security gate follow-on
+- Update `docs/plans/implemented/repo-review-config-plan.md` to reference the delivered security gate follow-on
 - Ensure `docs/guides/GETTING_STARTED.md` or `docs/guides/REPO_REVIEW_CONFIG.md` points to the final behavior where relevant
 
 **SG4.5** — Audit completion:

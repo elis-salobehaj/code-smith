@@ -4,7 +4,7 @@ status: backlog
 priority: high
 estimated_hours: 40-60
 dependencies:
-  - docs/plans/active/repo-review-config-plan.md
+  - docs/plans/implemented/repo-review-config-plan.md
   - docs/plans/backlog/production-hardening-plan.md
 created: 2026-03-21
 date_updated: 2026-03-22

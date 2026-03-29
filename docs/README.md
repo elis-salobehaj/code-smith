@@ -22,8 +22,7 @@ Unified reference documentation for both humans and agents. These docs lean towa
 
 ## 📋 Implementation Plans (`docs/plans/`)
 
-- **Active**: [CP1 — Repo-Based Review Configuration](./plans/active/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config foundation, pipeline integration, and prompt injection; Phase C1 through C3 are implemented and C4 remains pending
-- **Active**: [CP1-SG — Repo Config Security Gate](./plans/active/repo-config-security-gate-plan.md) — Deterministic prompt-field screening, sanitized effective repo config, separate config-security MR note, and a no-tool semantic security gate for suspicious `.codesmith.yaml` instructions
+- **Active**: [CP1-SG — Repo Config Security Gate](./plans/active/repo-config-security-gate-plan.md) — Deterministic all-unsealed-field screening, sanitized effective repo config, separate config-security MR note, and an env-gated always-run no-tool security LLM pass for non-empty `.codesmith.yaml` files
 - **Active**: [The Crown Plan](./plans/active/code-smith-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 primary child plans plus a threshold-driven PostgreSQL/pgvector migration path
 - **Backlog**: [CodeSmith Master Plan](./plans/backlog/code-smith-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
 - **Backlog**: [CodeSmith Awakening Personality Plan](./plans/backlog/CodeSmith-awakening-personality-plan.md) — Trigger alias expansion, CodeSmith-mode acknowledgements, and tone-aware top-level summary behavior
@@ -35,6 +34,7 @@ Unified reference documentation for both humans and agents. These docs lean towa
 - **Backlog**: [CP7 — PostgreSQL & pgvector Migration Path](./plans/backlog/postgresql-pgvector-migration-plan.md) — Threshold-driven migration from phase-one SQLite storage to PostgreSQL, with optional pgvector only when semantic retrieval is justified
 - **Backlog**: [Deno Runtime Evaluation And Migration Plan](./plans/backlog/deno-runtime-evaluation-and-migration-plan.md) — Security-first runtime evaluation, Bun-to-Deno rewrite scope, replacement matrix, and spike-first migration path
 - **Implemented**: [Review Edge Cases Hardening](./plans/implemented/review-edge-cases-hardening.md) — Same-head idempotency, review ledger + incremental ranges, publication semantics, full-pipeline branch serialization, repo freshness validation, metadata-only update skipping, and explicit draft policy
+- **Implemented**: [CP1 — Repo-Based Review Configuration](./plans/implemented/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config foundation, pipeline integration, prompt injection, dogfooding sample, setup documentation, and audit closure delivered across Phases C1 through C4
 - **Implemented**: [Structured Logging](./plans/implemented/structured-logging-plan.md) — LogTape structured logging, request correlation, and docs overhaul across 5 phases
 - **Implemented**: [Agentic Development Plan](./plans/implemented/agentic-development-plan.md) — Repo bootstrap and dev tooling setup
 
@@ -77,11 +77,11 @@ Implemented today:
 - Incremental review scope: automatic runs now compute `full`, `incremental`, or `skip` mode from GitLab commit history and use repository-compare diffs for unreviewed ranges while preserving current MR diff refs for inline publishing
 - Version-aware publication semantics: automatic same-head reruns are skipped before publication, manual reruns always post a visible summary, and inline duplicate suppression now keys on trigger mode plus discussion `headSha`
 - Repo freshness and delivery hardening: same-branch runs are serialized across the full pipeline, cached clones verify local HEAD against GitLab before review, active cache mtimes are refreshed after clone/update, metadata-only MR updates are ignored, and automatic draft reviews are configurable with `REVIEW_DRAFT_MRS`
-- Repo review config prompt-aware pipeline: `.codesmith.yaml` / `.codesmith.yml` discovery, strict Zod schema validation, safe default fallback behavior, glob-matching helpers, diff filtering from `exclude` and `file_rules.skip`, per-file severity threshold filtering, repo-driven blocking verdict thresholds, global `review_instructions` injection in Agent 1, matching `file_rules.instructions` injection in Agent 2, and severity-policy injection in Agent 3 are implemented under `src/config/` and `src/agents/`; sample config/examples and final docs audit remain in CP1
-- Repo config security hardening is now tracked as an active follow-on plan: deterministic screening and sanitized prompt-field handling will sit in front of the review graph, with separate MR publication for config-security findings and an optional no-tool security LLM gate for suspicious `.codesmith.yaml` instructions
+- Repo review config prompt-aware pipeline: `.codesmith.yaml` / `.codesmith.yml` discovery, strict Zod schema validation, safe default fallback behavior, glob-matching helpers, diff filtering from `exclude` and `file_rules.skip`, per-file severity threshold filtering, repo-driven blocking verdict thresholds, global `review_instructions` injection in Agent 1, matching `file_rules.instructions` injection in Agent 2, severity-policy injection in Agent 3, a repo-root dogfooding `.codesmith.yaml`, and setup guidance in GETTING_STARTED are implemented under `src/config/`, `src/agents/`, and `docs/guides/`
+- Repo config security hardening is now tracked as an active follow-on plan: deterministic screening and sanitization across all unsealed repo-config fields will sit in front of the review graph, with separate MR publication for config-security findings and an env-gated always-run no-tool security LLM gate for non-empty `.codesmith.yaml` files
 - Repo review config guide: repo authors now have a dedicated guide for `.codesmith.yaml` structure, examples, standards, and troubleshooting under `docs/guides/REPO_REVIEW_CONFIG.md`
 
 Planned next:
 
-- CP1: finish sample config/examples, getting-started updates, and final audit/docs cleanup
+- CP1-SG: implement env-gated repo-config security screening, sanitized effective config handling, dedicated config-security MR notes, and the no-tool security LLM gate
 - Crown Plan: deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector

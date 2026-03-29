@@ -141,7 +141,7 @@ output:
 
 ### `file_rules`
 
-Rules are evaluated by matching glob pattern. Today, matching rules are used to skip files entirely and to raise effective severity thresholds for findings associated with those files. Instruction-text consumers still land in later phases.
+Rules are evaluated by matching glob pattern. Today, matching rules are used to skip files entirely, to raise effective severity thresholds for findings associated with those files, and to inject matching repo-owned review guidance into the investigator prompt.
 
 | Field | Required | Type | Default | Notes |
 |---|---|---|---|---|
@@ -334,7 +334,7 @@ Current state:
 - prompt injection from `review_instructions` and `file_rules.instructions`: implemented
 - feature toggles, linter-profile consumers, and output shaping: not yet wired
 
-See CP1 in [docs/plans/active/repo-review-config-plan.md](../plans/active/repo-review-config-plan.md) for the remaining phases.
+See the implemented CP1 record in [docs/plans/implemented/repo-review-config-plan.md](../plans/implemented/repo-review-config-plan.md) for the shipped foundation and the active CP1-SG follow-on plan for security hardening work.
 
 ### You tried to define a command under `linters`
 
@@ -346,4 +346,5 @@ CodeSmith only accepts a named deployment-owned linter profile from the repo con
 
 - [docs/context/CONFIGURATION.md](../context/CONFIGURATION.md) — schema and environment reference
 - [docs/context/ARCHITECTURE.md](../context/ARCHITECTURE.md) — current runtime architecture and repo-config loading details
-- [docs/plans/active/repo-review-config-plan.md](../plans/active/repo-review-config-plan.md) — CP1 implementation plan
+- [docs/plans/implemented/repo-review-config-plan.md](../plans/implemented/repo-review-config-plan.md) — implemented CP1 plan record
+- [docs/plans/active/repo-config-security-gate-plan.md](../plans/active/repo-config-security-gate-plan.md) — active CP1-SG security hardening follow-on
