@@ -17,21 +17,23 @@ Typical use cases include:
 
 ## Current Status
 
-CodeSmith currently supports the **configuration foundation** for this file:
+CodeSmith currently supports the **configuration foundation and pipeline consumers** for this file:
 
 - discovery at repo root
 - YAML parsing
 - strict Zod validation
 - safe fallback to defaults when the file is missing or invalid
 - glob validation and matching helpers
+- diff filtering from `exclude` and `file_rules.skip`
+- repo-level severity filtering and blocking verdict thresholds
 
 Important:
 
 - the file is **loaded and validated today**
-- most config-driven behavior is **not applied yet** in the review pipeline
-- later CP1 phases will wire this file into diff filtering, prompt injection, and severity-aware verdict behavior
+- `exclude`, `file_rules.skip`, `severity.minimum`, and `severity.block_on` are **applied today** in the live review pipeline
+- later CP1 phases will wire `review_instructions` and `file_rules.instructions` into prompt injection, plus add the remaining output/linter feature consumers
 
-If you add `.codesmith.yaml` today, CodeSmith will validate it, but fields like `exclude`, `review_instructions`, and `file_rules` are still part of the forward contract rather than active review behavior.
+If you add `.codesmith.yaml` today, CodeSmith will already use it to skip excluded files and suppress findings below configured severity thresholds. Prompt customization and later feature toggles are still part of the forward contract.
 
 ## File Location And Discovery
 
@@ -129,23 +131,23 @@ output:
 |---|---|---|---|---|---|
 | `version` | yes | literal `1` | none | Schema version gate | validated and required today |
 | `review_instructions` | no | string | none | Global review guidance | parsed today, prompt consumer planned |
-| `file_rules` | no | array | `[]` | Per-pattern review rules | parsed today, filtering/prompt consumers planned |
-| `exclude` | no | array | `[]` | Always-skip file patterns | parsed today, diff filtering consumer planned |
-| `severity` | no | object | see below | Repo severity defaults | parsed today, verdict consumer planned |
+| `file_rules` | no | array | `[]` | Per-pattern review rules | `skip` and `severity_threshold` are applied today; `instructions` consumer remains planned |
+| `exclude` | no | array | `[]` | Always-skip file patterns | applied today during pre-agent diff filtering |
+| `severity` | no | object | see below | Repo severity defaults | `minimum` and `block_on` are applied today during reflection/verdict calculation |
 | `features` | no | object | see below | Per-repo feature toggles | parsed today, feature consumers planned |
 | `linters` | no | object | see below | Named linter profile selection | parsed today, linter integration consumer planned |
 | `output` | no | object | see below | Output shaping preferences | parsed today, output consumer planned |
 
 ### `file_rules`
 
-Rules are evaluated in order. The intended contract is first-match-oriented review customization, even though later phases will define the exact runtime consumer behavior.
+Rules are evaluated by matching glob pattern. Today, matching rules are used to skip files entirely and to raise effective severity thresholds for findings associated with those files. Instruction-text consumers still land in later phases.
 
 | Field | Required | Type | Default | Notes |
 |---|---|---|---|---|
 | `pattern` | yes | glob string | none | Must be a valid repo-relative glob |
-| `severity_threshold` | no | `low | medium | high | critical` | none | Intended per-pattern severity override |
-| `instructions` | no | string | none | Intended per-pattern review guidance |
-| `skip` | no | boolean | none | Intended to skip matching files entirely |
+| `severity_threshold` | no | `low | medium | high | critical` | none | Applied today as a per-pattern minimum finding severity |
+| `instructions` | no | string | none | Parsed today; prompt injection planned |
+| `skip` | no | boolean | none | Applied today to skip matching files entirely |
 
 ### `severity`
 
@@ -186,7 +188,7 @@ Important:
 
 ## Common Examples
 
-These examples show the intended long-term shape of repo config for different repo types. Some fields are forward-looking until later CP1 phases land.
+These examples show the supported config shape for different repo types. Fields such as `review_instructions`, `file_rules.instructions`, `features`, `linters`, and `output` remain forward-looking until later CP1 and Crown phases land.
 
 ### Monorepo
 
@@ -321,14 +323,15 @@ When in doubt, prefer simple patterns over clever ones.
 
 ### You expected review behavior to change immediately
 
-Today, CodeSmith loads and validates repo config but does not yet consume most of it in the pipeline.
+Today, CodeSmith loads repo config and consumes the filtering and severity controls in the pipeline. Prompt customization and later feature toggles are still pending.
 
 Current state:
 
 - parser and schema: implemented
-- diff filtering from `exclude` and `skip`: not yet wired
+- diff filtering from `exclude` and `skip`: implemented
+- severity-driven finding filtering and verdict behavior: implemented
 - prompt injection from `review_instructions` and `file_rules.instructions`: not yet wired
-- severity-driven verdict behavior: not yet wired
+- feature toggles, linter-profile consumers, and output shaping: not yet wired
 
 See CP1 in [docs/plans/active/repo-review-config-plan.md](../plans/active/repo-review-config-plan.md) for the remaining phases.
 

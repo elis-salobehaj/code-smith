@@ -3,6 +3,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentResponse } from "../src/agents/protocol";
 import type { ReviewState } from "../src/agents/state";
+import { DEFAULT_REPO_CONFIG } from "../src/config/repo-config";
 
 const SANDBOX = join(import.meta.dir, "__temp_agents_entrypoints_sandbox__");
 
@@ -53,6 +54,7 @@ function makeBaseState(): ReviewState {
     ],
     diffHunks: [],
     repoPath: SANDBOX,
+    repoConfig: DEFAULT_REPO_CONFIG,
     triggerContext: { mode: "automatic", source: "merge_request_event" },
     mrIntent: "",
     changeCategories: [],

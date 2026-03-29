@@ -21,7 +21,7 @@ Unified reference documentation for both humans and agents. These docs lean towa
 
 ## 📋 Implementation Plans (`docs/plans/`)
 
-- **Active**: [CP1 — Repo-Based Review Configuration](./plans/active/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config foundation; Phase C1 is implemented and C2/C3 remain pending
+- **Active**: [CP1 — Repo-Based Review Configuration](./plans/active/repo-review-config-plan.md) — `.codesmith.yaml` repo-level config foundation plus pipeline integration; Phase C1 and C2 are implemented and C3/C4 remain pending
 - **Active**: [The Crown Plan](./plans/active/code-smith-crown-plan.md) — Master umbrella plan to close all competitive gaps with CodeRabbit and GitLab Duo across 6 primary child plans plus a threshold-driven PostgreSQL/pgvector migration path
 - **Backlog**: [CodeSmith Master Plan](./plans/backlog/code-smith-master-plan.md) — Phases 1–5 complete (Phase 5.5 DEFERRED), with Jira write actions deferred to Phase 6
 - **Backlog**: [CodeSmith Awakening Personality Plan](./plans/backlog/CodeSmith-awakening-personality-plan.md) — Trigger alias expansion, CodeSmith-mode acknowledgements, and tone-aware top-level summary behavior
@@ -75,10 +75,10 @@ Implemented today:
 - Incremental review scope: automatic runs now compute `full`, `incremental`, or `skip` mode from GitLab commit history and use repository-compare diffs for unreviewed ranges while preserving current MR diff refs for inline publishing
 - Version-aware publication semantics: automatic same-head reruns are skipped before publication, manual reruns always post a visible summary, and inline duplicate suppression now keys on trigger mode plus discussion `headSha`
 - Repo freshness and delivery hardening: same-branch runs are serialized across the full pipeline, cached clones verify local HEAD against GitLab before review, active cache mtimes are refreshed after clone/update, metadata-only MR updates are ignored, and automatic draft reviews are configurable with `REVIEW_DRAFT_MRS`
-- Repo review config foundation: `.codesmith.yaml` / `.codesmith.yml` discovery, strict Zod schema validation, safe default fallback behavior, and glob-matching helpers are implemented under `src/config/`; CP1 is now active for pipeline integration and prompt injection work
+- Repo review config pipeline integration: `.codesmith.yaml` / `.codesmith.yml` discovery, strict Zod schema validation, safe default fallback behavior, glob-matching helpers, diff filtering from `exclude` and `file_rules.skip`, per-file severity threshold filtering, and repo-driven blocking verdict thresholds are implemented under `src/config/`, `src/api/pipeline.ts`, and `src/agents/reflection-agent.ts`; prompt injection and remaining doc/example work stay in CP1
 - Repo review config guide: repo authors now have a dedicated guide for `.codesmith.yaml` structure, examples, standards, and troubleshooting under `docs/guides/REPO_REVIEW_CONFIG.md`
 
 Planned next:
 
-- CP1: finish repo-config pipeline integration, prompt injection, and remaining docs/examples
+- CP1: finish prompt injection, sample config/examples, and final audit/docs cleanup
 - Crown Plan: deliver linter/SAST integration, organizational learning, enhanced review output, analytics & observability, production hardening, and the threshold-driven CP7 migration path from SQLite to PostgreSQL/pgvector

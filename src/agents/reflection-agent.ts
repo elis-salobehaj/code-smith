@@ -1,8 +1,13 @@
 import { z } from "zod";
+import {
+  compareRepoSeverityLevels,
+  type RepoSeverityLevel,
+  resolveFindingSeverityThreshold,
+} from "../config/repo-config";
 import { chatCompletion } from "./llm-client";
 import { loadAgentPrompt } from "./prompt-loader";
 import { type AgentMessage, firstTextBlock, textMessage } from "./protocol";
-import { findingSchema, type ReviewState } from "./state";
+import { type Finding, findingSchema, type ReviewState } from "./state";
 
 // ---------------------------------------------------------------------------
 // Zod schema for LLM output validation
@@ -63,6 +68,30 @@ export function parseReflectionResponse(response: AgentMessage): {
   return reflectionResponseSchema.parse(raw);
 }
 
+function meetsSeverityThreshold(finding: Finding, threshold: RepoSeverityLevel): boolean {
+  return compareRepoSeverityLevels(finding.riskLevel, threshold) >= 0;
+}
+
+export function filterFindingsForRepoConfig(findings: Finding[], state: ReviewState): Finding[] {
+  return findings.filter((finding) => {
+    const threshold = resolveFindingSeverityThreshold(state.repoConfig, finding.file);
+    return meetsSeverityThreshold(finding, threshold);
+  });
+}
+
+export function deriveRepoConfigVerdict(findings: Finding[], state: ReviewState): ReviewState["summaryVerdict"] {
+  if (findings.length === 0) {
+    return "APPROVE";
+  }
+
+  const blockOn = state.repoConfig.severity.block_on;
+  if (findings.some((finding) => meetsSeverityThreshold(finding, blockOn))) {
+    return "REQUEST_CHANGES";
+  }
+
+  return "NEEDS_DISCUSSION";
+}
+
 // ---------------------------------------------------------------------------
 // Main agent function
 // ---------------------------------------------------------------------------
@@ -73,11 +102,12 @@ export async function reflectionAgent(state: ReviewState): Promise<ReviewState> 
   ]);
 
   const parsed = parseReflectionResponse(response.message);
+  const filteredFindings = filterFindingsForRepoConfig(parsed.verifiedFindings, state);
 
   return {
     ...state,
-    verifiedFindings: parsed.verifiedFindings,
-    summaryVerdict: parsed.summaryVerdict,
+    verifiedFindings: filteredFindings,
+    summaryVerdict: deriveRepoConfigVerdict(filteredFindings, state),
     needsReinvestigation: parsed.needsReinvestigation,
   };
 }

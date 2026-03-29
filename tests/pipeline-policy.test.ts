@@ -58,9 +58,7 @@ describe("findAutomaticReviewSkipSummary", () => {
         [
           {
             id: 57110,
-            body: ["<!-- code-smith:summary -->", "## review", "", "<!-- code-smith:head sha=deadbeef -->"].join(
-              "\n",
-            ),
+            body: ["<!-- code-smith:summary -->", "## review", "", "<!-- code-smith:head sha=deadbeef -->"].join("\n"),
           },
         ],
         "05fef636ef4e5feb8bd54ebe7a29d3554eca4c48",

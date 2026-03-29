@@ -16,8 +16,14 @@ import { buildInvestigatorPrompt, extractFindings } from "../src/agents/investig
 import { loadAgentPrompt, loadPromptConfig } from "../src/agents/prompt-loader";
 import type { AgentMessage } from "../src/agents/protocol";
 import { textMessage } from "../src/agents/protocol";
-import { buildReflectionPrompt, parseReflectionResponse } from "../src/agents/reflection-agent";
+import {
+  buildReflectionPrompt,
+  deriveRepoConfigVerdict,
+  filterFindingsForRepoConfig,
+  parseReflectionResponse,
+} from "../src/agents/reflection-agent";
 import type { ReviewState } from "../src/agents/state";
+import { DEFAULT_REPO_CONFIG, RepoConfigSchema } from "../src/config/repo-config";
 import { parseDiffHunks } from "../src/context/diff-parser";
 
 // ---------------------------------------------------------------------------
@@ -90,6 +96,7 @@ function makeBaseState(): ReviewState {
     diffFiles,
     diffHunks: parseDiffHunks(diffFiles),
     repoPath: "/tmp/test-repo",
+    repoConfig: DEFAULT_REPO_CONFIG,
     triggerContext: { mode: "automatic", source: "merge_request_event" },
     mrIntent: "Add Stripe payment integration for subscriptions.",
     changeCategories: ["billing", "API"],
@@ -548,6 +555,124 @@ describe("parseReflectionResponse", () => {
 
   it("throws on unparseable JSON", () => {
     expect(() => parseReflectionResponse(makeTextMessage("{broken"))).toThrow("unparseable JSON");
+  });
+});
+
+describe("filterFindingsForRepoConfig", () => {
+  it("filters findings below the global minimum severity", () => {
+    const state = {
+      ...makeBaseState(),
+      repoConfig: RepoConfigSchema.parse({
+        version: 1,
+        severity: { minimum: "high" },
+      }),
+    };
+
+    const findings = [
+      {
+        file: "src/billing.ts",
+        lineStart: 10,
+        lineEnd: 10,
+        riskLevel: "medium" as const,
+        title: "Medium issue",
+        description: "desc",
+        evidence: "evidence",
+      },
+      {
+        file: "src/billing.ts",
+        lineStart: 12,
+        lineEnd: 12,
+        riskLevel: "critical" as const,
+        title: "Critical issue",
+        description: "desc",
+        evidence: "evidence",
+      },
+    ];
+
+    expect(filterFindingsForRepoConfig(findings, state)).toEqual([findings[1]]);
+  });
+
+  it("uses matching file rules to tighten the threshold", () => {
+    const state = {
+      ...makeBaseState(),
+      repoConfig: RepoConfigSchema.parse({
+        version: 1,
+        file_rules: [{ pattern: "src/billing.ts", severity_threshold: "critical" }],
+      }),
+    };
+
+    const findings = [
+      {
+        file: "src/billing.ts",
+        lineStart: 10,
+        lineEnd: 10,
+        riskLevel: "high" as const,
+        title: "High issue",
+        description: "desc",
+        evidence: "evidence",
+      },
+      {
+        file: "src/billing.ts",
+        lineStart: 12,
+        lineEnd: 12,
+        riskLevel: "critical" as const,
+        title: "Critical issue",
+        description: "desc",
+        evidence: "evidence",
+      },
+    ];
+
+    expect(filterFindingsForRepoConfig(findings, state)).toEqual([findings[1]]);
+  });
+});
+
+describe("deriveRepoConfigVerdict", () => {
+  it("returns APPROVE when no findings survive", () => {
+    expect(deriveRepoConfigVerdict([], makeBaseState())).toBe("APPROVE");
+  });
+
+  it("uses repoConfig severity.block_on for request-changes decisions", () => {
+    const state = {
+      ...makeBaseState(),
+      repoConfig: RepoConfigSchema.parse({
+        version: 1,
+        severity: { block_on: "critical" },
+      }),
+    };
+
+    expect(
+      deriveRepoConfigVerdict(
+        [
+          {
+            file: "src/billing.ts",
+            lineStart: 10,
+            lineEnd: 10,
+            riskLevel: "high",
+            title: "High issue",
+            description: "desc",
+            evidence: "evidence",
+          },
+        ],
+        state,
+      ),
+    ).toBe("NEEDS_DISCUSSION");
+
+    expect(
+      deriveRepoConfigVerdict(
+        [
+          {
+            file: "src/billing.ts",
+            lineStart: 12,
+            lineEnd: 12,
+            riskLevel: "critical",
+            title: "Critical issue",
+            description: "desc",
+            evidence: "evidence",
+          },
+        ],
+        state,
+      ),
+    ).toBe("REQUEST_CHANGES");
   });
 });
 

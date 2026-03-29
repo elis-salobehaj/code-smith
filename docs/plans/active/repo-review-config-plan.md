@@ -40,12 +40,14 @@ completion:
   - [x] Remediation complete — see `docs/plans/review-reports/c1-review-2026-03-28-q7m2.md`
   - [x] Re-review remediation complete — see `docs/plans/review-reports/c1-review-2026-03-28-v4n8.md`
   - "# Phase C2 — Pipeline Integration"
-  - [ ] C2.1 Load repo config after clone/update in pipeline.ts
-  - [ ] C2.2 Attach parsed config to ReviewState
-  - [ ] C2.3 Apply file exclusion patterns to diff filtering (pre-agent)
-  - [ ] C2.4 Apply draft/skip rules from repo config
-  - [ ] C2.5 Unit tests for pipeline config loading and diff filtering
-  - [ ] C2.6 Update WORKFLOWS.md
+  - [x] C2.1 Load repo config after clone/update in pipeline.ts
+  - [x] C2.2 Attach parsed config to ReviewState
+  - [x] C2.3 Apply file exclusion patterns to diff filtering (pre-agent)
+  - [x] C2.4 Apply severity overrides from repo config
+  - [x] C2.5 Unit tests for pipeline config loading and diff filtering
+  - [x] C2.6 Update WORKFLOWS.md
+  - [x] Remediation complete — see `docs/plans/review-reports/c2-review-2026-03-29-k8r4.md`
+  - [x] Re-review remediation complete — see `docs/plans/review-reports/c2-review-2026-03-29-m2q7.md`
   - "# Phase C3 — Prompt Injection"
   - [ ] C3.1 Extend prompt-loader to accept optional custom instructions
   - [ ] C3.2 Inject per-file-pattern rules into investigator agent prompt

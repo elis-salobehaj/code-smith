@@ -4,9 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DEFAULT_REPO_CONFIG,
+  findMatchingRepoFileRules,
   isValidRepoGlobPattern,
   matchesRepoConfigGlob,
   RepoConfigSchema,
+  resolveFindingSeverityThreshold,
+  shouldSkipFileForRepoReview,
 } from "../src/config/repo-config";
 import { loadRepoConfig } from "../src/config/repo-config-loader";
 
@@ -279,5 +282,56 @@ describe("repo config glob compatibility", () => {
   it("matches trailing-slash directory rules via fallback handling", () => {
     expect(matchesRepoConfigGlob("dir/", "dir/file.ts")).toBe(true);
     expect(matchesRepoConfigGlob("dir/", "otherdir/file.ts")).toBe(false);
+  });
+
+  it("returns all matching file rules for a path", () => {
+    const matches = findMatchingRepoFileRules(
+      [
+        { pattern: "src/**", instructions: "general" },
+        { pattern: "src/api/**", severity_threshold: "high" },
+        { pattern: "tests/**", skip: true },
+      ],
+      "src/api/pipeline.ts",
+    );
+
+    expect(matches).toEqual([
+      { pattern: "src/**", instructions: "general" },
+      { pattern: "src/api/**", severity_threshold: "high" },
+    ]);
+  });
+
+  it("skips files matched by exclude patterns", () => {
+    const repoConfig = RepoConfigSchema.parse({
+      version: 1,
+      exclude: ["dist/**"],
+    });
+
+    expect(shouldSkipFileForRepoReview(repoConfig, "dist/index.js")).toBe(true);
+    expect(shouldSkipFileForRepoReview(repoConfig, "src/index.ts")).toBe(false);
+  });
+
+  it("skips files matched by file_rules skip entries", () => {
+    const repoConfig = RepoConfigSchema.parse({
+      version: 1,
+      file_rules: [{ pattern: "**/*.generated.ts", skip: true }],
+    });
+
+    expect(shouldSkipFileForRepoReview(repoConfig, "src/types.generated.ts")).toBe(true);
+    expect(shouldSkipFileForRepoReview(repoConfig, "src/types.ts")).toBe(false);
+  });
+
+  it("uses the strictest matching severity threshold for a finding", () => {
+    const repoConfig = RepoConfigSchema.parse({
+      version: 1,
+      severity: { minimum: "medium" },
+      file_rules: [
+        { pattern: "src/**", severity_threshold: "high" },
+        { pattern: "src/api/**", severity_threshold: "critical" },
+      ],
+    });
+
+    expect(resolveFindingSeverityThreshold(repoConfig, "src/api/pipeline.ts")).toBe("critical");
+    expect(resolveFindingSeverityThreshold(repoConfig, "src/context/repo-manager.ts")).toBe("high");
+    expect(resolveFindingSeverityThreshold(repoConfig, "README.md")).toBe("medium");
   });
 });

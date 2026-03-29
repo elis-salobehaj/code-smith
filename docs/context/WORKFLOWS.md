@@ -72,12 +72,23 @@ If a specific tool call throws, Agent 2 catches the failure and sends the error 
 
 ## 4. Full Pipeline
 
-`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → load current review ledger surfaces → clone repo → fetch Jira context → run agents → publish findings.
+`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → load current review ledger surfaces → clone repo → load repo config → filter review scope → fetch Jira context → run agents → publish findings.
 The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging.
 Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if a cached top-level CodeSmith summary note already embeds the current `headSha`, the pipeline logs the skip and returns before repo refresh or agent execution. Manual `/ai-review` triggers bypass this guard and always run.
 The pipeline also caches MR discussions, top-level MR notes, and MR diff versions once per run. Top-level notes are used for summary/head-sha guards and checkpoint parsing; discussions are reused for inline duplicate detection.
 Runs are serialized per `{projectId}-{branch}` across the full pipeline, starting before `getMRDetails()`. This ensures a later same-branch delivery re-reads MR state after any earlier run writes its summary/checkpoint.
 All pipeline logs emit structured JSON under `["codesmith", "pipeline"]` and carry the implicit `requestId`, `projectId`, and `mrIid` context set by the router and pipeline entry.
+
+### Repo config loading and pre-agent filtering
+
+- After `cloneOrUpdate()` returns a repo path, the pipeline loads `.codesmith.yaml` or `.codesmith.yml` from the repo root via `loadRepoConfig(repoPath)`.
+- Missing, malformed, or invalid config degrades safely to `DEFAULT_REPO_CONFIG` with structured warning logs; the review does not fail.
+- The analysis diff is filtered before any agent runs:
+   - files matching `exclude` are removed
+   - files matching any `file_rules` entry with `skip: true` are removed
+- Deleted files are matched using their old path; added or modified files are matched using their new path.
+- If repo config excludes every changed file, the automatic review exits early without invoking agents or publisher work.
+- The parsed config is attached to `ReviewState.repoConfig` so later agent stages can apply repo-level policy.
 
 ### Checkpoint write/read flow
 
@@ -130,11 +141,11 @@ Implemented in `src/integrations/jira/client.ts`. Called from `src/api/pipeline.
 
 Implemented in `src/agents/`.
 
-1. caller provides `ReviewState` input fields: `mrDetails`, `diffFiles`, `repoPath`, `linkedTickets`
+1. caller provides `ReviewState` input fields: `mrDetails`, `diffFiles`, `repoPath`, `linkedTickets`, `repoConfig`
 2. `contextAgent()` derives `mrIntent`, `changeCategories`, and `riskAreas`; uses `linkedTickets` when non-empty
 3. `investigatorLoop()` builds the investigation prompt and calls `chatCompletion()`, which iterates `LLM_PROVIDER_ORDER` via `tryProvidersInOrder()` — trying each provider until one succeeds or all fail
 4. tool requests are executed through `executeTool()` using `TOOL_DEFINITIONS`
-5. `reflectionAgent()` filters the raw findings and assigns a verdict
+5. `reflectionAgent()` filters the raw findings using repo-config severity thresholds and assigns a verdict using repo-config blocking policy
 6. `orchestrator.ts` allows one reinvestigation round when `needsReinvestigation` is true
 
 Current publishing behavior after review:

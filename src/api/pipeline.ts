@@ -2,9 +2,12 @@ import { runReview } from "../agents/orchestrator";
 import { selectReviewRange } from "../agents/review-range";
 import type { ReviewState } from "../agents/state";
 import { config } from "../config";
+import { type RepoConfig, shouldSkipFileForRepoReview } from "../config/repo-config";
+import { loadRepoConfig } from "../config/repo-config-loader";
 import { parseDiffHunks } from "../context/diff-parser";
 import { RepoManager } from "../context/repo-manager";
 import { GitLabClient } from "../gitlab-client/client";
+import type { DiffFile } from "../gitlab-client/types";
 import { fetchLinkedTickets } from "../integrations/jira/client";
 import { getLogger, withContext } from "../logger";
 import { findLatestSuccessfulCheckpoint } from "../publisher/checkpoint";
@@ -40,6 +43,14 @@ function createPipelineDependencies(): PipelineDependencies {
 }
 
 let pipelineDependencies = createPipelineDependencies();
+
+function getDiffFileRepoPath(diffFile: DiffFile): string {
+  return diffFile.deletedFile ? diffFile.oldPath : diffFile.newPath;
+}
+
+export function filterDiffFilesForRepoReview(diffFiles: DiffFile[], repoConfig: RepoConfig): DiffFile[] {
+  return diffFiles.filter((diffFile) => !shouldSkipFileForRepoReview(repoConfig, getDiffFileRepoPath(diffFile)));
+}
 
 function getSourceBranch(event: WebhookPayload): string {
   return event.object_kind === "merge_request"
@@ -204,11 +215,30 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
           projectId,
           mrDetails.headSha,
         );
+        const repoConfig = await loadRepoConfig(repoPath);
         logger.debug("Repo cache prepared", {
           requestedBranch: mrDetails.sourceBranch,
           expectedHeadSha: mrDetails.headSha,
           cachePath: repoPath,
         });
+
+        const filteredAnalysisDiffFiles = filterDiffFilesForRepoReview(analysisDiffFiles, repoConfig);
+
+        logger.debug("Applied repo review config to analysis diff", {
+          requestedBranch: mrDetails.sourceBranch,
+          configExcludePatterns: repoConfig.exclude.length,
+          configFileRules: repoConfig.file_rules.length,
+          originalDiffFiles: analysisDiffFiles.length,
+          filteredDiffFiles: filteredAnalysisDiffFiles.length,
+        });
+
+        if (trigger.mode === "automatic" && filteredAnalysisDiffFiles.length === 0) {
+          logger.info("Skipping automatic review — repo review config excluded all diff files", {
+            rangeStart: reviewRange.rangeStart,
+            rangeEnd: reviewRange.rangeEnd,
+          });
+          return;
+        }
 
         // 3. Fetch linked Jira tickets (read-only; degrades safely when disabled or unavailable)
         const linkedTickets = await loadLinkedTickets(mrDetails.title, mrDetails.description ?? undefined, config);
@@ -216,9 +246,10 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
         // 4. Build initial ReviewState and run the 3-agent pipeline
         const initialState: ReviewState = {
           mrDetails,
-          diffFiles: analysisDiffFiles,
-          diffHunks: parseDiffHunks(analysisDiffFiles),
+          diffFiles: filteredAnalysisDiffFiles,
+          diffHunks: parseDiffHunks(filteredAnalysisDiffFiles),
           repoPath,
+          repoConfig,
           triggerContext: trigger,
           linkedTickets,
           discussions,

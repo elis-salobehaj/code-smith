@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import type { ReviewTriggerContext } from "../api/trigger";
+import type { RepoConfig } from "../config/repo-config";
 import type { DiffFile, Discussion, MRDetails, ParsedHunk } from "../gitlab-client/types";
 import type { JiraTicket } from "../integrations/jira/client";
 import type { CheckpointRecord } from "../publisher/checkpoint";
@@ -42,6 +43,7 @@ export interface ReviewState {
   /** Structured hunks pre-parsed from diffFiles before the pipeline starts. */
   diffHunks: ParsedHunk[];
   repoPath: string;
+  repoConfig: RepoConfig;
   triggerContext: ReviewTriggerContext;
   /** Jira tickets linked from the MR title/description (Phase 4.5). Empty when Jira is disabled. */
   linkedTickets: JiraTicket[];

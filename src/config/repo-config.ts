@@ -4,6 +4,12 @@ import { z } from "zod";
 export const REPO_CONFIG_FILENAMES = [".codesmith.yaml", ".codesmith.yml"] as const;
 
 const severityLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+const severityWeights = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+} as const;
 
 const DEFAULT_SEVERITY_CONFIG = {
   minimum: "low",
@@ -149,7 +155,37 @@ export const RepoConfigSchema = z
   .strict();
 
 export type RepoConfig = z.infer<typeof RepoConfigSchema>;
+export type RepoFileRule = RepoConfig["file_rules"][number];
+export type RepoSeverityLevel = z.infer<typeof severityLevelSchema>;
 
 export const DEFAULT_REPO_CONFIG: RepoConfig = RepoConfigSchema.parse({
   version: 1,
 });
+
+export function compareRepoSeverityLevels(left: RepoSeverityLevel, right: RepoSeverityLevel): number {
+  return severityWeights[left] - severityWeights[right];
+}
+
+export function findMatchingRepoFileRules(fileRules: RepoFileRule[], filePath: string): RepoFileRule[] {
+  return fileRules.filter((rule) => matchesRepoConfigGlob(rule.pattern, filePath));
+}
+
+export function shouldSkipFileForRepoReview(repoConfig: RepoConfig, filePath: string): boolean {
+  if (repoConfig.exclude.some((pattern) => matchesRepoConfigGlob(pattern, filePath))) {
+    return true;
+  }
+
+  return findMatchingRepoFileRules(repoConfig.file_rules, filePath).some((rule) => rule.skip === true);
+}
+
+export function resolveFindingSeverityThreshold(repoConfig: RepoConfig, filePath: string): RepoSeverityLevel {
+  const thresholds: RepoSeverityLevel[] = [repoConfig.severity.minimum];
+
+  for (const rule of findMatchingRepoFileRules(repoConfig.file_rules, filePath)) {
+    if (rule.severity_threshold) {
+      thresholds.push(rule.severity_threshold);
+    }
+  }
+
+  return thresholds.reduce((highest, current) => (compareRepoSeverityLevels(current, highest) > 0 ? current : highest));
+}
