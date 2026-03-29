@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { config } from "../config";
+import { findMatchingRepoFileRules } from "../config/repo-config";
 import { executeTool, TOOL_DEFINITIONS } from "../context/tools";
 import { chatCompletion } from "./llm-client";
 import { loadAgentPrompt } from "./prompt-loader";
@@ -20,6 +21,32 @@ const toolInputSchema = z.record(z.string(), z.unknown());
 /**
  * Build the initial investigator user prompt from context-agent output.
  */
+function getDiffFileRepoPath(state: ReviewState, fileIndex: number): string {
+  const diffFile = state.diffFiles[fileIndex];
+  return diffFile?.deletedFile ? diffFile.oldPath : (diffFile?.newPath ?? "(unknown)");
+}
+
+function buildRepoReviewRulesSection(state: ReviewState): string[] {
+  const ruleLines = state.diffFiles.flatMap((_, fileIndex) => {
+    const filePath = getDiffFileRepoPath(state, fileIndex);
+    const matchingRules = findMatchingRepoFileRules(state.repoConfig.file_rules, filePath).filter(
+      (rule) => rule.instructions,
+    );
+
+    if (matchingRules.length === 0) {
+      return [];
+    }
+
+    return [`File: ${filePath}`, ...matchingRules.map((rule) => `- ${rule.pattern}: ${rule.instructions}`)];
+  });
+
+  if (ruleLines.length === 0) {
+    return [];
+  }
+
+  return ["", `## Repo Review Rules`, ...ruleLines];
+}
+
 export function buildInvestigatorPrompt(state: ReviewState): string {
   const MAX_HUNK_CHARS = 6_000;
 
@@ -58,6 +85,7 @@ export function buildInvestigatorPrompt(state: ReviewState): string {
     ``,
     `## Risk Hypotheses to Investigate`,
     hypotheses,
+    ...buildRepoReviewRulesSection(state),
     ``,
     `## Diff Hunks (${state.diffHunks.length} total, capped at ${MAX_HUNK_CHARS} chars)`,
     hunkSummary,

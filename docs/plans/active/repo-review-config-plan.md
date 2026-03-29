@@ -49,12 +49,13 @@ completion:
   - [x] Remediation complete — see `docs/plans/review-reports/c2-review-2026-03-29-k8r4.md`
   - [x] Re-review remediation complete — see `docs/plans/review-reports/c2-review-2026-03-29-m2q7.md`
   - "# Phase C3 — Prompt Injection"
-  - [ ] C3.1 Extend prompt-loader to accept optional custom instructions
-  - [ ] C3.2 Inject per-file-pattern rules into investigator agent prompt
-  - [ ] C3.3 Inject global custom review instructions into context agent prompt
-  - [ ] C3.4 Inject severity override rules into reflection agent prompt
-  - [ ] C3.5 Unit tests for prompt injection with various config combinations
-  - [ ] C3.6 Update ARCHITECTURE.md prompt-loading section
+  - [x] C3.1 Extend prompt-loader to accept optional custom instructions
+  - [x] C3.2 Inject per-file-pattern rules into investigator agent prompt
+  - [x] C3.3 Inject global custom review instructions into context agent prompt
+  - [x] C3.4 Inject severity override rules into reflection agent prompt
+  - [x] C3.5 Unit tests for prompt injection with various config combinations
+  - [x] C3.6 Update ARCHITECTURE.md prompt-loading section
+  - [x] Remediation complete — see `docs/plans/review-reports/c3-review-2026-03-29-v6p1.md`
   - "# Phase C4 — Docs, Validation & Audit"
   - [x] C4.1 Create .codesmith.yaml reference documentation with examples
   - [ ] C4.2 Add sample .codesmith.yaml to repo root as a dogfooding example

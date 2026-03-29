@@ -31,9 +31,10 @@ Important:
 
 - the file is **loaded and validated today**
 - `exclude`, `file_rules.skip`, `severity.minimum`, and `severity.block_on` are **applied today** in the live review pipeline
-- later CP1 phases will wire `review_instructions` and `file_rules.instructions` into prompt injection, plus add the remaining output/linter feature consumers
+- `review_instructions` and `file_rules.instructions` are **applied today** through agent prompt injection
+- later CP1 and Crown phases add the remaining output/linter/feature-flag consumers
 
-If you add `.codesmith.yaml` today, CodeSmith will already use it to skip excluded files and suppress findings below configured severity thresholds. Prompt customization and later feature toggles are still part of the forward contract.
+If you add `.codesmith.yaml` today, CodeSmith will already use it to skip excluded files, suppress findings below configured severity thresholds, and shape agent prompts with repo-owned review guidance. Feature toggles and later linter/output consumers are still part of the forward contract.
 
 ## File Location And Discovery
 
@@ -130,8 +131,8 @@ output:
 | Field | Required | Type | Default | Purpose | Current runtime effect |
 |---|---|---|---|---|---|
 | `version` | yes | literal `1` | none | Schema version gate | validated and required today |
-| `review_instructions` | no | string | none | Global review guidance | parsed today, prompt consumer planned |
-| `file_rules` | no | array | `[]` | Per-pattern review rules | `skip` and `severity_threshold` are applied today; `instructions` consumer remains planned |
+| `review_instructions` | no | string | none | Global review guidance | applied today in the context-agent prompt |
+| `file_rules` | no | array | `[]` | Per-pattern review rules | `skip`, `severity_threshold`, and `instructions` are applied today |
 | `exclude` | no | array | `[]` | Always-skip file patterns | applied today during pre-agent diff filtering |
 | `severity` | no | object | see below | Repo severity defaults | `minimum` and `block_on` are applied today during reflection/verdict calculation |
 | `features` | no | object | see below | Per-repo feature toggles | parsed today, feature consumers planned |
@@ -146,7 +147,7 @@ Rules are evaluated by matching glob pattern. Today, matching rules are used to 
 |---|---|---|---|---|
 | `pattern` | yes | glob string | none | Must be a valid repo-relative glob |
 | `severity_threshold` | no | `low | medium | high | critical` | none | Applied today as a per-pattern minimum finding severity |
-| `instructions` | no | string | none | Parsed today; prompt injection planned |
+| `instructions` | no | string | none | Applied today as matching repo-owned investigator guidance |
 | `skip` | no | boolean | none | Applied today to skip matching files entirely |
 
 ### `severity`
@@ -188,7 +189,7 @@ Important:
 
 ## Common Examples
 
-These examples show the supported config shape for different repo types. Fields such as `review_instructions`, `file_rules.instructions`, `features`, `linters`, and `output` remain forward-looking until later CP1 and Crown phases land.
+These examples show the supported config shape for different repo types. Fields under `features`, `linters`, and `output` remain forward-looking until later CP1 and Crown phases land.
 
 ### Monorepo
 
@@ -323,14 +324,14 @@ When in doubt, prefer simple patterns over clever ones.
 
 ### You expected review behavior to change immediately
 
-Today, CodeSmith loads repo config and consumes the filtering and severity controls in the pipeline. Prompt customization and later feature toggles are still pending.
+Today, CodeSmith loads repo config and consumes filtering, severity controls, and prompt customization in the review flow. Later feature toggles and linter/output consumers are still pending.
 
 Current state:
 
 - parser and schema: implemented
 - diff filtering from `exclude` and `skip`: implemented
 - severity-driven finding filtering and verdict behavior: implemented
-- prompt injection from `review_instructions` and `file_rules.instructions`: not yet wired
+- prompt injection from `review_instructions` and `file_rules.instructions`: implemented
 - feature toggles, linter-profile consumers, and output shaping: not yet wired
 
 See CP1 in [docs/plans/active/repo-review-config-plan.md](../plans/active/repo-review-config-plan.md) for the remaining phases.

@@ -269,15 +269,18 @@ Security detail: the clone URL hostname must match `GITLAB_URL`. The manager ref
 
 ### Repo review config
 
-Phase C1 of CP1 adds repo-level review configuration parsing under `src/config/`.
+CP1 currently adds repo-level review configuration under `src/config/` plus the first live runtime consumers in the review pipeline and prompt builders.
 
 - discovery order: `.codesmith.yaml`, then `.codesmith.yml`
 - parsing: `Bun.file(...).text()` + `Bun.YAML.parse()`
 - validation: strict Zod schema in `src/config/repo-config.ts`
 - failure mode: missing, malformed, or invalid config falls back to defaults and logs at `info` or `warn`
 - matching: `Bun.Glob` is the default matcher, with a narrow `picomatch` fallback for trailing-slash directory patterns like `dist/`
+- pipeline consumers: repo config is loaded after clone/update, attached to `ReviewState`, and used to filter diff scope before agent execution
+- reflection policy: repo severity thresholds are applied again after Agent 3 parsing so the final finding set and verdict respect repo-owned blocking rules
+- prompt injection: Agent 1 injects global `review_instructions`, Agent 2 injects matching per-file `file_rules.instructions`, and Agent 3 injects repo severity policy guidance into the user prompt
 
-This work is currently limited to schema and loader behavior. Later CP1 phases attach repo config to `ReviewState`, apply diff filtering, and inject prompt-level review rules.
+Later CP1 and Crown phases still add the remaining prompt/output consumers, dogfooding examples, and feature-flag-driven integrations such as linters and enhanced summaries.
 
 ### Modular tool system
 

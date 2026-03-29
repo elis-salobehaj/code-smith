@@ -13,7 +13,7 @@ import { describe, expect, it, mock } from "bun:test";
 // Pure utility function imports — no LLM calls happen from these paths.
 import { buildContextPrompt, parseContextResponse } from "../src/agents/context-agent";
 import { buildInvestigatorPrompt, extractFindings } from "../src/agents/investigator-agent";
-import { loadAgentPrompt, loadPromptConfig } from "../src/agents/prompt-loader";
+import { loadAgentPrompt, loadPromptConfig, renderPromptWithCustomRules } from "../src/agents/prompt-loader";
 import type { AgentMessage } from "../src/agents/protocol";
 import { textMessage } from "../src/agents/protocol";
 import {
@@ -146,6 +146,17 @@ describe("prompt loader", () => {
     expect(rendered).toContain("<constraints>");
     expect(rendered).toContain("<output_schema>");
   });
+
+  it("keeps the rendered prompt unchanged when custom instructions are absent", () => {
+    expect(renderPromptWithCustomRules("context_agent")).toBe(loadAgentPrompt("context_agent"));
+  });
+
+  it("appends a custom instructions section when provided", () => {
+    const rendered = renderPromptWithCustomRules("reflection_agent", "Follow repo-owned escalation rules.");
+    expect(rendered).toContain("<custom_instructions>");
+    expect(rendered).toContain("Follow repo-owned escalation rules.");
+    expect(rendered).toContain("</custom_instructions>");
+  });
 });
 
 describe("buildContextPrompt", () => {
@@ -183,6 +194,19 @@ describe("buildContextPrompt", () => {
     };
     const prompt = buildContextPrompt(state);
     expect(prompt).toContain("(none)");
+  });
+
+  it("injects global repo review instructions when configured", () => {
+    const state = {
+      ...makeBaseState(),
+      repoConfig: RepoConfigSchema.parse({
+        version: 1,
+        review_instructions: "Focus on operational safety and backward compatibility.",
+      }),
+    };
+    const prompt = buildContextPrompt(state);
+    expect(prompt).toContain("## Repo Review Instructions");
+    expect(prompt).toContain("Focus on operational safety and backward compatibility.");
   });
 });
 
@@ -266,6 +290,27 @@ describe("buildInvestigatorPrompt", () => {
     const state = { ...makeBaseState(), diffHunks: [] };
     const prompt = buildInvestigatorPrompt(state);
     expect(prompt).toContain("no structured hunks available");
+  });
+
+  it("injects matching file-pattern instructions into the prompt", () => {
+    const state = {
+      ...makeBaseState(),
+      diffFiles: [makeDiffFile("src/api/handler.ts")],
+      diffHunks: parseDiffHunks([makeDiffFile("src/api/handler.ts")]),
+      repoConfig: RepoConfigSchema.parse({
+        version: 1,
+        file_rules: [
+          { pattern: "src/**", instructions: "Check cross-cutting invariants." },
+          { pattern: "src/api/**", instructions: "Verify validation and auth behavior." },
+        ],
+      }),
+    };
+
+    const prompt = buildInvestigatorPrompt(state);
+    expect(prompt).toContain("## Repo Review Rules");
+    expect(prompt).toContain("File: src/api/handler.ts");
+    expect(prompt).toContain("src/**: Check cross-cutting invariants.");
+    expect(prompt).toContain("src/api/**: Verify validation and auth behavior.");
   });
 });
 
@@ -482,6 +527,26 @@ describe("buildReflectionPrompt", () => {
     const prompt = buildReflectionPrompt(state);
     expect(prompt).toContain("Missing check");
     expect(prompt).toContain("src/billing.ts");
+  });
+
+  it("injects severity override rules when configured", () => {
+    const state = {
+      ...makeBaseState(),
+      repoConfig: RepoConfigSchema.parse({
+        version: 1,
+        severity: {
+          minimum: "medium",
+          block_on: "critical",
+        },
+        file_rules: [{ pattern: "src/api/**", severity_threshold: "high" }],
+      }),
+    };
+
+    const prompt = buildReflectionPrompt(state);
+    expect(prompt).toContain("## Repo Severity Policy");
+    expect(prompt).toContain("Discard findings below medium severity.");
+    expect(prompt).toContain("Only set REQUEST_CHANGES for findings at critical or above.");
+    expect(prompt).toContain("src/api/**: discard findings below high");
   });
 });
 

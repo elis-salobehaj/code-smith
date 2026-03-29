@@ -19,7 +19,7 @@ const systemPromptsSchema = z.object({
   reflection_agent: promptSectionsSchema,
 });
 
-type PromptKey = keyof z.infer<typeof systemPromptsSchema>;
+export type PromptKey = keyof z.infer<typeof systemPromptsSchema>;
 
 function renderPrompt(sections: z.infer<typeof promptSectionsSchema>): string {
   return [
@@ -45,11 +45,24 @@ function renderPrompt(sections: z.infer<typeof promptSectionsSchema>): string {
   ].join("\n");
 }
 
+function appendCustomInstructions(prompt: string, customInstructions?: string): string {
+  const normalizedInstructions = customInstructions?.trim();
+  if (!normalizedInstructions) {
+    return prompt;
+  }
+
+  return [prompt, "", "<custom_instructions>", normalizedInstructions, "</custom_instructions>"].join("\n");
+}
+
 export function loadPromptConfig(): z.infer<typeof systemPromptsSchema> {
   const rawConfig = Bun.YAML.parse(readFileSync(resolve(AGENTS_DIR, "prompts", "system-prompts.yaml"), "utf8"));
   return systemPromptsSchema.parse(rawConfig);
 }
 
-export function loadAgentPrompt(promptKey: PromptKey): string {
-  return renderPrompt(loadPromptConfig()[promptKey]);
+export function renderPromptWithCustomRules(promptKey: PromptKey, customInstructions?: string): string {
+  return appendCustomInstructions(renderPrompt(loadPromptConfig()[promptKey]), customInstructions);
+}
+
+export function loadAgentPrompt(promptKey: PromptKey, customInstructions?: string): string {
+  return renderPromptWithCustomRules(promptKey, customInstructions);
 }

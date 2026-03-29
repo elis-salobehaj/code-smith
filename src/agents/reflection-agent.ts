@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   compareRepoSeverityLevels,
+  DEFAULT_REPO_CONFIG,
   type RepoSeverityLevel,
   resolveFindingSeverityThreshold,
 } from "../config/repo-config";
@@ -27,12 +28,35 @@ const reflectionResponseSchema = z.object({
 /**
  * Build the user-facing prompt from the raw findings and MR context.
  */
+function buildSeverityPolicySection(state: ReviewState): string[] {
+  const thresholdOverrides = state.repoConfig.file_rules
+    .filter((rule) => rule.severity_threshold)
+    .map((rule) => `- ${rule.pattern}: discard findings below ${rule.severity_threshold}`);
+
+  const hasGlobalOverride =
+    state.repoConfig.severity.minimum !== DEFAULT_REPO_CONFIG.severity.minimum ||
+    state.repoConfig.severity.block_on !== DEFAULT_REPO_CONFIG.severity.block_on;
+
+  if (!hasGlobalOverride && thresholdOverrides.length === 0) {
+    return [];
+  }
+
+  return [
+    "",
+    `## Repo Severity Policy`,
+    `- Discard findings below ${state.repoConfig.severity.minimum} severity.`,
+    `- Only set REQUEST_CHANGES for findings at ${state.repoConfig.severity.block_on} or above.`,
+    ...thresholdOverrides,
+  ];
+}
+
 export function buildReflectionPrompt(state: ReviewState): string {
   const findingsList = state.rawFindings.length === 0 ? "(none)" : JSON.stringify(state.rawFindings, null, 2);
 
   return [
     `## MR Intent`,
     state.mrIntent,
+    ...buildSeverityPolicySection(state),
     ``,
     `## Raw Findings from Investigation (${state.rawFindings.length} total)`,
     findingsList,

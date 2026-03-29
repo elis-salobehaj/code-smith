@@ -49,6 +49,10 @@ export function buildContextPrompt(state: ReviewState): string {
         ]
       : [];
 
+  const repoInstructionsSection = state.repoConfig.review_instructions
+    ? ["", "## Repo Review Instructions", state.repoConfig.review_instructions]
+    : [];
+
   return [
     `## Merge Request`,
     `**Title**: ${state.mrDetails.title}`,
@@ -56,6 +60,7 @@ export function buildContextPrompt(state: ReviewState): string {
     `**Author**: ${state.mrDetails.authorUsername}`,
     `**Source branch**: ${state.mrDetails.sourceBranch} → ${state.mrDetails.targetBranch}`,
     `**Files changed**: ${state.diffFiles.length}`,
+    ...repoInstructionsSection,
     ...ticketSection,
     ``,
     `## Diff`,
