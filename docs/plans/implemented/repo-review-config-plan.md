@@ -78,6 +78,13 @@ Both competitors offer repo-based config: GitLab Duo uses `.gitlab/duo/mr-review
 
 This plan introduces `.codesmith.yaml` — a repo-level configuration file that lets teams customize Code Smith's behavior without redeployment. It is the foundational plan: CP2 (linters), CP3 (learning), and CP4 (output) all depend on this config system.
 
+Follow-on status:
+
+- CP1-SG is now the delivered security hardening layer for repo-owned config
+- current MR reviews run under a trusted target-branch baseline config rather than the candidate config being introduced in the same MR
+- candidate config is audited separately with deterministic screening, optional no-tool semantic review, and dedicated config-security MR publication
+- deterministic-only operator mode remains available through `SECURITY_GATE_DETERMINISTIC_ONLY`
+
 ## Config Schema Design
 
 ### File Location

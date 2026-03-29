@@ -72,7 +72,7 @@ If a specific tool call throws, Agent 2 catches the failure and sends the error 
 
 ## 4. Full Pipeline
 
-`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → load current review ledger surfaces → clone repo → load repo config → filter review scope → fetch Jira context → run agents → publish findings.
+`src/api/pipeline.ts` is the full end-to-end pipeline: fetch MR data → load current review ledger surfaces → clone repo → resolve trusted target-branch repo config → load candidate source-branch repo config → filter review scope with the trusted baseline → fetch Jira context → run agents → publish findings.
 The pipeline receives a `ReviewTriggerContext` from the router which is threaded into `ReviewState.triggerContext` and used for logging.
 Automatic MR triggers now perform an early same-head guard after `getMRDetails()`: if a cached top-level CodeSmith summary note already embeds the current `headSha`, the pipeline logs the skip and returns before repo refresh or agent execution. Manual `/ai-review` triggers bypass this guard and always run.
 The pipeline also caches MR discussions, top-level MR notes, and MR diff versions once per run. Top-level notes are used for summary/head-sha guards and checkpoint parsing; discussions are reused for inline duplicate detection.
@@ -81,14 +81,19 @@ All pipeline logs emit structured JSON under `["codesmith", "pipeline"]` and car
 
 ### Repo config loading and pre-agent filtering
 
-- After `cloneOrUpdate()` returns a repo path, the pipeline loads `.codesmith.yaml` or `.codesmith.yml` from the repo root via `loadRepoConfig(repoPath)`.
-- Missing, malformed, or invalid config degrades safely to `DEFAULT_REPO_CONFIG` with structured warning logs; the review does not fail.
+- After `cloneOrUpdate()` returns a repo path, the pipeline resolves a trusted baseline repo config from the target branch via `GitLabClient.getRepoConfigFileAtRef()`.
+- Missing, malformed, invalid, or oversized target-branch config degrades safely to `DEFAULT_REPO_CONFIG` with structured warning logs; the review does not fail.
+- The source-branch checkout is loaded separately as candidate repo config metadata. Candidate config never governs the same MR.
+- When `ENABLE_SECURITY_GATE_AGENT=true`, candidate config is screened deterministically before any agent prompt construction. Oversized candidate config emits deterministic security findings without parsing raw YAML.
+- When `ENABLE_SECURITY_GATE_AGENT=true` and `SECURITY_GATE_DETERMINISTIC_ONLY=false`, every non-empty loaded candidate config also goes through the no-tool `config_security_agent` using only normalized field inventory and deterministic findings as context.
+- The SG3 path enforces a bounded timeout and output-token budget. Unknown field references from the model are dropped, and failures fall back to deterministic findings only while the review continues.
+- When candidate security findings exist, CodeSmith posts a separate top-level config-security note; the normal summary note does not duplicate that content.
 - The analysis diff is filtered before any agent runs:
-   - files matching `exclude` are removed
-   - files matching any `file_rules` entry with `skip: true` are removed
+   - files matching trusted-baseline `exclude` are removed
+   - files matching any trusted-baseline `file_rules` entry with `skip: true` are removed
 - Deleted files are matched using their old path; added or modified files are matched using their new path.
-- If repo config excludes every changed file, the automatic review exits early without invoking agents or publisher work.
-- The parsed config is attached to `ReviewState.repoConfig` so later agent stages can apply repo-level policy.
+- If the trusted baseline config excludes every changed file, the automatic review exits early without invoking agents or publisher work.
+- The trusted baseline config is attached to `ReviewState.repoConfig`; candidate repo-config metadata is attached only through audit fields such as presence, byte count, hash, change type, and security findings.
 
 ### Checkpoint write/read flow
 
@@ -152,6 +157,7 @@ Current publishing behavior after review:
 
 - inline discussions are created only for findings that can be anchored to diff positions
 - non-diff findings are skipped for inline publication and summarized instead of crashing publication
+- config-security findings are published as a separate top-level MR note with same-head duplicate suppression, escaped evidence excerpts, and an optional SG3 semantic summary
 - automatic same-head duplicate prevention happens in `src/api/pipeline.ts` before diff fetch, repo refresh, or agent execution; unchanged-head automatic reruns do not reach the publisher
 - completed manual reruns always post a visible summary note, even when the current head was already reviewed
 - inline duplicate suppression is head-aware: notes from an older `position.headSha` never suppress findings on a newer head

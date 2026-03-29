@@ -6,6 +6,7 @@ import type {
 } from "@gitbeaker/core";
 import { Gitlab } from "@gitbeaker/rest";
 import { config } from "../config";
+import { REPO_CONFIG_FILENAMES } from "../config/repo-config";
 import { type CheckpointRecord, findLatestSuccessfulCheckpoint } from "../publisher/checkpoint";
 import type { DiffFile, Discussion, MRCommit, MRDetails, MRVersion, Note, NotePosition } from "./types";
 
@@ -33,6 +34,35 @@ export class GitLabClient {
 
       page++;
     }
+  }
+
+  private getErrorStatus(error: unknown): number | null {
+    if (!error || typeof error !== "object") {
+      return null;
+    }
+
+    if ("statusCode" in error && typeof error.statusCode === "number") {
+      return error.statusCode;
+    }
+
+    if ("cause" in error && error.cause && typeof error.cause === "object") {
+      const cause = error.cause;
+      if ("response" in cause && cause.response && typeof cause.response === "object") {
+        const response = cause.response;
+        if ("status" in response && typeof response.status === "number") {
+          return response.status;
+        }
+      }
+    }
+
+    if ("response" in error && error.response && typeof error.response === "object") {
+      const response = error.response;
+      if ("status" in response && typeof response.status === "number") {
+        return response.status;
+      }
+    }
+
+    return null;
   }
 
   // ---------------------------------------------------------------------------
@@ -203,6 +233,33 @@ export class GitLabClient {
       id: Number(n.id),
       body: String(n.body),
     }));
+  }
+
+  async getRepositoryFileTextAtRef(projectId: number, filePath: string, ref: string): Promise<string | null> {
+    try {
+      const rawFile = await this.api.RepositoryFiles.showRaw(projectId, filePath, ref);
+      return typeof rawFile === "string" ? rawFile : await rawFile.text();
+    } catch (error) {
+      if (this.getErrorStatus(error) === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async getRepoConfigFileAtRef(
+    projectId: number,
+    ref: string,
+  ): Promise<{ fileName: (typeof REPO_CONFIG_FILENAMES)[number]; rawText: string } | null> {
+    for (const fileName of REPO_CONFIG_FILENAMES) {
+      const rawText = await this.getRepositoryFileTextAtRef(projectId, fileName, ref);
+      if (rawText !== null) {
+        return { fileName, rawText };
+      }
+    }
+
+    return null;
   }
 
   async getCheckpointRecord(projectId: number, mrIid: number): Promise<CheckpointRecord | null> {

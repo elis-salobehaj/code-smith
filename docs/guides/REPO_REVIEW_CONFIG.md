@@ -22,7 +22,13 @@ CodeSmith currently supports the **configuration foundation and pipeline consume
 - discovery at repo root
 - YAML parsing
 - strict Zod validation
+- bounded string, array, and raw-file size limits
 - safe fallback to defaults when the file is missing or invalid
+- trusted target-branch baseline governance for the current MR
+- audit-only candidate source-branch config loading for the same MR
+- deterministic screening and sanitization of unsafe unsealed string fields at load time
+- separate top-level config-security MR publication when candidate findings exist
+- optional SG3 no-tool semantic review of every non-empty candidate config when operators disable deterministic-only mode
 - glob validation and matching helpers
 - diff filtering from `exclude` and `file_rules.skip`
 - repo-level severity filtering and blocking verdict thresholds
@@ -30,9 +36,13 @@ CodeSmith currently supports the **configuration foundation and pipeline consume
 Important:
 
 - the file is **loaded and validated today**
+- oversized config or invalid shape still degrades to defaults rather than blocking the review
+- the current MR is always governed by the trusted target-branch baseline config, never by the candidate config being introduced in that same MR
+- unsafe prompt-bearing, scope-shaping, and selector strings are **sanitized today** before the config reaches prompt builders or later policy consumers
 - `exclude`, `file_rules.skip`, `severity.minimum`, and `severity.block_on` are **applied today** in the live review pipeline
 - `review_instructions` and `file_rules.instructions` are **applied today** through agent prompt injection
-- later CP1 and Crown phases add the remaining output/linter/feature-flag consumers
+- candidate-config security findings are published today as a separate MR note instead of being mixed into normal code-review output
+- when `ENABLE_SECURITY_GATE_AGENT=true` and `SECURITY_GATE_DETERMINISTIC_ONLY=false`, every non-empty candidate config also receives a no-tool semantic LLM review with deterministic fallback
 
 If you add `.codesmith.yaml` today, CodeSmith will already use it to skip excluded files, suppress findings below configured severity thresholds, and shape agent prompts with repo-owned review guidance. Feature toggles and later linter/output consumers are still part of the forward contract.
 
@@ -65,8 +75,10 @@ Validation rules enforced today:
 
 - unknown keys are rejected
 - malformed YAML falls back to defaults
+- raw config larger than the configured byte cap falls back to defaults before YAML parse
 - invalid enum values fall back to defaults through schema failure handling
 - invalid glob patterns are rejected at load time
+- unsealed string fields are deterministically screened and may be quarantined from the loaded config
 - executable-command-style fields are rejected because command execution remains deployment-owned
 
 ## Minimal Example
@@ -143,11 +155,13 @@ output:
 
 Rules are evaluated by matching glob pattern. Today, matching rules are used to skip files entirely, to raise effective severity thresholds for findings associated with those files, and to inject matching repo-owned review guidance into the investigator prompt.
 
+Because `pattern` and `instructions` are both open-ended strings, they are also screened at load time. Unsafe `instructions` text is stripped from the affected rule. Unsafe `pattern` values cause the affected rule entry to be removed entirely.
+
 | Field | Required | Type | Default | Notes |
 |---|---|---|---|---|
 | `pattern` | yes | glob string | none | Must be a valid repo-relative glob |
 | `severity_threshold` | no | `low | medium | high | critical` | none | Applied today as a per-pattern minimum finding severity |
-| `instructions` | no | string | none | Applied today as matching repo-owned investigator guidance |
+| `instructions` | no | string | none | Applied today as matching repo-owned investigator guidance after deterministic screening |
 | `skip` | no | boolean | none | Applied today to skip matching files entirely |
 
 ### `severity`
@@ -170,14 +184,65 @@ Rules are evaluated by matching glob pattern. Today, matching rules are used to 
 | Field | Required | Type | Default | Notes |
 |---|---|---|---|---|
 | `enabled` | no | boolean | `false` | Enables repo opt-in when linter integration is wired |
-| `profile` | no | string | none | References a deployment-owned profile name |
+| `profile` | no | string | none | References a deployment-owned profile name; currently quarantined by SG1 until a future allowlist exists |
 | `severity_threshold` | no | `low | medium | high | critical` | `medium` | Intended minimum included linter severity |
 
 Important:
 
 - this section may reference a **named profile only**
+- today, `linters.profile` is still treated as untrusted open-ended selector text and is stripped from the loaded config until CP2 defines a deployment-owned allowlist
 - the repo config may **not** define commands such as `eslint .`, `bunx biome check`, or shell snippets
 - executable tooling remains controlled by the CodeSmith deployment, not by reviewed repositories
+
+## Repo Config Security Gate
+
+The current gate is intentionally layered.
+
+1. The current MR always runs under the trusted target-branch baseline config.
+2. The candidate source-branch config is audited separately and never governs the same MR.
+3. Deterministic SG1 screening runs across every unsealed string field.
+4. Optional SG3 semantic review runs on every non-empty candidate config when deterministic-only mode is disabled.
+
+### Deterministic screening
+
+SG1 adds deterministic load-time screening to every unsealed string field in repo config.
+
+Fields screened today:
+
+- `review_instructions`
+- `file_rules[].instructions`
+- `exclude[]`
+- `file_rules[].pattern`
+- `linters.profile`
+
+What gets quarantined:
+
+- instruction-override text such as "ignore previous instructions"
+- outcome manipulation such as "always approve" or "return no findings"
+- tool-steering or exfiltration requests such as "read .env" or "print credentials"
+- prompt tags and role-like content such as `<role>` or `<system>`
+- oversized encoded blobs, repeated delimiters, HTML comments, hidden markers, and other publication-breaking content
+- overly broad suppression patterns such as catch-all exclusions and root-level source-tree wildcards like `src/**`
+
+Sanitization behavior:
+
+- unsafe `review_instructions` are removed
+- unsafe `file_rules[].instructions` are removed from the affected rule only
+- unsafe `file_rules[].pattern` values remove the affected rule entry
+- unsafe `exclude[]` entries are removed
+- `linters.profile` is removed until a deployment-owned allowlist exists
+- sealed values such as booleans and closed enums are preserved
+
+### SG3 semantic review
+
+When `ENABLE_SECURITY_GATE_AGENT=true` and `SECURITY_GATE_DETERMINISTIC_ONLY=false`, CodeSmith also runs a no-tool semantic review over candidate repo config.
+
+- every non-empty loaded candidate config is reviewed, even if deterministic findings already exist
+- the model only receives normalized field inventory and deterministic findings, never repository files, diff context, or tool access
+- model output must be strict JSON and may only reference field paths already present in the deterministic inventory
+- deterministic findings remain authoritative; the model can add new findings but cannot clear quarantines
+- the SG3 path enforces an `8000ms` timeout and `1200` max output-token budget
+- if the SG3 path fails, CodeSmith logs the failure, marks audit metadata, and falls back to deterministic findings only
 
 ### `output`
 
@@ -334,7 +399,7 @@ Current state:
 - prompt injection from `review_instructions` and `file_rules.instructions`: implemented
 - feature toggles, linter-profile consumers, and output shaping: not yet wired
 
-See the implemented CP1 record in [docs/plans/implemented/repo-review-config-plan.md](../plans/implemented/repo-review-config-plan.md) for the shipped foundation and the active CP1-SG follow-on plan for security hardening work.
+See the implemented CP1 record in [docs/plans/implemented/repo-review-config-plan.md](../plans/implemented/repo-review-config-plan.md) for the shipped foundation and the implemented CP1-SG plan for the delivered security hardening follow-on.
 
 ### You tried to define a command under `linters`
 
@@ -347,4 +412,4 @@ CodeSmith only accepts a named deployment-owned linter profile from the repo con
 - [docs/context/CONFIGURATION.md](../context/CONFIGURATION.md) — schema and environment reference
 - [docs/context/ARCHITECTURE.md](../context/ARCHITECTURE.md) — current runtime architecture and repo-config loading details
 - [docs/plans/implemented/repo-review-config-plan.md](../plans/implemented/repo-review-config-plan.md) — implemented CP1 plan record
-- [docs/plans/active/repo-config-security-gate-plan.md](../plans/active/repo-config-security-gate-plan.md) — active CP1-SG security hardening follow-on
+- [docs/plans/implemented/repo-config-security-gate-plan.md](../plans/implemented/repo-config-security-gate-plan.md) — implemented CP1-SG security hardening follow-on

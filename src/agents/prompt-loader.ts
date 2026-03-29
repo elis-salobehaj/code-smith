@@ -17,6 +17,7 @@ const systemPromptsSchema = z.object({
   context_agent: promptSectionsSchema,
   investigator_agent: promptSectionsSchema,
   reflection_agent: promptSectionsSchema,
+  config_security_agent: promptSectionsSchema,
 });
 
 export type PromptKey = keyof z.infer<typeof systemPromptsSchema>;

@@ -18,7 +18,7 @@
 
 import { config } from "../config";
 import { getLogger } from "../logger";
-import type { AgentMessage, AgentResponse, AgentToolDefinition } from "./protocol";
+import type { AgentCompletionOptions, AgentMessage, AgentResponse, AgentToolDefinition } from "./protocol";
 import { type ProviderFn, tryProvidersInOrder } from "./provider-fallback";
 import { bedrockChatCompletion } from "./providers/bedrock";
 import { googleChatCompletion } from "./providers/google";
@@ -48,6 +48,7 @@ export async function chatCompletion(
   systemPrompt: string,
   messages: AgentMessage[],
   tools?: readonly AgentToolDefinition[],
+  options?: AgentCompletionOptions,
 ): Promise<AgentResponse> {
   const providers = config.LLM_PROVIDER_ORDER.flatMap((name) => {
     const fn = PROVIDER_REGISTRY[name];
@@ -58,5 +59,5 @@ export async function chatCompletion(
     return [{ name, fn }];
   });
 
-  return tryProvidersInOrder(providers, systemPrompt, messages, tools);
+  return tryProvidersInOrder(providers, systemPrompt, messages, tools, options);
 }

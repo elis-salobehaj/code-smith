@@ -45,10 +45,19 @@ or `.codesmith.yml` at the repository root after cloning the target repo.
 This repository now ships a dogfooding example at [`/.codesmith.yaml`](../../.codesmith.yaml).
 It demonstrates the current recommended baseline:
 
+- trusted-baseline-aware review guidance for the repo-config security model
 - repo-level `review_instructions` for CodeSmith's Bun, Zod, and security conventions
+- file-specific guidance for `src/api/**` repo-config boundary enforcement
 - file-specific guidance for `src/agents/**`, `src/config/**`, `tests/**`, and `docs/**`
 - exclusion of `node_modules/**`, `dist/**`, `logs/**`, and common lockfiles
 - severity defaults that keep low findings visible while reserving `REQUEST_CHANGES` for `high` and above
+
+Security-gate behavior to expect today:
+
+- the current MR always runs under the trusted target-branch baseline config, never the candidate config being introduced in that same MR
+- candidate `.codesmith.yaml` content is audited separately and may produce a dedicated config-security MR note
+- `SECURITY_GATE_DETERMINISTIC_ONLY=true` keeps deterministic screening active while disabling the no-tool semantic LLM pass
+- `ENABLE_SECURITY_GATE_AGENT=false` disables candidate screening and config-security publication only; it does not allow candidate config to govern the current MR
 
 For your own repositories:
 

@@ -52,6 +52,10 @@ export interface AgentResponse {
   stopReason: AgentStopReason;
 }
 
+export interface AgentCompletionOptions {
+  maxOutputTokens?: number;
+}
+
 export function textMessage(role: AgentRole, text: string): AgentMessage {
   return {
     role,

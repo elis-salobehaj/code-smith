@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { getLogger } from "../logger";
-import type { AgentMessage, AgentResponse, AgentToolDefinition } from "./protocol";
+import type { AgentCompletionOptions, AgentMessage, AgentResponse, AgentToolDefinition } from "./protocol";
 
 const logger = getLogger(["codesmith", "llm"]);
 
@@ -15,6 +15,7 @@ export type ProviderFn = (
   systemPrompt: string,
   messages: AgentMessage[],
   tools?: readonly AgentToolDefinition[],
+  options?: AgentCompletionOptions,
 ) => Promise<AgentResponse>;
 
 /**
@@ -30,12 +31,13 @@ export async function tryProvidersInOrder(
   systemPrompt: string,
   messages: AgentMessage[],
   tools?: readonly AgentToolDefinition[],
+  options?: AgentCompletionOptions,
 ): Promise<AgentResponse> {
   let lastError: unknown;
 
   for (const { name: providerName, fn: providerFn } of providers) {
     try {
-      const response = await providerFn(systemPrompt, messages, tools);
+      const response = await providerFn(systemPrompt, messages, tools, options);
       if (providers.length > 1 && providers[0].name !== providerName) {
         logger.warn("Using fallback LLM provider", { provider: providerName });
       }

@@ -17,7 +17,13 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources";
 import { config } from "../../config";
-import type { AgentContentBlock, AgentMessage, AgentResponse, AgentToolDefinition } from "../protocol";
+import type {
+  AgentCompletionOptions,
+  AgentContentBlock,
+  AgentMessage,
+  AgentResponse,
+  AgentToolDefinition,
+} from "../protocol";
 
 let _client: OpenAI | null = null;
 
@@ -153,13 +159,14 @@ export async function openaiChatCompletion(
   systemPrompt: string,
   messages: AgentMessage[],
   tools?: readonly AgentToolDefinition[],
+  options?: AgentCompletionOptions,
 ): Promise<AgentResponse> {
   const response = await getClient().chat.completions.create({
     model: config.OPENAI_MODEL,
     messages: toOpenAIMessages(systemPrompt, messages),
     tools: toOpenAITools(tools),
     tool_choice: tools && tools.length > 0 ? "auto" : undefined,
-    max_tokens: 8192,
+    max_tokens: options?.maxOutputTokens ?? 8192,
   });
 
   return fromOpenAIResponse(response);

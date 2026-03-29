@@ -1,9 +1,22 @@
+import { reviewCandidateRepoConfigSecurity } from "../agents/config-security-agent";
 import { runReview } from "../agents/orchestrator";
 import { selectReviewRange } from "../agents/review-range";
-import type { ReviewState } from "../agents/state";
+import type { CandidateRepoConfigChangeType, ReviewState } from "../agents/state";
 import { config } from "../config";
-import { type RepoConfig, shouldSkipFileForRepoReview } from "../config/repo-config";
-import { loadRepoConfig } from "../config/repo-config-loader";
+import { DEFAULT_REPO_CONFIG, type RepoConfig, shouldSkipFileForRepoReview } from "../config/repo-config";
+import {
+  parseRepoConfigText,
+  type RepoConfigLoadResult,
+  readRepoConfigFromRepoPath,
+} from "../config/repo-config-loader";
+import {
+  createRepoConfigOversizeIssue,
+  evaluateRepoConfigSecurity,
+  formatRepoConfigSecurityIssue,
+  mergeRepoConfigSecurityIssues,
+  type RepoConfigSecurityIssue,
+  sanitizeRepoConfig,
+} from "../config/repo-config-security";
 import { parseDiffHunks } from "../context/diff-parser";
 import { RepoManager } from "../context/repo-manager";
 import { GitLabClient } from "../gitlab-client/client";
@@ -26,6 +39,7 @@ export interface PipelineDependencies {
   repoManager: RepoManager;
   publisher: GitLabPublisher;
   runReview: typeof runReview;
+  reviewCandidateRepoConfigSecurity: typeof reviewCandidateRepoConfigSecurity;
   fetchLinkedTickets: typeof fetchLinkedTickets;
   normalizeFindingsForPublication: typeof normalizeFindingsForPublication;
 }
@@ -37,6 +51,7 @@ function createPipelineDependencies(): PipelineDependencies {
     repoManager: new RepoManager(),
     publisher: new GitLabPublisher(gitlabClient),
     runReview,
+    reviewCandidateRepoConfigSecurity,
     fetchLinkedTickets,
     normalizeFindingsForPublication,
   };
@@ -56,6 +71,107 @@ function getSourceBranch(event: WebhookPayload): string {
   return event.object_kind === "merge_request"
     ? event.object_attributes.source_branch
     : event.merge_request.source_branch;
+}
+
+function cloneDefaultRepoConfig(): RepoConfig {
+  return structuredClone(DEFAULT_REPO_CONFIG);
+}
+
+function resolveCandidateRepoConfigChangeType(
+  candidate: RepoConfigLoadResult,
+  trustedPresent: boolean,
+  trustedHash: string | null,
+): CandidateRepoConfigChangeType {
+  if (!candidate.present) {
+    return trustedPresent ? "removed" : "unchanged";
+  }
+
+  if (!trustedPresent) {
+    return "added";
+  }
+
+  return candidate.hash === trustedHash ? "unchanged" : "modified";
+}
+
+async function resolveTrustedBaselineRepoConfig(
+  gitlabClient: GitLabClient,
+  projectId: number,
+  targetBranch: string,
+): Promise<{ repoConfig: RepoConfig; present: boolean; hash: string | null }> {
+  const configFile = await gitlabClient.getRepoConfigFileAtRef(projectId, targetBranch);
+
+  if (!configFile) {
+    logger.info("No trusted repo review config found on target branch; using defaults", {
+      projectId,
+      targetBranch,
+    });
+    return {
+      repoConfig: cloneDefaultRepoConfig(),
+      present: false,
+      hash: null,
+    };
+  }
+
+  const parsed = parseRepoConfigText(configFile.fileName, configFile.rawText);
+
+  if (parsed.status === "loaded" && parsed.parsedConfig) {
+    logger.debug("Loaded trusted repo review config from target branch", {
+      projectId,
+      targetBranch,
+      configPath: configFile.fileName,
+    });
+    return {
+      repoConfig: parsed.parsedConfig,
+      present: true,
+      hash: parsed.hash,
+    };
+  }
+
+  if (parsed.status === "byte_cap_exceeded") {
+    logger.warn("Trusted repo review config exceeded byte cap; using defaults", {
+      projectId,
+      targetBranch,
+      configPath: configFile.fileName,
+      byteCount: parsed.byteCount,
+      maxBytes: config.SECURITY_GATE_MAX_CONFIG_BYTES,
+    });
+  } else if (parsed.status === "invalid") {
+    logger.warn("Trusted repo review config failed validation; using defaults", {
+      projectId,
+      targetBranch,
+      configPath: configFile.fileName,
+      issues: parsed.validationIssues,
+    });
+  } else {
+    logger.warn("Trusted repo review config could not be parsed; using defaults", {
+      projectId,
+      targetBranch,
+      configPath: configFile.fileName,
+      error: parsed.validationIssues[0] ?? "unknown parse error",
+    });
+  }
+
+  return {
+    repoConfig: cloneDefaultRepoConfig(),
+    present: true,
+    hash: parsed.hash,
+  };
+}
+
+function resolveCandidateRepoConfigIssues(candidate: RepoConfigLoadResult): RepoConfigSecurityIssue[] {
+  if (candidate.status === "byte_cap_exceeded") {
+    return [createRepoConfigOversizeIssue(candidate.byteCount ?? 0, config.SECURITY_GATE_MAX_CONFIG_BYTES)];
+  }
+
+  if (candidate.status !== "loaded") {
+    return [];
+  }
+
+  if (!candidate.parsedConfig) {
+    return [];
+  }
+
+  return evaluateRepoConfigSecurity(candidate.parsedConfig).issues;
 }
 
 async function withBranchPipelineLock<T>(projectId: number, branch: string, task: () => Promise<T>): Promise<T> {
@@ -125,6 +241,7 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
     repoManager,
     publisher,
     runReview: executeReview,
+    reviewCandidateRepoConfigSecurity: executeConfigSecurityReview,
     fetchLinkedTickets: loadLinkedTickets,
     normalizeFindingsForPublication: normalizeFindings,
   } = pipelineDependencies;
@@ -215,7 +332,89 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
           projectId,
           mrDetails.headSha,
         );
-        const repoConfig = await loadRepoConfig(repoPath);
+        const [trustedRepoConfigResult, candidateRepoConfig] = await Promise.all([
+          resolveTrustedBaselineRepoConfig(gitlabClient, projectId, mrDetails.targetBranch),
+          readRepoConfigFromRepoPath(repoPath),
+        ]);
+        const repoConfig = trustedRepoConfigResult.repoConfig;
+        const deterministicCandidateRepoConfigIssues =
+          config.ENABLE_SECURITY_GATE_AGENT && candidateRepoConfig.present
+            ? resolveCandidateRepoConfigIssues(candidateRepoConfig)
+            : [];
+        let candidateRepoConfigIssues = deterministicCandidateRepoConfigIssues;
+        let candidateRepoConfigSecuritySummary = "";
+        let candidateRepoConfigLlmReviewed = false;
+        let candidateRepoConfigLlmReviewFailed = false;
+
+        if (
+          config.ENABLE_SECURITY_GATE_AGENT &&
+          !config.SECURITY_GATE_DETERMINISTIC_ONLY &&
+          candidateRepoConfig.status === "loaded" &&
+          candidateRepoConfig.parsedConfig
+        ) {
+          try {
+            const llmReview = await executeConfigSecurityReview(
+              candidateRepoConfig.parsedConfig,
+              deterministicCandidateRepoConfigIssues,
+            );
+            candidateRepoConfigIssues = mergeRepoConfigSecurityIssues(
+              deterministicCandidateRepoConfigIssues,
+              llmReview.issues,
+            );
+            candidateRepoConfigSecuritySummary = llmReview.summary;
+            candidateRepoConfigLlmReviewed = true;
+          } catch (error) {
+            candidateRepoConfigLlmReviewFailed = true;
+            logger.warn(
+              "Candidate repo review config security LLM review failed; continuing with deterministic findings",
+              {
+                requestedBranch: mrDetails.sourceBranch,
+                targetBranch: mrDetails.targetBranch,
+                error: error instanceof Error ? error.message : String(error),
+              },
+            );
+          }
+        }
+
+        if (candidateRepoConfig.status !== "not_found") {
+          logger.debug("Loaded candidate repo review config metadata", {
+            requestedBranch: mrDetails.sourceBranch,
+            targetBranch: mrDetails.targetBranch,
+            status: candidateRepoConfig.status,
+            byteCount: candidateRepoConfig.byteCount,
+            gateEnabled: config.ENABLE_SECURITY_GATE_AGENT,
+            deterministicOnly: config.SECURITY_GATE_DETERMINISTIC_ONLY,
+            llmReviewed: candidateRepoConfigLlmReviewed,
+          });
+        }
+
+        if (candidateRepoConfigIssues.length > 0) {
+          logger.warn("Candidate repo review config contained security findings", {
+            requestedBranch: mrDetails.sourceBranch,
+            targetBranch: mrDetails.targetBranch,
+            issueCount: candidateRepoConfigIssues.length,
+            issues: candidateRepoConfigIssues.map(formatRepoConfigSecurityIssue),
+          });
+        }
+
+        if (
+          config.ENABLE_SECURITY_GATE_AGENT &&
+          candidateRepoConfig.status === "loaded" &&
+          candidateRepoConfig.parsedConfig
+        ) {
+          const candidateEffectiveRepoConfig = sanitizeRepoConfig(
+            candidateRepoConfig.parsedConfig,
+            candidateRepoConfigIssues,
+          );
+          logger.debug("Derived candidate effective repo config for audit", {
+            requestedBranch: mrDetails.sourceBranch,
+            targetBranch: mrDetails.targetBranch,
+            candidateExcludePatterns: candidateEffectiveRepoConfig.exclude.length,
+            candidateFileRules: candidateEffectiveRepoConfig.file_rules.length,
+            hasReviewInstructions: candidateEffectiveRepoConfig.review_instructions !== undefined,
+          });
+        }
+
         logger.debug("Repo cache prepared", {
           requestedBranch: mrDetails.sourceBranch,
           expectedHeadSha: mrDetails.headSha,
@@ -250,6 +449,21 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
           diffHunks: parseDiffHunks(filteredAnalysisDiffFiles),
           repoPath,
           repoConfig,
+          candidateRepoConfigPresent: candidateRepoConfig.present,
+          candidateRepoConfigBytes: candidateRepoConfig.byteCount,
+          candidateRepoConfigHash: candidateRepoConfig.hash,
+          candidateRepoConfigStatus: candidateRepoConfig.status,
+          candidateRepoConfigIssues: candidateRepoConfigIssues,
+          candidateRepoConfigSecuritySummary: candidateRepoConfigSecuritySummary,
+          candidateRepoConfigChangeType: resolveCandidateRepoConfigChangeType(
+            candidateRepoConfig,
+            trustedRepoConfigResult.present,
+            trustedRepoConfigResult.hash,
+          ),
+          candidateRepoConfigGateEnabled: config.ENABLE_SECURITY_GATE_AGENT,
+          candidateRepoConfigDeterministicOnly: config.SECURITY_GATE_DETERMINISTIC_ONLY,
+          candidateRepoConfigLlmReviewed: candidateRepoConfigLlmReviewed,
+          candidateRepoConfigLlmReviewFailed: candidateRepoConfigLlmReviewFailed,
           triggerContext: trigger,
           linkedTickets,
           discussions,
@@ -313,6 +527,16 @@ export async function runPipeline(event: WebhookPayload, trigger: ReviewTriggerC
           checkpointStatus === "partial"
             ? "_Review completed, but one or more inline comments could not be published. The run was recorded as partial._"
             : undefined;
+
+        if (candidateRepoConfigIssues.length > 0) {
+          await publisher.postConfigSecurityNote(projectId, mrIid, mrDetails.headSha, candidateRepoConfigIssues, {
+            existingNotes: summaryNotes,
+            candidateChangeType: initialState.candidateRepoConfigChangeType,
+            candidateRepoConfigBytes: initialState.candidateRepoConfigBytes,
+            deterministicOnly: config.SECURITY_GATE_DETERMINISTIC_ONLY,
+            securitySummary: initialState.candidateRepoConfigSecuritySummary,
+          });
+        }
 
         await publisher.postSummaryComment(
           projectId,

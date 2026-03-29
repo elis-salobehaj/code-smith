@@ -13,6 +13,9 @@ Unified reference for the environment variables accepted by `src/config.ts` and 
 | `LLM_MODEL` | no | string | `global.anthropic.claude-sonnet-4-6` | Bedrock model ID passed to `ConverseCommand` in `src/agents/llm-client.ts`. |
 | `MAX_TOOL_ITERATIONS` | no | positive integer | `15` | Upper bound for tool-call iterations inside `investigatorLoop()`. |
 | `MAX_SEARCH_RESULTS` | no | positive integer | `100` | Caps `search_codebase` results returned from ripgrep parsing. |
+| `ENABLE_SECURITY_GATE_AGENT` | no | boolean string | `true` | Enables candidate repo-config screening and separate config-security MR-note publication. When `false`, the current MR still uses the trusted target-branch baseline config. |
+| `SECURITY_GATE_DETERMINISTIC_ONLY` | no | boolean string | `true` | Keeps deterministic candidate screening enabled while disabling the SG3 no-tool security-LLM pass. When `false`, every non-empty candidate config also receives semantic review under SG3 limits. |
+| `SECURITY_GATE_MAX_CONFIG_BYTES` | no | positive integer | `16384` | Hard byte cap applied to both trusted-baseline and candidate `.codesmith.yaml` / `.codesmith.yml` loads before YAML parse. Oversized trusted config falls back to defaults; oversized candidate config emits deterministic security findings. |
 | `REPO_CACHE_DIR` | no | string | `/tmp/repo_cache` | Root directory for shallow repo clones managed by `RepoManager`. |
 | `LOG_LEVEL` | no | enum | `info` | Wired to LogTape via `src/logger.ts`. Controls the `lowestLevel` of the root `["codesmith"]` logger category. Accepted values: `debug`, `info`, `warn`, `error`. Mapped to LogTape's level names internally. When set to `debug` outside tests, logs are also appended to `logs/codesmith-dev.log` under the project root. |
 | `PORT` | no | positive integer | `8020` | Port used by the Bun server export in `src/index.ts`. |
@@ -56,14 +59,30 @@ Phase C1 of CP1 adds repo-config parsing primitives alongside env config:
 For a repo-author guide with examples, authoring standards, and troubleshooting, see [`docs/guides/REPO_REVIEW_CONFIG.md`](../guides/REPO_REVIEW_CONFIG.md).
 
 - `src/config/repo-config.ts` defines the strict Zod schema for `.codesmith.yaml` or `.codesmith.yml`
-- `src/config/repo-config-loader.ts` discovers repo config files at repo root in this order: `.codesmith.yaml`, then `.codesmith.yml`
-- missing repo config falls back to `DEFAULT_REPO_CONFIG`
+- `src/config/repo-config-loader.ts` discovers candidate repo config files at repo root in this order: `.codesmith.yaml`, then `.codesmith.yml`
+- `src/gitlab-client/client.ts` resolves the trusted baseline repo config from the target branch through GitLab's repository-file raw-content API using the same filename order
+- missing trusted-baseline repo config falls back to `DEFAULT_REPO_CONFIG`
 - malformed YAML or schema validation failures also fall back to defaults and log a warning instead of blocking the review pipeline
+- oversized raw config falls back to defaults before YAML parse when it exceeds `SECURITY_GATE_MAX_CONFIG_BYTES`; oversized candidate config is also surfaced as a deterministic security finding when screening is enabled
 - supported top-level sections are `version`, `review_instructions`, `file_rules`, `exclude`, `severity`, `features`, `linters`, and `output`
 - unknown keys are rejected with strict parsing so typoed config does not silently noop
 - glob patterns are validated at parse time; Bun.Glob remains the default matcher, with a narrow `picomatch` fallback for trailing-slash directory patterns like `dist/` that Bun.Glob does not match against diff file paths
+- `src/config/repo-config-security.ts` now provides deterministic SG1 screening of unsealed string fields for candidate-config audit and config-security publication
+- `src/agents/config-security-agent.ts` provides the SG3 no-tool security LLM review over normalized candidate field inventory and deterministic findings only
 
-This loader is implemented in Phase C1 only. Pipeline attachment and config-driven behavior land in later CP1 phases.
+Current SG2 pipeline behavior splits repo config into two artifacts:
+
+- trusted baseline config: fetched from the target branch and attached to `ReviewState.repoConfig`; this is the only repo-owned config that can govern the current MR review
+- candidate config: loaded from the source-branch checkout, tracked only through audit metadata such as presence, hash, byte count, change type, and security findings; raw candidate text is not persisted in `ReviewState`
+
+Current SG3 behavior adds a bounded semantic review path for candidate config:
+
+- when `ENABLE_SECURITY_GATE_AGENT=true` and `SECURITY_GATE_DETERMINISTIC_ONLY=false`, every non-empty loaded candidate config is sent through the no-tool `config_security_agent`
+- that prompt receives only normalized candidate field inventory plus deterministic findings; it does not receive repository search, diff context, or tool definitions
+- the SG3 path enforces an `8000ms` timeout and `1200` max output-token budget per request
+- SG3 findings must reference known deterministic field paths; unknown or hallucinated field paths are dropped
+- deterministic findings remain authoritative; SG3 can add new findings but cannot clear deterministic quarantines
+- SG3 failures log a warning, mark audit metadata accordingly, and fall back to deterministic findings only
 
 ### `.codesmith.yaml` schema reference
 
@@ -96,9 +115,22 @@ This loader is implemented in Phase C1 only. Pipeline attachment and config-driv
 
 - all fields other than `version` are optional; `version: 1` alone is valid
 - top-level and nested objects use strict parsing, so unknown keys are rejected everywhere
+- free-form strings and array-backed sections are bounded so valid config also stays within prompt and memory budgets
 - malformed YAML and schema-validation failures both degrade to defaults with a warning log
+- raw repo-config text larger than `SECURITY_GATE_MAX_CONFIG_BYTES` degrades to defaults before YAML parse
 - glob validation happens at load time rather than later during review execution
 - trailing-slash directory patterns such as `dist/` are normalized for matching because Bun.Glob does not match that form against diff file paths
+
+### Deterministic screening semantics
+
+SG1 and SG2 now apply deterministic screening to candidate repo-config fields before separate config-security publication.
+
+- prompt-bearing fields such as `review_instructions` and `file_rules[].instructions` are screened for instruction override, outcome manipulation, tool steering, prompt-structure injection, encoded payloads, and marker abuse
+- scope-shaping fields such as `exclude[]` and `file_rules[].pattern` are screened for overly broad suppression patterns as well as suspicious payload or marker content
+- selector fields such as `linters.profile` are treated as unsafe until a future deployment-owned allowlist seals them
+- unsafe unsealed fields are quarantined for candidate-config audit and publication; they do not alter `ReviewState.repoConfig` for the same MR
+- `ENABLE_SECURITY_GATE_AGENT=false` bypasses candidate screening and config-security publication only; it does not allow candidate config to govern the current MR
+- `SECURITY_GATE_DETERMINISTIC_ONLY=true` keeps deterministic screening active while bypassing SG3 semantic review entirely
 
 ## Planned Crown Configuration Additions
 

@@ -3,12 +3,18 @@
 // and a top-level summary note on the MR.
 // ---------------------------------------------------------------------------
 
-import type { Finding } from "../agents/state";
+import type { CandidateRepoConfigChangeType, Finding } from "../agents/state";
 import type { ReviewTriggerMode } from "../api/trigger";
+import type { RepoConfigSecurityIssue } from "../config/repo-config-security";
 import type { GitLabClient } from "../gitlab-client/client";
 import type { DiffFile, Discussion } from "../gitlab-client/types";
 import { getLogger } from "../logger";
 import { buildCheckpointMarker, type CheckpointSummaryContext } from "./checkpoint";
+import {
+  type ConfigSecurityNoteRecord,
+  findExistingConfigSecurityNote,
+  formatConfigSecurityNote,
+} from "./config-security-note";
 import { HEAD_MARKER_PREFIX, SUMMARY_MARKER } from "./summary-note";
 
 const logger = getLogger(["codesmith", "publisher"]);
@@ -267,6 +273,47 @@ export class GitLabPublisher {
       mrIid,
       formatSummaryComment(verdict, findings, headSha, checkpoint, summaryMessage),
     );
+  }
+
+  async postConfigSecurityNote(
+    projectId: number,
+    mrIid: number,
+    headSha: string,
+    issues: RepoConfigSecurityIssue[],
+    options: {
+      existingNotes?: ConfigSecurityNoteRecord[];
+      candidateChangeType?: CandidateRepoConfigChangeType;
+      candidateRepoConfigBytes?: number | null;
+      deterministicOnly?: boolean;
+      securitySummary?: string;
+    } = {},
+  ): Promise<boolean> {
+    if (issues.length === 0) {
+      return false;
+    }
+
+    const existingNotes = options.existingNotes ?? (await this.gitlab.getMRNotes(projectId, mrIid));
+    if (findExistingConfigSecurityNote(existingNotes, headSha)) {
+      logger.debug("Skipping duplicate config-security note", {
+        projectId,
+        mrIid,
+        headSha,
+        issueCount: issues.length,
+      });
+      return false;
+    }
+
+    await this.gitlab.createMRNote(
+      projectId,
+      mrIid,
+      formatConfigSecurityNote(headSha, issues, {
+        candidateChangeType: options.candidateChangeType,
+        candidateRepoConfigBytes: options.candidateRepoConfigBytes,
+        deterministicOnly: options.deterministicOnly,
+        securitySummary: options.securitySummary,
+      }),
+    );
+    return true;
   }
 
   /**

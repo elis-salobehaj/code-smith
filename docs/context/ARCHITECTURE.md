@@ -130,6 +130,7 @@ code-smith/
 │   │   ├── protocol.ts             # Internal agent message/tool contract
 │   │   ├── llm-client.ts           # Provider fallback entrypoint for chatCompletion()
 │   │   ├── provider-fallback.ts    # Ordered fallback orchestration
+│   │   ├── config-security-agent.ts # No-tool candidate repo-config semantic security review
 │   │   ├── providers/
 │   │   │   ├── bedrock.ts          # AWS Bedrock Runtime adapter
 │   │   │   ├── openai.ts           # OpenAI adapter
@@ -146,6 +147,7 @@ code-smith/
 │   │   └── job-schemas.ts          # Zod validation for queued job payloads
 │   └── publisher/
 │       ├── checkpoint.ts           # Machine-readable review-run checkpoint markers
+│       ├── config-security-note.ts # Separate candidate repo-config security note formatter
 │       ├── gitlab-publisher.ts     # Format findings -> GitLab inline comments + summary
 │       ├── suggestion-normalizer.ts # Normalize suggestion ranges before publication
 │       └── summary-note.ts         # Summary marker helpers and head-SHA metadata
@@ -269,16 +271,22 @@ Security detail: the clone URL hostname must match `GITLAB_URL`. The manager ref
 
 ### Repo review config
 
-CP1 currently adds repo-level review configuration under `src/config/` plus the first live runtime consumers in the review pipeline and prompt builders.
+CP1 and CP1-SG now add repo-level review configuration under `src/config/` plus a two-stage candidate-config security boundary in the pipeline.
 
 - discovery order: `.codesmith.yaml`, then `.codesmith.yml`
 - parsing: `Bun.file(...).text()` + `Bun.YAML.parse()`
 - validation: strict Zod schema in `src/config/repo-config.ts`
+- size guardrail: `SECURITY_GATE_MAX_CONFIG_BYTES` is enforced before YAML parse so oversized repo config falls back to defaults instead of amplifying parse or prompt cost
+- schema caps: free-form strings and array-backed config sections now have explicit bounds so valid-but-large config cannot sprawl indefinitely
 - failure mode: missing, malformed, or invalid config falls back to defaults and logs at `info` or `warn`
 - matching: `Bun.Glob` is the default matcher, with a narrow `picomatch` fallback for trailing-slash directory patterns like `dist/`
-- pipeline consumers: repo config is loaded after clone/update, attached to `ReviewState`, and used to filter diff scope before agent execution
+- trusted-baseline model: the target-branch repo config is the only repo-owned config that can govern the current MR review; candidate head-branch config remains audit-only metadata
+- deterministic SG1 screening: `src/config/repo-config-security.ts` classifies unsealed fields, screens prompt-bearing, scope-shaping, and selector strings, and derives deterministic candidate findings plus a sanitized audit-only candidate config view
+- SG3 semantic screening: `src/agents/config-security-agent.ts` runs a no-tool LLM review over normalized candidate field inventory plus deterministic findings, with strict JSON parsing, allowed field-path enforcement, an `8000ms` timeout, and a `1200` output-token cap
+- pipeline consumers: `ReviewState.repoConfig` always carries the trusted effective config; candidate metadata carries presence, bytes, hash, change type, security findings, LLM summary, and LLM review status without persisting raw candidate text
 - reflection policy: repo severity thresholds are applied again after Agent 3 parsing so the final finding set and verdict respect repo-owned blocking rules
 - prompt injection: Agent 1 injects global `review_instructions`, Agent 2 injects matching per-file `file_rules.instructions`, and Agent 3 injects repo severity policy guidance into the user prompt
+- publication split: candidate repo-config findings publish through a separate config-security top-level MR note, optionally including the SG3 semantic summary, and never alter the current MR's trusted review policy
 
 Later CP1 and Crown phases still add the remaining prompt/output consumers, dogfooding examples, and feature-flag-driven integrations such as linters and enhanced summaries.
 

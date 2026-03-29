@@ -5,6 +5,8 @@
 import { z } from "zod";
 import type { ReviewTriggerContext } from "../api/trigger";
 import type { RepoConfig } from "../config/repo-config";
+import type { RepoConfigLoadStatus } from "../config/repo-config-loader";
+import type { RepoConfigSecurityIssue } from "../config/repo-config-security";
 import type { DiffFile, Discussion, MRDetails, ParsedHunk } from "../gitlab-client/types";
 import type { JiraTicket } from "../integrations/jira/client";
 import type { CheckpointRecord } from "../publisher/checkpoint";
@@ -32,6 +34,8 @@ export const findingSchema = z.object({
 
 export type Finding = z.infer<typeof findingSchema>;
 
+export type CandidateRepoConfigChangeType = "unchanged" | "added" | "modified" | "removed";
+
 // ---------------------------------------------------------------------------
 // ReviewState — the single mutable record passed through every pipeline stage.
 // ---------------------------------------------------------------------------
@@ -44,6 +48,17 @@ export interface ReviewState {
   diffHunks: ParsedHunk[];
   repoPath: string;
   repoConfig: RepoConfig;
+  candidateRepoConfigPresent?: boolean;
+  candidateRepoConfigBytes?: number | null;
+  candidateRepoConfigHash?: string | null;
+  candidateRepoConfigStatus?: RepoConfigLoadStatus;
+  candidateRepoConfigIssues?: RepoConfigSecurityIssue[];
+  candidateRepoConfigSecuritySummary?: string;
+  candidateRepoConfigChangeType?: CandidateRepoConfigChangeType;
+  candidateRepoConfigGateEnabled?: boolean;
+  candidateRepoConfigDeterministicOnly?: boolean;
+  candidateRepoConfigLlmReviewed?: boolean;
+  candidateRepoConfigLlmReviewFailed?: boolean;
   triggerContext: ReviewTriggerContext;
   /** Jira tickets linked from the MR title/description (Phase 4.5). Empty when Jira is disabled. */
   linkedTickets: JiraTicket[];

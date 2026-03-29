@@ -15,7 +15,13 @@
 
 import { type Content, GoogleGenerativeAI, type Part, type Tool } from "@google/generative-ai";
 import { config } from "../../config";
-import type { AgentContentBlock, AgentMessage, AgentResponse, AgentToolDefinition } from "../protocol";
+import type {
+  AgentCompletionOptions,
+  AgentContentBlock,
+  AgentMessage,
+  AgentResponse,
+  AgentToolDefinition,
+} from "../protocol";
 
 let _genAI: GoogleGenerativeAI | null = null;
 
@@ -151,11 +157,15 @@ export async function googleChatCompletion(
   systemPrompt: string,
   messages: AgentMessage[],
   tools?: readonly AgentToolDefinition[],
+  options?: AgentCompletionOptions,
 ): Promise<AgentResponse> {
   const toolCallNames = buildToolCallNameMap(messages);
   const model = getGenAI().getGenerativeModel({
     model: config.GOOGLE_AI_MODEL,
     systemInstruction: { role: "user", parts: [{ text: systemPrompt }] },
+    generationConfig: {
+      maxOutputTokens: options?.maxOutputTokens ?? 8192,
+    },
     tools: toGeminiTools(tools),
   });
 

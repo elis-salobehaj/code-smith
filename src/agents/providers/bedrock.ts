@@ -16,7 +16,14 @@ import {
   type ToolConfiguration,
 } from "@aws-sdk/client-bedrock-runtime";
 import { config } from "../../config";
-import type { AgentContentBlock, AgentMessage, AgentResponse, AgentStopReason, AgentToolDefinition } from "../protocol";
+import type {
+  AgentCompletionOptions,
+  AgentContentBlock,
+  AgentMessage,
+  AgentResponse,
+  AgentStopReason,
+  AgentToolDefinition,
+} from "../protocol";
 
 const llm = new BedrockRuntimeClient({
   region: config.AWS_REGION,
@@ -129,13 +136,14 @@ export async function bedrockChatCompletion(
   systemPrompt: string,
   messages: AgentMessage[],
   tools?: readonly AgentToolDefinition[],
+  options?: AgentCompletionOptions,
 ): Promise<AgentResponse> {
   const response: ConverseCommandOutput = await llm.send(
     new ConverseCommand({
       modelId: config.LLM_MODEL,
       system: [{ text: systemPrompt }],
       messages: toBedrockMessages(messages),
-      inferenceConfig: { maxTokens: 8192 },
+      inferenceConfig: { maxTokens: options?.maxOutputTokens ?? 8192 },
       toolConfig: toBedrockToolConfig(tools),
     }),
   );

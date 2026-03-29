@@ -3,6 +3,14 @@ import { z } from "zod";
 
 export const REPO_CONFIG_FILENAMES = [".codesmith.yaml", ".codesmith.yml"] as const;
 
+export const MAX_REPO_CONFIG_GLOB_PATTERN_CHARS = 256;
+export const MAX_REPO_CONFIG_REVIEW_INSTRUCTIONS_CHARS = 2_000;
+export const MAX_REPO_CONFIG_FILE_RULE_INSTRUCTIONS_CHARS = 600;
+export const MAX_REPO_CONFIG_PROFILE_CHARS = 128;
+export const MAX_REPO_CONFIG_FILE_RULES = 64;
+export const MAX_REPO_CONFIG_EXCLUDE_PATTERNS = 64;
+export const MAX_REPO_CONFIG_MAX_FINDINGS = 20;
+
 const severityLevelSchema = z.enum(["low", "medium", "high", "critical"]);
 const severityWeights = {
   low: 1,
@@ -69,6 +77,7 @@ const globPatternSchema = z
   .string()
   .trim()
   .min(1)
+  .max(MAX_REPO_CONFIG_GLOB_PATTERN_CHARS)
   .superRefine((pattern, ctx) => {
     if (!isValidRepoGlobPattern(pattern)) {
       ctx.addIssue({
@@ -82,7 +91,7 @@ const fileRuleSchema = z
   .object({
     pattern: globPatternSchema,
     severity_threshold: severityLevelSchema.optional(),
-    instructions: z.string().trim().min(1).optional(),
+    instructions: z.string().trim().min(1).max(MAX_REPO_CONFIG_FILE_RULE_INSTRUCTIONS_CHARS).optional(),
     skip: z.boolean().optional(),
   })
   .strict();
@@ -116,7 +125,7 @@ const featureFlagsSchema = z
 const linterConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
-    profile: z.string().trim().min(1).optional(),
+    profile: z.string().trim().min(1).max(MAX_REPO_CONFIG_PROFILE_CHARS).optional(),
     severity_threshold: severityLevelSchema.optional(),
   })
   .strict()
@@ -129,7 +138,7 @@ const linterConfigSchema = z
 
 const outputConfigSchema = z
   .object({
-    max_findings: z.number().int().positive().optional(),
+    max_findings: z.number().int().positive().max(MAX_REPO_CONFIG_MAX_FINDINGS).optional(),
     include_walkthrough: z.enum(["auto", "always", "never"]).optional(),
     collapsible_details: z.boolean().optional(),
   })
@@ -144,9 +153,9 @@ const outputConfigSchema = z
 export const RepoConfigSchema = z
   .object({
     version: z.literal(1),
-    review_instructions: z.string().trim().min(1).optional(),
-    file_rules: z.array(fileRuleSchema).default([]),
-    exclude: z.array(globPatternSchema).default([]),
+    review_instructions: z.string().trim().min(1).max(MAX_REPO_CONFIG_REVIEW_INSTRUCTIONS_CHARS).optional(),
+    file_rules: z.array(fileRuleSchema).max(MAX_REPO_CONFIG_FILE_RULES).default([]),
+    exclude: z.array(globPatternSchema).max(MAX_REPO_CONFIG_EXCLUDE_PATTERNS).default([]),
     severity: severityConfigSchema,
     features: featureFlagsSchema,
     linters: linterConfigSchema,

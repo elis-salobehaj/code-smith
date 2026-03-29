@@ -53,6 +53,24 @@ describe("tryProvidersInOrder — single provider", () => {
     expect(capturedArgs[1]).toBe(MESSAGES);
     expect(capturedArgs[2]).toBe(tools);
   });
+
+  it("passes completion options through to the provider", async () => {
+    let capturedArgs: unknown[] = [];
+    const stub = async (...args: unknown[]) => {
+      capturedArgs = args;
+      return makeSuccessResponse("ok");
+    };
+
+    await tryProvidersInOrder(
+      [{ name: "bedrock", fn: stub as Parameters<typeof tryProvidersInOrder>[0][0]["fn"] }],
+      SYSTEM_PROMPT,
+      MESSAGES,
+      undefined,
+      { maxOutputTokens: 256 },
+    );
+
+    expect(capturedArgs[3]).toEqual({ maxOutputTokens: 256 });
+  });
 });
 
 describe("tryProvidersInOrder — provider fallback", () => {

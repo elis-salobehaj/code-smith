@@ -14,6 +14,11 @@ const cloneOrUpdateMock = mock(async () => "/tmp/repo-cache/42-feature%2Fbranch"
 const fetchLinkedTicketsMock = mock(async () => []);
 const normalizeFindingsMock = mock(async () => []);
 const postInlineCommentsMock = mock(async () => ({ posted: 0, failed: 0, skippedDuplicate: 0, skippedUnanchored: 0 }));
+const reviewCandidateRepoConfigSecurityMock = mock(async () => ({
+  issues: [],
+  summary: "",
+  droppedUnknownFieldPaths: [],
+}));
 
 let summaryNotes: Array<{ id: number; body: string }> = [];
 let getMrDetailsCalls = 0;
@@ -78,7 +83,9 @@ const getMRDiscussionsMock = mock(async () => []);
 const getMRNotesMock = mock(async () => summaryNotes);
 const getMRVersionsMock = mock(async () => mrVersions);
 const getMRCommitsMock = mock(async () => mrCommits);
+const getRepoConfigFileAtRefMock = mock(async () => null);
 const getRepositoryCompareDiffMock = mock(async () => diffFiles);
+const postConfigSecurityNoteMock = mock(async () => false);
 const postSummaryCommentMock = mock(
   async (_projectId: number, _mrIid: number, _verdict: string, _findings: unknown, headSha: string) => {
     summaryNotes = [
@@ -151,6 +158,9 @@ describe("runPipeline concurrency", () => {
     normalizeFindingsMock.mockReset();
     normalizeFindingsMock.mockResolvedValue([]);
 
+    reviewCandidateRepoConfigSecurityMock.mockReset();
+    reviewCandidateRepoConfigSecurityMock.mockResolvedValue({ issues: [], summary: "", droppedUnknownFieldPaths: [] });
+
     postInlineCommentsMock.mockReset();
     postInlineCommentsMock.mockResolvedValue({ posted: 0, failed: 0, skippedDuplicate: 0, skippedUnanchored: 0 });
 
@@ -169,8 +179,12 @@ describe("runPipeline concurrency", () => {
     getMRVersionsMock.mockResolvedValue(mrVersions);
     getMRCommitsMock.mockReset();
     getMRCommitsMock.mockResolvedValue(mrCommits);
+    getRepoConfigFileAtRefMock.mockReset();
+    getRepoConfigFileAtRefMock.mockResolvedValue(null);
     getRepositoryCompareDiffMock.mockReset();
     getRepositoryCompareDiffMock.mockResolvedValue(diffFiles);
+    postConfigSecurityNoteMock.mockReset();
+    postConfigSecurityNoteMock.mockResolvedValue(false);
 
     const summaryGate = makeDeferred();
     firstSummaryReached = summaryGate.promise;
@@ -201,6 +215,7 @@ describe("runPipeline concurrency", () => {
         getMRNotes: getMRNotesMock,
         getMRVersions: getMRVersionsMock,
         getMRCommits: getMRCommitsMock,
+        getRepoConfigFileAtRef: getRepoConfigFileAtRefMock,
         getRepositoryCompareDiff: getRepositoryCompareDiffMock,
       } as unknown as PipelineDependencies["gitlabClient"],
       repoManager: {
@@ -208,9 +223,12 @@ describe("runPipeline concurrency", () => {
       } as unknown as PipelineDependencies["repoManager"],
       publisher: {
         postInlineComments: postInlineCommentsMock,
+        postConfigSecurityNote: postConfigSecurityNoteMock,
         postSummaryComment: postSummaryCommentMock,
       } as unknown as PipelineDependencies["publisher"],
       runReview: reviewStatePassthrough as unknown as PipelineDependencies["runReview"],
+      reviewCandidateRepoConfigSecurity:
+        reviewCandidateRepoConfigSecurityMock as unknown as PipelineDependencies["reviewCandidateRepoConfigSecurity"],
       fetchLinkedTickets: fetchLinkedTicketsMock as unknown as PipelineDependencies["fetchLinkedTickets"],
       normalizeFindingsForPublication:
         normalizeFindingsMock as unknown as PipelineDependencies["normalizeFindingsForPublication"],
